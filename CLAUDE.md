@@ -47,6 +47,13 @@ Cada feature: `api.ts` (habla con Supabase, sin React) · `hooks.ts` (react-quer
 - Nunca exponer la `service_role` key en el front. La `anon key` es pública por diseño.
 - Tipos de la DB: **no editar `database.types.ts` a mano**; se regenera con `supabase gen types`.
 
+## Convención: índice por carpeta (mantener actualizado)
+
+- Cada carpeta significativa tiene un `README.md` que describe **qué es y qué contiene**, archivo por archivo (una línea por archivo).
+- Al **crear o borrar** un archivo en una carpeta, actualizá el `README.md` de esa carpeta **en el mismo cambio** (es parte de la Definition of Done).
+- Para una feature en `src/features/<dominio>/`, su `README.md` lista: propósito, archivos (`api.ts`/`hooks.ts`/`schema.ts`/`components/`) y **las funcionalidades / requisitos del PRD (FR-…) que implementa**.
+- No aplica a carpetas triviales o autogeneradas (`node_modules`, `dist`, `coverage`, etc.).
+
 ## Comandos (rellenar al hacer scaffolding — ticket A1)
 
 ```
@@ -64,6 +71,7 @@ npm test            # vitest
 - Cumple los **criterios de aceptación** del ticket.
 - No mete cambios fuera del alcance del ticket.
 - No agrega dependencias nuevas salvo que el ticket lo indique.
+- Si crea o borra archivos en una carpeta, el `README.md` de esa carpeta queda actualizado (ver "Convención: índice por carpeta").
 
 ## Política de modelos (editable — cambiá esto si querés)
 

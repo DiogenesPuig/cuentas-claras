@@ -8,12 +8,32 @@ App web para registrar **ingresos y gastos mensuales**, individual o en grupo, m
 
 | Documento | Para qué |
 |-----------|----------|
+| [`GETTING_STARTED.md`](./GETTING_STARTED.md) | Cómo retomar el proyecto en otra máquina y trabajar el backlog con Claude Code (con prompt de arranque). |
 | [`PRD.md`](./PRD.md) | Producto: requisitos, casos de uso, modelo de datos conceptual, roadmap. |
 | [`PLAN_TECNICO_FASE1.md`](./PLAN_TECNICO_FASE1.md) | Stack, estructura del repo, capa de datos, mapeo pantallas→componentes, escalabilidad. |
 | [`db/schema_fase1.sql`](./db/schema_fase1.sql) | Esquema real (Postgres/Supabase) con RLS. |
 | [`wireframes/wireframes_fase1.html`](./wireframes/wireframes_fase1.html) | Wireframes de las 8 pantallas del MVP (abrir en el navegador). |
 | [`tasks/`](./tasks/) | Backlog: un archivo por ticket. Empezar por [`tasks/README.md`](./tasks/README.md). |
 | [`CLAUDE.md`](./CLAUDE.md) | Contexto y reglas para agentes de Claude Code (incluye política de modelos). |
+
+## Estructura de carpetas
+
+| Carpeta | Contenido |
+|---------|-----------|
+| `db/` | Esquema SQL de la base (Postgres/Supabase) — fuente de verdad del modelo de datos. |
+| `wireframes/` | Wireframes de baja fidelidad de las 8 pantallas del MVP (HTML). |
+| `tasks/` | Backlog: un archivo por ticket + `README.md` con el orden y las dependencias. |
+| `src/` | Código de la app (se crea en el ticket A1): `app/`, `lib/`, `features/`, `components/`, `hooks/`, `types/`. |
+| `supabase/` | Migraciones (`migrations/`) y edge functions (`functions/`) — se crean en A2/C12. |
+
+Cada carpeta significativa tiene su propio `README.md` describiendo qué hay adentro (ver convención abajo).
+
+### Convención: índice por carpeta
+
+- Cada carpeta significativa lleva un `README.md` que describe **qué es y qué contiene** (archivo por archivo, en una línea).
+- Al **crear o borrar** un archivo en una carpeta, se actualiza el `README.md` de esa carpeta en el mismo cambio.
+- Una feature nueva en `src/features/<dominio>/` lleva un `README.md` con: propósito, archivos (`api.ts`/`hooks.ts`/`schema.ts`/`components/`) y **las funcionalidades / requisitos del PRD que implementa**.
+- No aplica a carpetas triviales o autogeneradas (`node_modules`, `dist`, etc.).
 
 ## Stack
 
