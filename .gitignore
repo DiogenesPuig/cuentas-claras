@@ -27,6 +27,9 @@ pnpm-debug.log*
 coverage/
 .eslintcache
 
+# Logs del runner de tickets
+scripts/logs/
+
 # Supabase (CLI local)
 supabase/.branches/
 supabase/.temp/

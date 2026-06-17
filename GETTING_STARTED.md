@@ -50,6 +50,18 @@ Cada ticket trae un campo **"Modelo sugerido"**. En Claude Code se cambia con `/
 
 Para revisar un cambio podés usar el comando `/review`.
 
+## 5.b Automatizar el cambio de modelo (runner)
+
+Para no cambiar `/model` a mano en cada ticket, usá el runner headless:
+
+```bash
+chmod +x scripts/run-ticket.sh    # una sola vez
+scripts/run-ticket.sh A1          # corre A1 con el modelo correcto, valida y commitea
+scripts/run-ticket.sh A1 --dry-run   # ver qué haría, sin ejecutar
+```
+
+El runner elige el modelo por ticket (según `scripts/backlog.tsv`), corre `typecheck`/`lint`/`test` si existen y commitea solo si pasa. Detalle y flags (`--all`, `--yolo`, `--model`, `--no-commit`) en `scripts/README.md`. Para decisiones de diseño o revisar un diff, seguís usando Opus aparte cuando quieras.
+
 ## 6. Reglas para que salga barato y ordenado
 
 - **Un ticket por conversación/sesión.** No le pases todo el backlog: solo el ticket que toca. Así el agente barato no arrastra contexto de más.

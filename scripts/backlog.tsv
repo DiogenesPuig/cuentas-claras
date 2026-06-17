@@ -1,0 +1,16 @@
+id	model	depends	file	subject
+A1	sonnet	-	tasks/A1-scaffolding.md	scaffolding del proyecto (Vite+TS+Tailwind)
+A2	sonnet	A1	tasks/A2-migraciones-y-tipos.md	migraciones de Supabase y generación de tipos
+A3	sonnet	A2	tasks/A3-supabase-y-auth.md	cliente Supabase y autenticación
+A4	sonnet	A3	tasks/A4-perfil-y-onboarding.md	perfil y onboarding (primer workspace)
+A5	sonnet	A4	tasks/A5-workspace-activo-y-layout.md	workspace activo y layout/navegación
+B6	haiku	A5	tasks/B6-categorias.md	categorías (seed + CRUD)
+B7	sonnet	A5	tasks/B7-medios-tarjetas.md	medios/tarjetas (lista plana con extensiones)
+B8	sonnet	B6,B7	tasks/B8-alta-movimientos.md	alta/edición de movimientos
+B9	sonnet	B8	tasks/B9-dashboard.md	dashboard mensual
+B10	sonnet	B8	tasks/B10-movimientos-lista-filtros.md	movimientos: lista, filtros y búsqueda
+C11	sonnet	A1	tasks/C11-money-y-billing.md	lógica de dinero y ciclos (con tests)
+C12	sonnet	A2	tasks/C12-edge-function-fx.md	edge function de FX + tabla fx_rates
+C13	sonnet	B10,C11,C12	tasks/C13-reportes.md	reportes (tabs + gráficos)
+C14	haiku	B10	tasks/C14-export.md	exportar CSV/XLSX
+C15	sonnet	A5	tasks/C15-grupo-miembros-invitaciones.md	grupo: miembros, roles, invitaciones
