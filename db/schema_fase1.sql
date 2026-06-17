@@ -1,0 +1,406 @@
+-- ============================================================================
+-- Cuentas Claras — Esquema de base de datos (Fase 1)
+-- Motor: PostgreSQL (compatible con Supabase)
+-- Versión: 1.0  |  Fecha: 2026-06-17
+--
+-- Alcance Fase 1:
+--   profiles, workspaces, workspace_members, invitations,
+--   accounts (tarjetas/medios), categories, transactions, attachments.
+-- Fases posteriores (NO incluidas aquí): statement_imports,
+--   transaction_splits, settlements, integración WhatsApp.
+--
+-- Notas:
+--   * En Supabase, la identidad vive en auth.users. Acá creamos `profiles`
+--     (1:1 con auth.users) para los datos de la app.
+--   * Aislamiento entre workspaces vía Row Level Security (RLS).
+--   * Todo `id` es UUID. Montos en NUMERIC(14,2). Moneda en ISO-4217 (3 letras).
+-- ============================================================================
+
+-- Extensiones --------------------------------------------------------------
+create extension if not exists "pgcrypto";   -- gen_random_uuid()
+
+-- ============================================================================
+-- ENUMS
+-- ============================================================================
+create type member_role     as enum ('owner', 'admin', 'member', 'viewer');
+create type account_type     as enum ('credit', 'debit', 'cash', 'wallet', 'bank_account');
+create type card_network     as enum ('visa', 'mastercard', 'amex', 'cabal', 'other');
+create type category_kind    as enum ('expense', 'income');
+create type transaction_type as enum ('expense', 'income');
+create type transaction_source as enum ('manual', 'whatsapp', 'ocr', 'statement_import');
+create type attachment_kind  as enum ('receipt', 'statement');
+create type attachment_status as enum ('uploaded', 'processed', 'failed');
+create type invitation_status as enum ('pending', 'accepted', 'revoked', 'expired');
+
+-- ============================================================================
+-- FUNCIÓN: updated_at automático
+-- ============================================================================
+create or replace function set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+-- ============================================================================
+-- PROFILES  (1:1 con auth.users)
+--   El phone_number es interno: nunca se expone a otros miembros (solo el name).
+-- ============================================================================
+create table profiles (
+  id            uuid primary key references auth.users (id) on delete cascade,
+  name          text not null,
+  avatar_url    text,
+  phone_number  text unique,                       -- privado, para WhatsApp
+  notify_prefs  jsonb not null default
+                  '{"channel":"whatsapp","email_fallback":true,
+                    "events":{"income":true,"card_close":true}}'::jsonb,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+create trigger trg_profiles_updated
+  before update on profiles
+  for each row execute function set_updated_at();
+
+-- ============================================================================
+-- WORKSPACES  (un usuario individual = workspace de 1 miembro)
+-- ============================================================================
+create table workspaces (
+  id             uuid primary key default gen_random_uuid(),
+  name           text not null,
+  base_currency  char(3) not null default 'ARS',   -- ISO-4217
+  fx_source      text not null default 'dolarapi',  -- 'dolarapi' | 'bcra' | 'manual'
+  fx_quote       text not null default 'oficial',   -- 'oficial' | 'blue' | 'mep' | ...
+  owner_id       uuid not null references profiles (id),
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now()
+);
+
+create trigger trg_workspaces_updated
+  before update on workspaces
+  for each row execute function set_updated_at();
+
+-- ============================================================================
+-- WORKSPACE_MEMBERS  (vínculo usuario ↔ workspace + rol)
+-- ============================================================================
+create table workspace_members (
+  id            uuid primary key default gen_random_uuid(),
+  workspace_id  uuid not null references workspaces (id) on delete cascade,
+  user_id       uuid not null references profiles (id)   on delete cascade,
+  role          member_role not null default 'member',
+  joined_at     timestamptz not null default now(),
+  unique (workspace_id, user_id)
+);
+
+create index idx_members_workspace on workspace_members (workspace_id);
+create index idx_members_user      on workspace_members (user_id);
+
+-- ============================================================================
+-- HELPER: ¿el usuario actual es miembro del workspace?  (evita recursión RLS)
+-- SECURITY DEFINER para poder leer workspace_members sin disparar su RLS.
+-- ============================================================================
+create or replace function is_member(ws uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from workspace_members m
+    where m.workspace_id = ws and m.user_id = auth.uid()
+  );
+$$;
+
+create or replace function has_role(ws uuid, roles member_role[])
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from workspace_members m
+    where m.workspace_id = ws
+      and m.user_id = auth.uid()
+      and m.role = any(roles)
+  );
+$$;
+
+-- ============================================================================
+-- INVITATIONS
+-- ============================================================================
+create table invitations (
+  id            uuid primary key default gen_random_uuid(),
+  workspace_id  uuid not null references workspaces (id) on delete cascade,
+  email         text not null,
+  role          member_role not null default 'member',
+  token         text not null unique default encode(gen_random_bytes(24), 'hex'),
+  status        invitation_status not null default 'pending',
+  invited_by    uuid not null references profiles (id),
+  expires_at    timestamptz not null default (now() + interval '7 days'),
+  created_at    timestamptz not null default now()
+);
+
+create index idx_invitations_workspace on invitations (workspace_id);
+create index idx_invitations_email      on invitations (lower(email));
+
+-- ============================================================================
+-- ACCOUNTS  (tarjetas / medios de pago)
+-- ============================================================================
+create table accounts (
+  id                uuid primary key default gen_random_uuid(),
+  workspace_id      uuid not null references workspaces (id) on delete cascade,
+  name              text not null,                         -- ej. "Visa Nación Pepito"
+  bank              text,                                  -- ej. "Banco Nación"
+  network           card_network,                          -- visa | mastercard | ... (null si no es tarjeta)
+  type              account_type not null,
+  currency          char(3) not null default 'ARS',
+  last4             char(4),
+  -- Persona dueña/usuaria del medio (titular o extensión). La persona del
+  -- movimiento se deduce de acá; no se elige en cada alta.
+  owner_member_id   uuid references workspace_members (id) on delete set null, -- si usa la app
+  holder_name       text not null,                         -- nombre del que la usa (ej. "Pepito")
+  -- Extensiones: cada extensión es su propio medio; opcionalmente apunta a la titular
+  is_extension      boolean not null default false,
+  parent_account_id uuid references accounts (id) on delete set null,
+  billing_close_day smallint check (billing_close_day between 1 and 31), -- ciclo configurable
+  is_archived       boolean not null default false,
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now()
+);
+
+create index idx_accounts_workspace on accounts (workspace_id);
+create index idx_accounts_owner     on accounts (owner_member_id);
+create index idx_accounts_parent    on accounts (parent_account_id);
+
+create trigger trg_accounts_updated
+  before update on accounts
+  for each row execute function set_updated_at();
+
+-- ============================================================================
+-- CATEGORIES
+--   workspace_id NULL = categoría global por defecto (visible para todos).
+-- ============================================================================
+create table categories (
+  id            uuid primary key default gen_random_uuid(),
+  workspace_id  uuid references workspaces (id) on delete cascade,  -- NULL = global
+  name          text not null,
+  kind          category_kind not null,
+  icon          text,
+  color         text,
+  parent_id     uuid references categories (id) on delete set null,
+  created_at    timestamptz not null default now()
+);
+
+create index idx_categories_workspace on categories (workspace_id);
+
+-- ============================================================================
+-- ATTACHMENTS  (comprobantes / resúmenes). En Fase 1 solo se guardan.
+-- ============================================================================
+create table attachments (
+  id                uuid primary key default gen_random_uuid(),
+  workspace_id      uuid not null references workspaces (id) on delete cascade,
+  uploaded_by       uuid not null references profiles (id),
+  file_url          text not null,
+  file_type         text not null,                       -- 'image' | 'pdf'
+  kind              attachment_kind not null default 'receipt',
+  status            attachment_status not null default 'uploaded',
+  created_at        timestamptz not null default now()
+);
+
+create index idx_attachments_workspace on attachments (workspace_id);
+
+-- ============================================================================
+-- TRANSACTIONS  (entidad central: ingresos y gastos)
+-- ============================================================================
+create table transactions (
+  id                  uuid primary key default gen_random_uuid(),
+  workspace_id        uuid not null references workspaces (id) on delete cascade,
+  type                transaction_type not null,
+  amount              numeric(14,2) not null check (amount > 0),  -- monto original
+  currency            char(3) not null,                            -- moneda original
+  amount_base         numeric(14,2),                               -- convertido a base_currency
+  fx_rate             numeric(18,6),                               -- tipo de cambio aplicado
+  fx_date             date,                                        -- fecha del FX usado
+  occurred_on         date not null default current_date,          -- cuándo ocurrió
+  charged_on          date,                                        -- cuándo se cobra/imputa (base del FX y del ciclo)
+  description         text,
+  category_id         uuid references categories (id)         on delete set null,
+  account_id          uuid references accounts (id)           on delete set null,  -- medio/tarjeta usado (define la persona vía su holder)
+  created_by          uuid not null references profiles (id),
+  source              transaction_source not null default 'manual',
+  is_shared           boolean not null default false,              -- base para "quién debe a quién"
+  attachment_id       uuid references attachments (id)        on delete set null,
+  external_hash       text,                                        -- detección de duplicados
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now()
+);
+
+-- Índices para los filtros/reportes más comunes
+create index idx_tx_workspace        on transactions (workspace_id);
+create index idx_tx_ws_charged       on transactions (workspace_id, charged_on);
+create index idx_tx_ws_occurred      on transactions (workspace_id, occurred_on);
+create index idx_tx_account          on transactions (account_id);
+create index idx_tx_category         on transactions (category_id);
+-- Evita importar dos veces el mismo movimiento de un resumen
+create unique index uq_tx_external_hash
+  on transactions (workspace_id, external_hash)
+  where external_hash is not null;
+
+create trigger trg_transactions_updated
+  before update on transactions
+  for each row execute function set_updated_at();
+
+-- ============================================================================
+-- ROW LEVEL SECURITY
+--   Regla general: un usuario solo accede a filas de workspaces a los que
+--   pertenece. Escritura/borrado de configuración: owner/admin.
+-- ============================================================================
+alter table profiles          enable row level security;
+alter table workspaces        enable row level security;
+alter table workspace_members enable row level security;
+alter table invitations       enable row level security;
+alter table accounts          enable row level security;
+alter table categories        enable row level security;
+alter table attachments       enable row level security;
+alter table transactions      enable row level security;
+
+-- PROFILES: cada quien gestiona su propio perfil ---------------------------
+create policy profiles_select_self on profiles
+  for select using (id = auth.uid());
+create policy profiles_update_self on profiles
+  for update using (id = auth.uid());
+create policy profiles_insert_self on profiles
+  for insert with check (id = auth.uid());
+
+-- WORKSPACES ---------------------------------------------------------------
+create policy ws_select on workspaces
+  for select using (is_member(id));
+create policy ws_insert on workspaces
+  for insert with check (owner_id = auth.uid());
+create policy ws_update on workspaces
+  for update using (has_role(id, array['owner','admin']::member_role[]));
+create policy ws_delete on workspaces
+  for delete using (has_role(id, array['owner']::member_role[]));
+
+-- WORKSPACE_MEMBERS --------------------------------------------------------
+create policy wm_select on workspace_members
+  for select using (is_member(workspace_id));
+create policy wm_write on workspace_members
+  for all using (has_role(workspace_id, array['owner','admin']::member_role[]))
+  with check (has_role(workspace_id, array['owner','admin']::member_role[]));
+
+-- INVITATIONS --------------------------------------------------------------
+create policy inv_admin on invitations
+  for all using (has_role(workspace_id, array['owner','admin']::member_role[]))
+  with check (has_role(workspace_id, array['owner','admin']::member_role[]));
+
+-- ACCOUNTS -----------------------------------------------------------------
+create policy acc_select on accounts
+  for select using (is_member(workspace_id));
+create policy acc_write on accounts
+  for all using (has_role(workspace_id, array['owner','admin']::member_role[]))
+  with check (has_role(workspace_id, array['owner','admin']::member_role[]));
+
+-- CATEGORIES (las globales, workspace_id IS NULL, son visibles para todos) --
+create policy cat_select on categories
+  for select using (workspace_id is null or is_member(workspace_id));
+create policy cat_write on categories
+  for all using (workspace_id is not null
+                 and has_role(workspace_id, array['owner','admin']::member_role[]))
+  with check (workspace_id is not null
+                 and has_role(workspace_id, array['owner','admin']::member_role[]));
+
+-- ATTACHMENTS --------------------------------------------------------------
+create policy att_select on attachments
+  for select using (is_member(workspace_id));
+create policy att_insert on attachments
+  for insert with check (is_member(workspace_id) and uploaded_by = auth.uid());
+create policy att_delete on attachments
+  for delete using (has_role(workspace_id, array['owner','admin']::member_role[]));
+
+-- TRANSACTIONS -------------------------------------------------------------
+-- Lectura: cualquier miembro. Inserción: cualquier miembro (registra el suyo).
+-- Edición/borrado: el autor, o admin/owner del workspace.
+create policy tx_select on transactions
+  for select using (is_member(workspace_id));
+create policy tx_insert on transactions
+  for insert with check (is_member(workspace_id) and created_by = auth.uid());
+create policy tx_update on transactions
+  for update using (
+    created_by = auth.uid()
+    or has_role(workspace_id, array['owner','admin']::member_role[])
+  );
+create policy tx_delete on transactions
+  for delete using (
+    created_by = auth.uid()
+    or has_role(workspace_id, array['owner','admin']::member_role[])
+  );
+
+-- ============================================================================
+-- VISTA: directorio de miembros (privacidad de teléfono)
+--   profiles queda accesible SOLO para el propio usuario (RLS self).
+--   Para que los co-miembros se vean entre sí, exponemos esta vista con
+--   columnas SEGURAS (nombre, avatar) — el phone_number NO se incluye.
+--   security_invoker=false: la vista lee profiles como owner (bypass RLS),
+--   pero el WHERE is_member() limita las filas a los workspaces del que llama.
+-- ============================================================================
+create view member_directory
+with (security_invoker = false) as
+  select
+    wm.workspace_id,
+    p.id   as user_id,
+    p.name,
+    p.avatar_url,
+    wm.role
+  from workspace_members wm
+  join profiles p on p.id = wm.user_id
+  where is_member(wm.workspace_id);
+
+-- ============================================================================
+-- TRIGGER: al crear un workspace, agregar al creador como owner
+-- ============================================================================
+create or replace function add_owner_on_workspace_create()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into workspace_members (workspace_id, user_id, role)
+  values (new.id, new.owner_id, 'owner');
+  return new;
+end;
+$$;
+
+create trigger trg_ws_add_owner
+  after insert on workspaces
+  for each row execute function add_owner_on_workspace_create();
+
+-- ============================================================================
+-- SEED: categorías globales por defecto (workspace_id = NULL)
+-- ============================================================================
+insert into categories (workspace_id, name, kind, icon) values
+  (null, 'Supermercado',    'expense', '🛒'),
+  (null, 'Alquiler',        'expense', '🏠'),
+  (null, 'Servicios',       'expense', '💡'),
+  (null, 'Transporte',      'expense', '🚗'),
+  (null, 'Salud',           'expense', '⚕️'),
+  (null, 'Ocio',            'expense', '🎉'),
+  (null, 'Restaurantes',    'expense', '🍽️'),
+  (null, 'Educación',       'expense', '📚'),
+  (null, 'Compras',         'expense', '🛍️'),
+  (null, 'Otros gastos',    'expense', '📦'),
+  (null, 'Sueldo',          'income',  '💼'),
+  (null, 'Transferencia',   'income',  '💸'),
+  (null, 'Reintegro',       'income',  '↩️'),
+  (null, 'Otros ingresos',  'income',  '➕');
+
+-- ============================================================================
+-- FIN — schema Fase 1
+-- ============================================================================
+-- (v1.0 · Fase 1 · Cuentas Claras)

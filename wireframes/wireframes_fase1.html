@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cuentas Claras — Wireframes Fase 1</title>
+<style>
+  :root{
+    --ink:#2b2b2b; --line:#9aa0a6; --soft:#c7ccd1; --bg:#eef0f2;
+    --frame:#ffffff; --muted:#6b7177; --accent:#3a3f44;
+  }
+  *{box-sizing:border-box;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  body{margin:0;background:var(--bg);color:var(--ink)}
+  header.page{padding:28px 24px 8px}
+  header.page h1{margin:0;font-size:22px;letter-spacing:.3px}
+  header.page p{margin:6px 0 0;color:var(--muted);font-size:14px;max-width:760px}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin:14px 24px 4px;color:var(--muted);font-size:12px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .swatch{width:14px;height:14px;border:1.5px solid var(--line);border-radius:3px;display:inline-block}
+  .swatch.fill{background:var(--soft);border-style:solid}
+  .swatch.dash{border-style:dashed}
+  .canvas{display:flex;flex-wrap:wrap;gap:26px;padding:20px 24px 60px}
+
+  /* phone frame */
+  .phone{width:320px;background:var(--frame);border:1.5px solid var(--line);border-radius:18px;
+         box-shadow:0 2px 0 rgba(0,0,0,.04);overflow:hidden}
+  .cap{font-size:12px;color:var(--muted);padding:8px 14px 0}
+  .cap b{color:var(--ink);font-size:13px}
+  .screen{padding:12px 14px 16px;min-height:520px;display:flex;flex-direction:column;gap:10px}
+
+  /* primitives (wireframe look) */
+  .bar{height:14px;border:1.5px solid var(--line);border-radius:4px;background:#fff}
+  .bar.sm{height:10px} .bar.lg{height:20px}
+  .fill{background:var(--soft);border-style:solid}
+  .box{border:1.5px solid var(--line);border-radius:8px;padding:10px}
+  .box.dash{border-style:dashed}
+  .row{display:flex;align-items:center;gap:8px}
+  .row.sb{justify-content:space-between}
+  .col{display:flex;flex-direction:column;gap:8px}
+  .w40{width:40%}.w50{width:50%}.w60{width:60%}.w70{width:70%}.w30{width:30%}.w25{width:25%}.w80{width:80%}
+  .grow{flex:1}
+  .pill{border:1.5px solid var(--line);border-radius:999px;padding:5px 10px;font-size:11px;color:var(--muted);white-space:nowrap}
+  .pill.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .pill.dash{border-style:dashed}
+  .btn{border:1.5px solid var(--accent);background:var(--accent);color:#fff;border-radius:8px;
+       padding:9px;text-align:center;font-size:13px}
+  .btn.ghost{background:#fff;color:var(--accent)}
+  .fab{position:relative;align-self:flex-end;width:46px;height:46px;border-radius:50%;
+       background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px}
+  .label{font-size:11px;color:var(--muted)}
+  .h{font-size:14px;font-weight:600}
+  .amount{font-size:13px}
+  .pos{color:#1d7a3d}.neg{color:#b23b3b}
+  .tabbar{margin-top:auto;border-top:1.5px solid var(--soft);display:flex;justify-content:space-around;padding-top:10px}
+  .tabbar .t{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--muted)}
+  .ic{width:20px;height:20px;border:1.5px solid var(--line);border-radius:5px}
+  .ic.on{background:var(--accent);border-color:var(--accent)}
+  .donut{width:96px;height:96px;border-radius:50%;
+         background:conic-gradient(var(--accent) 0 38%, var(--line) 38% 62%, var(--soft) 62% 100%);
+         -webkit-mask:radial-gradient(circle 30px at 50% 50%, transparent 98%, #000 100%);
+                 mask:radial-gradient(circle 30px at 50% 50%, transparent 98%, #000 100%)}
+  .barv{width:18px;background:var(--soft);border:1.5px solid var(--line);border-radius:3px 3px 0 0}
+  .note{font-size:11px;color:var(--muted);font-style:italic}
+  .divider{height:1px;background:var(--soft);margin:2px 0}
+  .modal-tag{font-size:10px;color:#fff;background:var(--accent);border-radius:4px;padding:2px 6px;align-self:flex-start}
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>Cuentas Claras — Wireframes Fase 1 (MVP)</h1>
+  <p>Baja fidelidad, mobile-first. Foco en el núcleo: registrar movimientos y verlos por mes, tarjeta, persona y categoría, con consolidado multi-moneda. No incluye OCR, parseo de resúmenes, WhatsApp ni saldos (fases posteriores).</p>
+</header>
+<div class="legend">
+  <span><i class="swatch"></i> contenedor / campo</span>
+  <span><i class="swatch fill"></i> texto / dato (placeholder)</span>
+  <span><i class="swatch dash"></i> acción opcional / vacío</span>
+  <span><i class="swatch" style="background:var(--accent);border-color:var(--accent)"></i> acción primaria</span>
+</div>
+
+<div class="canvas">
+
+  <!-- 1. LOGIN -->
+  <div class="phone">
+    <div class="cap"><b>1. Ingreso / Registro</b><br>auth con email u OAuth</div>
+    <div class="screen">
+      <div style="height:24px"></div>
+      <div class="row" style="justify-content:center"><div class="bar lg fill w60"></div></div>
+      <div class="note" style="text-align:center">logo / nombre</div>
+      <div style="height:18px"></div>
+      <div class="col">
+        <div class="label">Email</div><div class="bar"></div>
+        <div class="label">Contraseña</div><div class="bar"></div>
+      </div>
+      <div class="btn">Ingresar</div>
+      <div class="btn ghost">Continuar con Google</div>
+      <div class="divider"></div>
+      <div class="row" style="justify-content:center"><div class="bar sm fill w70"></div></div>
+      <div class="note" style="text-align:center">¿No tenés cuenta? Registrate</div>
+    </div>
+  </div>
+
+  <!-- 2. DASHBOARD -->
+  <div class="phone">
+    <div class="cap"><b>2. Dashboard mensual</b><br>resumen + últimos movimientos</div>
+    <div class="screen">
+      <div class="row sb">
+        <div class="pill on">Hogar ▾</div>
+        <div class="ic"></div>
+      </div>
+      <div class="row sb">
+        <div class="pill">◂ Junio 2026 ▸</div>
+        <div class="pill">ARS ▾</div>
+      </div>
+      <div class="box">
+        <div class="row sb"><span class="label">Ingresos</span><span class="amount pos">+ 000.000</span></div>
+        <div class="row sb"><span class="label">Gastos</span><span class="amount neg">− 000.000</span></div>
+        <div class="divider"></div>
+        <div class="row sb"><span class="h">Balance</span><span class="amount">000.000</span></div>
+        <div class="note">Consolidado en ARS · incluye USD × cotización</div>
+      </div>
+      <div class="row sb"><span class="h">Últimos movimientos</span><span class="label">Ver todos</span></div>
+      <div class="col">
+        <div class="box"><div class="row sb"><div class="col" style="gap:4px"><div class="bar sm fill w80" style="width:90px"></div><div class="label">Súper · Visa · hoy</div></div><span class="amount neg">−5.000</span></div></div>
+        <div class="box"><div class="row sb"><div class="col" style="gap:4px"><div class="bar sm fill" style="width:70px"></div><div class="label">Sueldo · Transf · 01/06</div></div><span class="amount pos">+000.000</span></div></div>
+        <div class="box"><div class="row sb"><div class="col" style="gap:4px"><div class="bar sm fill" style="width:80px"></div><div class="label">Spotify · USD · 03/06</div></div><span class="amount neg">−5,99</span></div></div>
+      </div>
+      <div class="fab">+</div>
+      <div class="tabbar">
+        <div class="t"><div class="ic on"></div>Inicio</div>
+        <div class="t"><div class="ic"></div>Movim.</div>
+        <div class="t"><div class="ic"></div>Reportes</div>
+        <div class="t"><div class="ic"></div>Ajustes</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. ALTA RÁPIDA -->
+  <div class="phone">
+    <div class="cap"><b>3. Alta rápida</b><br>modal al tocar “+”</div>
+    <div class="screen">
+      <span class="modal-tag">Nuevo movimiento</span>
+      <div class="row"><div class="pill on grow" style="text-align:center">Gasto</div><div class="pill grow" style="text-align:center">Ingreso</div></div>
+      <div class="col">
+        <div class="label">Monto</div>
+        <div class="row"><div class="bar lg grow"></div><div class="pill">ARS ▾</div></div>
+        <div class="label">Motivo / descripción</div><div class="bar"></div>
+        <div class="label">Categoría</div><div class="bar dash"></div>
+        <div class="label">Tarjeta / medio</div><div class="bar dash"></div>
+        <div class="row">
+          <div class="col grow"><div class="label">Fecha</div><div class="bar fill"></div></div>
+          <div class="col grow"><div class="label">Se cobra</div><div class="bar dash"></div></div>
+        </div>
+        <div class="box dash"><div class="row" style="justify-content:center"><span class="label">＋ adjuntar comprobante (opcional)</span></div></div>
+      </div>
+      <div class="btn">Guardar</div>
+      <div class="note">Fecha = hoy por defecto · foco automático en Monto · la persona se deduce del medio elegido</div>
+    </div>
+  </div>
+
+  <!-- 4. MOVIMIENTOS + FILTROS -->
+  <div class="phone">
+    <div class="cap"><b>4. Movimientos</b><br>listado + filtros + buscar</div>
+    <div class="screen">
+      <div class="row sb"><span class="h">Movimientos</span><span class="label">Exportar ⤓</span></div>
+      <div class="bar" style="display:flex;align-items:center;padding-left:8px"><span class="label">Q  Buscar…</span></div>
+      <div class="row" style="flex-wrap:wrap;gap:6px">
+        <div class="pill on">Mes ▾</div><div class="pill">Persona ▾</div>
+        <div class="pill">Tarjeta ▾</div><div class="pill">Categoría ▾</div><div class="pill">Moneda ▾</div>
+      </div>
+      <div class="label">12 movimientos · −000.000 ARS</div>
+      <div class="col">
+        <div class="box"><div class="row sb"><div class="col" style="gap:3px"><div class="bar sm fill" style="width:95px"></div><div class="label">Súper · Visa Nación · <b>Pepito (ext.)</b> · 17/06</div></div><span class="amount neg">−5.000</span></div></div>
+        <div class="box"><div class="row sb"><div class="col" style="gap:3px"><div class="bar sm fill" style="width:70px"></div><div class="label">Nafta · Efectivo · Ana · 15/06</div></div><span class="amount neg">−8.000</span></div></div>
+        <div class="box"><div class="row sb"><div class="col" style="gap:3px"><div class="bar sm fill" style="width:85px"></div><div class="label">Spotify · USD · Dioge · 03/06</div></div><span class="amount neg">−5,99</span></div></div>
+        <div class="box"><div class="row sb"><div class="col" style="gap:3px"><div class="bar sm fill" style="width:60px"></div><div class="label">Sueldo · Transf · Ana · 01/06</div></div><span class="amount pos">+000.000</span></div></div>
+      </div>
+      <div class="note">Tocar un ítem → editar / eliminar (según permisos)</div>
+    </div>
+  </div>
+
+  <!-- 5. TARJETAS / MEDIOS -->
+  <div class="phone">
+    <div class="cap"><b>5. Tarjetas / medios</b><br>gestión + total por medio</div>
+    <div class="screen">
+      <div class="row sb"><span class="h">Tarjetas y medios</span><span class="pill on">＋ Nueva</span></div>
+      <div class="col">
+        <div class="box"><div class="row sb"><div class="col" style="gap:4px"><div class="bar sm fill" style="width:110px"></div><div class="label">Visa Nación · Juan · titular · ARS · ••42</div><div class="label">Banco Nación · cierre día 25</div></div><span class="amount neg">−000.000</span></div></div>
+        <div class="box"><div class="row sb"><div class="col" style="gap:4px"><div class="bar sm fill" style="width:115px"></div><div class="label">Visa Nación · Pepito · <b>extensión</b> · ••88</div><div class="label">Banco Nación · titular: Juan</div></div><span class="amount neg">−000.000</span></div></div>
+        <div class="box"><div class="row sb"><div class="col" style="gap:4px"><div class="bar sm fill" style="width:120px"></div><div class="label">Master Patagonia · Ana · titular · ARS · ••07</div><div class="label">Banco Patagonia · cierre día 10</div></div><span class="amount neg">−000.000</span></div></div>
+        <div class="box"><div class="row sb"><div class="col" style="gap:4px"><div class="bar sm fill" style="width:80px"></div><div class="label">Efectivo · ARS</div></div><span class="amount neg">−000.000</span></div></div>
+        <div class="box dash"><div class="row sb"><div class="col" style="gap:4px"><div class="bar sm fill" style="width:90px"></div><div class="label">Billetera USD</div></div><span class="amount neg">−00,00</span></div></div>
+      </div>
+      <div class="note">Cada medio (incl. extensiones) es una fila propia · muestra banco, red y de quién es · día de cierre configurable</div>
+    </div>
+  </div>
+
+  <!-- 6. REPORTES -->
+  <div class="phone">
+    <div class="cap"><b>6. Reportes</b><br>por categoría / tarjeta / persona</div>
+    <div class="screen">
+      <div class="row sb"><span class="h">Reportes</span><div class="pill">Junio 2026 ▾</div></div>
+      <div class="row" style="gap:6px;flex-wrap:wrap"><div class="pill on">Categoría</div><div class="pill">Persona</div><div class="pill">Banco</div><div class="pill">Red</div><div class="pill">Medio</div></div>
+      <div class="box">
+        <div class="row" style="justify-content:center;gap:14px;align-items:center">
+          <div class="donut"></div>
+          <div class="col" style="gap:6px">
+            <div class="row"><div class="ic" style="background:var(--accent);border-color:var(--accent)"></div><span class="label">Súper 38%</span></div>
+            <div class="row"><div class="ic" style="background:var(--line);border-color:var(--line)"></div><span class="label">Servicios 24%</span></div>
+            <div class="row"><div class="ic" style="background:var(--soft)"></div><span class="label">Otros 38%</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="box">
+        <div class="label">Mes a mes</div>
+        <div class="row" style="align-items:flex-end;height:80px;gap:8px;justify-content:center">
+          <div class="barv" style="height:40px"></div><div class="barv" style="height:62px"></div>
+          <div class="barv" style="height:30px"></div><div class="barv" style="height:74px"></div>
+          <div class="barv" style="height:52px"></div>
+        </div>
+      </div>
+      <div class="note">Totales por moneda + consolidado en base · ver por persona muestra sus extensiones y titulares</div>
+    </div>
+  </div>
+
+  <!-- 7. GRUPO / MIEMBROS -->
+  <div class="phone">
+    <div class="cap"><b>7. Grupo y miembros</b><br>roles + invitación</div>
+    <div class="screen">
+      <div class="row sb"><span class="h">Hogar</span><div class="pill">Editar</div></div>
+      <div class="label">Moneda base: ARS · Cotización: dólar oficial</div>
+      <div class="divider"></div>
+      <div class="row sb"><span class="h">Miembros (3)</span><div class="pill on">＋ Invitar</div></div>
+      <div class="col">
+        <div class="box"><div class="row sb"><div class="row"><div class="ic" style="border-radius:50%"></div><div class="col" style="gap:2px"><div class="bar sm fill" style="width:70px"></div><div class="label">Owner</div></div></div><span class="label">vos</span></div></div>
+        <div class="box"><div class="row sb"><div class="row"><div class="ic" style="border-radius:50%"></div><div class="col" style="gap:2px"><div class="bar sm fill" style="width:60px"></div><div class="label">Member</div></div></div><span class="label">▾</span></div></div>
+        <div class="box dash"><div class="row sb"><div class="row"><div class="ic" style="border-radius:50%"></div><div class="col" style="gap:2px"><div class="bar sm fill" style="width:80px"></div><div class="label">Invitación pendiente</div></div></div><span class="label">reenviar</span></div></div>
+      </div>
+      <div class="note">Solo se ve el nombre, nunca el teléfono · roles: owner/admin/member/viewer</div>
+    </div>
+  </div>
+
+  <!-- 8. INVITAR (modal) -->
+  <div class="phone">
+    <div class="cap"><b>8. Invitar miembro</b><br>por email + link</div>
+    <div class="screen">
+      <span class="modal-tag">Invitar a “Hogar”</span>
+      <div class="col">
+        <div class="label">Email</div><div class="bar"></div>
+        <div class="label">Rol</div>
+        <div class="row" style="gap:6px"><div class="pill">Admin</div><div class="pill on">Member</div><div class="pill">Viewer</div></div>
+      </div>
+      <div class="btn">Enviar invitación</div>
+      <div class="divider"></div>
+      <div class="label">O compartí un link de invitación</div>
+      <div class="box dash"><div class="row sb"><span class="label">https://…/invite/abc123</span><span class="label">copiar</span></div></div>
+      <div class="note">Vence a los 7 días · al aceptar entra como Member</div>
+      <div style="height:120px"></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
