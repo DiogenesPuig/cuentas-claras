@@ -9,4 +9,4 @@ Esquema SQL de la base (Postgres/Supabase). Es la **fuente de verdad** del model
 ## Notas
 
 - Si cambia el esquema, regenerar `src/lib/database.types.ts` con `supabase gen types`.
-- Las migraciones versionadas viven en `supabase/migrations/` (se generan en el ticket **A2**).
+- Las migraciones versionadas viven en `supabase/migrations/` (ticket **A2**). Ahí `gen_random_bytes` quedó calificado como `extensions.gen_random_bytes`, porque en Supabase `pgcrypto` se instala en el esquema `extensions`, no en `public`; este archivo no se tocó para no desviar la fuente de verdad, pero es la única diferencia con la migración real.
