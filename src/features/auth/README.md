@@ -1,0 +1,21 @@
+# src/features/auth
+
+Login/registro y sesión del usuario. Implementa **FR-1** (PRD §5.1): registro e inicio de
+sesión con email+contraseña y/o OAuth de Google.
+
+## Archivos
+
+- `api.ts` — funciones que hablan con `supabase.auth` (sign in/up/out, OAuth Google). Sin React.
+- `context.ts` — `AuthContext` y `useAuth()` (separado de `hooks.tsx` por fast-refresh de Vite).
+- `hooks.tsx` — `AuthProvider`: escucha `onAuthStateChange` y expone `session`/`user`/`loading`.
+- `schema.ts` — esquemas zod de los formularios de login/registro.
+- `index.ts` — barrel del feature.
+- `components/LoginPage.tsx` — pantalla `/login`.
+- `components/RegisterPage.tsx` — pantalla `/register`.
+- `components/OAuthButton.tsx` — botón "Continuar con Google".
+- `components/RequireAuth.tsx` — guard de rutas privadas; redirige a `/login` sin sesión.
+- `components/LoginPage.test.tsx` — smoke test de validación de campos requeridos.
+
+## Fuera de alcance (ver A4)
+
+- Creación de la fila en `profiles` y del primer workspace al loguearse por primera vez.

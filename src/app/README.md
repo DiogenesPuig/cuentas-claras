@@ -1,9 +1,12 @@
 # src/app
 
-Composición de la aplicación: rutas, providers y layout. (Vacío hasta los tickets A3/A5.)
+Composición de la aplicación: rutas, providers y layout.
+
+## Archivos
+
+- `router.tsx` — rutas (`/login`, `/register`, `/` protegida con `RequireAuth`).
+- `providers.tsx` — `QueryClientProvider` + `AuthProvider`.
 
 ## Contenido previsto
 
-- `router.tsx` — definición de rutas (react-router-dom).
-- `providers.tsx` — QueryClient, Auth, Workspace, Theme.
-- `layout/` — `AppLayout`, `Header`, `TabBar`.
+- `layout/` — `AppLayout`, `Header`, `TabBar`. [A5]
