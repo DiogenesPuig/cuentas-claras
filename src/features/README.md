@@ -6,7 +6,7 @@ lista las funcionalidades / FR del PRD que implementa. (Vacío hasta Sprint A/B.
 
 ## Dominios previstos
 
-- `auth/` — login/registro, sesión. [A3]
+- `auth/` — login/registro, sesión. (hecho — A3)
 - `workspaces/` — workspace activo, miembros, invitaciones. [A4/A5/C15]
 - `accounts/` — tarjetas/medios + extensiones. [B7]
 - `categories/` — categorías (seed + CRUD). [B6]
