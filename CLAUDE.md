@@ -92,5 +92,5 @@ npm test            # vitest
 1. Abrir `tasks/README.md` y elegir el próximo ticket según dependencias.
 2. (Opus) revisar el ticket y, si hace falta, afinarlo.
 3. (Sonnet/Haiku) implementar **solo ese ticket**.
-4. Correr `typecheck`, `lint`, `test`.
-5. (Opus) revisar el diff contra los criterios de aceptación antes de mergear.
+4. Correr `typecheck`, `lint`, `test`. Si está instalado el hook de `claude-setup/`, el gate lo fuerza al cerrar el turno.
+5. Revisar el diff contra los criterios de aceptación antes de mergear. Para tickets de riesgo (auth, RLS, dinero, FX, permisos) usar el subagente `reviewer` (ver `claude-setup/README.md`).

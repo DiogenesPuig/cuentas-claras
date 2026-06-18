@@ -24,6 +24,7 @@ App web para registrar **ingresos y gastos mensuales**, individual o en grupo, m
 | `wireframes/` | Wireframes de baja fidelidad de las 8 pantallas del MVP (HTML). |
 | `tasks/` | Backlog: un archivo por ticket + `README.md` con el orden y las dependencias. |
 | `scripts/` | Automatización: runner headless que corre cada ticket con el modelo correcto y commitea. |
+| `claude-setup/` | Reviewer (subagente) + hook de typecheck/lint para Claude Code. Se instala a `.claude/` con `bash claude-setup/install.sh`. |
 | `src/` | Código de la app (se crea en el ticket A1): `app/`, `lib/`, `features/`, `components/`, `hooks/`, `types/`. |
 | `supabase/` | Migraciones (`migrations/`) y edge functions (`functions/`) — se crean en A2/C12. |
 

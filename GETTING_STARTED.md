@@ -62,6 +62,21 @@ scripts/run-ticket.sh A1 --dry-run   # ver qué haría, sin ejecutar
 
 El runner elige el modelo por ticket (según `scripts/backlog.tsv`), corre `typecheck`/`lint`/`test` si existen y commitea solo si pasa. Detalle y flags (`--all`, `--yolo`, `--model`, `--no-commit`) en `scripts/README.md`. Para decisiones de diseño o revisar un diff, seguís usando Opus aparte cuando quieras.
 
+## 5.c Instalar el reviewer y el hook (una vez)
+
+```bash
+bash claude-setup/install.sh     # copia el reviewer y el hook a .claude/
+# reiniciá Claude Code para que los tome
+```
+
+Esto agrega: un **gate** que corre typecheck/lint al terminar cada turno (no deja "terminar" en rojo) y un subagente **`reviewer`** para revisar los tickets de riesgo. Para usar el reviewer:
+
+```
+Usá el agente reviewer para revisar tasks/A3-supabase-y-auth.md contra el diff actual.
+```
+
+Corrélo solo en tickets de riesgo (auth, RLS, dinero, FX, permisos); gasta tokens de subagente. Detalle en `claude-setup/README.md`.
+
 ## 6. Reglas para que salga barato y ordenado
 
 - **Un ticket por conversación/sesión.** No le pases todo el backlog: solo el ticket que toca. Así el agente barato no arrastra contexto de más.
