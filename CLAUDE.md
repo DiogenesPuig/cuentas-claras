@@ -58,10 +58,12 @@ Cada feature: `api.ts` (habla con Supabase, sin React) · `hooks.ts` (react-quer
 
 ```
 npm install
-npm run dev         # Vite
+npm run dev         # Vite (http://localhost:5173)
+npm run build       # tsc --noEmit && vite build
 npm run typecheck   # tsc --noEmit
-npm run lint        # eslint
-npm test            # vitest
+npm run lint        # eslint (--max-warnings 0)
+npm run format      # prettier --write
+npm test            # vitest run  (npm run test:watch para modo watch)
 ```
 
 ## Definición de "hecho" (Definition of Done)
