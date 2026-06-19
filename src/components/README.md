@@ -7,6 +7,7 @@ UI reutilizable y transversal.
 - `ui/` — componentes de shadcn/ui (copiados con `npx shadcn@latest add <comp>`).
   No se editan a mano salvo necesidad; quedan fuera del lint (ver `.eslintrc.cjs`).
 
-## Contenido previsto
+## Archivos
 
-Componentes propios compartidos entre features (botones compuestos, cards, etc.).
+- `WorkspaceSwitcher.tsx` — selector del workspace activo (usa `useActiveWorkspace`).
+- `MonthSwitcher.tsx` — navegación del período/mes activo (usa `useActiveMonth`).
