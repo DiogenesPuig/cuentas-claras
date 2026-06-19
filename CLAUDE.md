@@ -92,7 +92,9 @@ npm test            # vitest run  (npm run test:watch para modo watch)
 ## Flujo sugerido en Claude Code
 
 1. Abrir `tasks/README.md` y elegir el próximo ticket según dependencias.
-2. (Opus) revisar el ticket y, si hace falta, afinarlo.
-3. (Sonnet/Haiku) implementar **solo ese ticket**.
-4. Correr `typecheck`, `lint`, `test`. Si está instalado el hook de `claude-setup/`, el gate lo fuerza al cerrar el turno.
-5. Revisar el diff contra los criterios de aceptación antes de mergear. Para tickets de riesgo (auth, RLS, dinero, FX, permisos) usar el subagente `reviewer` (ver `claude-setup/README.md`).
+2. Crear (o pararse sobre) una rama `task/<id-en-minúscula>` (ej. `task/b7`) **antes** de tocar código del ticket. No trabajar tickets directamente sobre `main`.
+3. (Opus) revisar el ticket y, si hace falta, afinarlo.
+4. (Sonnet/Haiku) implementar **solo ese ticket**.
+5. Correr `typecheck`, `lint`, `test`. Si está instalado el hook de `claude-setup/`, el gate lo fuerza al cerrar el turno.
+6. Revisar el diff contra los criterios de aceptación antes de mergear. Para tickets de riesgo (auth, RLS, dinero, FX, permisos) usar el subagente `reviewer` (ver `claude-setup/README.md`).
+7. Mergear la rama del ticket a `main` (PR), siguiendo el patrón de tickets anteriores (`task/a5`, `task/b6`, …).
