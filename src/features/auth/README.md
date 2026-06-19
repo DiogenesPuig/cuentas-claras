@@ -5,7 +5,8 @@ sesión con email+contraseña y/o OAuth de Google.
 
 ## Archivos
 
-- `api.ts` — funciones que hablan con `supabase.auth` (sign in/up/out, OAuth Google). Sin React.
+- `api.ts` — funciones que hablan con `supabase.auth` (sign in/up/out, OAuth Google) y con
+  `profiles` (`getMyProfile`, `upsertMyProfile`). Sin React.
 - `context.ts` — `AuthContext` y `useAuth()` (separado de `hooks.tsx` por fast-refresh de Vite).
 - `hooks.tsx` — `AuthProvider`: escucha `onAuthStateChange` y expone `session`/`user`/`loading`.
 - `schema.ts` — esquemas zod de los formularios de login/registro.
@@ -16,6 +17,4 @@ sesión con email+contraseña y/o OAuth de Google.
 - `components/RequireAuth.tsx` — guard de rutas privadas; redirige a `/login` sin sesión.
 - `components/LoginPage.test.tsx` — smoke test de validación de campos requeridos.
 
-## Fuera de alcance (ver A4)
-
-- Creación de la fila en `profiles` y del primer workspace al loguearse por primera vez.
+La creación del primer workspace al loguearse vive en `features/workspaces` + `src/app/OnboardingPage.tsx` (A4).
