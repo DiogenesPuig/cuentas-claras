@@ -1,4 +1,7 @@
 import { supabase } from '@/lib/supabase';
+import type { Tables, TablesInsert } from '@/lib/database.types';
+
+export type Profile = Tables<'profiles'>;
 
 export async function signInWithPassword(email: string, password: string) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -23,4 +26,37 @@ export async function signInWithGoogle() {
 export async function signOut() {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
+}
+
+/** Devuelve el perfil del usuario autenticado, o `null` si todavía no existe. */
+export async function getMyProfile(): Promise<Profile | null> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+/** Crea o actualiza la fila en `profiles` del usuario autenticado (id = auth.uid()). */
+export async function upsertMyProfile(name: string): Promise<Profile> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('No hay sesión activa.');
+
+  const payload: TablesInsert<'profiles'> = { id: user.id, name };
+  const { data, error } = await supabase
+    .from('profiles')
+    .upsert(payload, { onConflict: 'id' })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
 }
