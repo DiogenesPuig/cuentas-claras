@@ -1,9 +1,9 @@
 # src/app/layout
 
-Estructura visual común. (Vacío hasta el ticket A5.)
+Estructura visual común de la app autenticada.
 
-## Contenido previsto
+## Archivos
 
-- `AppLayout.tsx` — shell con `<Outlet/>`.
-- `Header.tsx` — workspace activo + selector de mes.
-- `TabBar.tsx` — navegación inferior (mobile) / sidebar (desktop).
+- `AppLayout.tsx` — shell con `Header` + contenido (`<Outlet/>`) + `TabBar`. Asegura que el workspace activo sea válido (default al primero).
+- `Header.tsx` — `WorkspaceSwitcher` + `MonthSwitcher` + cerrar sesión.
+- `TabBar.tsx` — navegación principal: barra inferior (mobile) / sidebar (desktop). Tabs: Inicio/Movimientos/Reportes/Ajustes.
