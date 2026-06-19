@@ -11,15 +11,18 @@ Un archivo por ticket. Cada uno es **autocontenido**: un subagente debería pode
 
 ## Orden y dependencias
 
+> Los tickets completados se mueven a `tasks/done/`. Los marcados ✅ abajo ya están mergeados en `main`.
+> El alcance de **Fase 2 (ingesta inteligente)** vive en `tasks/fase2/README.md` (parking lot, no se trabaja aún).
+
 **Sprint A — Cimientos**
-- `A1` Scaffolding del proyecto — _sin dependencias_
-- `A2` Migraciones + generación de tipos — depende de A1
-- `A3` Cliente Supabase + Auth — depende de A2
-- `A4` Perfil + onboarding (primer workspace) — depende de A3
-- `A5` Workspace activo + layout/navegación — depende de A4
+- ✅ `A1` Scaffolding del proyecto — _sin dependencias_
+- ✅ `A2` Migraciones + generación de tipos — depende de A1
+- ✅ `A3` Cliente Supabase + Auth — depende de A2
+- ✅ `A4` Perfil + onboarding (primer workspace) — depende de A3
+- ✅ `A5` Workspace activo + layout/navegación — depende de A4
 
 **Sprint B — Núcleo de registro**
-- `B6` Categorías (seed + CRUD) — depende de A5
+- ✅ `B6` Categorías (seed + CRUD) — depende de A5
 - `B7` Medios/tarjetas (lista plana + form, con extensiones) — depende de A5
 - `B8` Alta/edición de movimientos — depende de B6, B7
 - `B9` Dashboard mensual — depende de B8

@@ -1,8 +1,8 @@
 # PRD — Cuentas Claras (App de Gestión de Gastos e Ingresos Compartidos)
 
 **Nombre:** Cuentas Claras
-**Versión del documento:** 1.2 (borrador)
-**Fecha:** 2026-06-17
+**Versión del documento:** 1.3 (borrador)
+**Fecha:** 2026-06-19
 **Autor:** Dioge + equipo (PM / UX / Arquitectura)
 **Estado:** En definición — pendiente de validación final antes de implementar
 
@@ -31,6 +31,7 @@ En una fase posterior se incorpora un **bot de WhatsApp** que lee mensajes de un
 | Fuente de tipo de cambio | **dolarapi.com** (principal) + **BCRA** (oficial). El usuario elige qué cotización aplicar. |
 | Ciclo mensual | **Configurable** por tarjeta (para alinear con la fecha de cierre). |
 | Bancos para parseo (Fase 2) | **Banco Nación** y **Banco Patagonia** (Visa/Mastercard). |
+| Alta de tarjeta desde el resumen (Fase 2) | Al parsear un resumen, si la tarjeta/medio detectado **no existe**, la app **lo detecta y ofrece crearlo** en la misma pantalla de revisión. Muchos usuarios subirán solo el resumen sin cargar medios a mano (ver **FR-16b**). |
 | Modelo de negocio | **Free** ahora; freemium a futuro (más workspaces + sin publicidad). |
 
 ---
@@ -121,6 +122,7 @@ En una fase posterior se incorpora un **bot de WhatsApp** que lee mensajes de un
 - **FR-14 (Fase 2 — OCR):** al subir un comprobante, extraer automáticamente monto, fecha y comercio y precargar el formulario para que el usuario confirme.
 - **FR-15** Subir un **resumen de tarjeta** (PDF) como adjunto.
 - **FR-16 (Fase 2/3 — Parseo):** extraer los movimientos del resumen y crear movimientos en bloque, con revisión/confirmación del usuario (pantalla de "staging" antes de guardar).
+- **FR-16b (Fase 2 — Alta de medio desde el resumen):** al parsear un resumen, identificar la **tarjeta/medio** al que pertenece (banco, red, últimos 4 dígitos, titular). Si **coincide** con un medio existente (FR-5/FR-6c), asociar los movimientos a ese medio; si **no existe**, **ofrecer crearlo** desde la misma pantalla de staging precargando los datos detectados, para que el usuario confirme/ajuste y siga sin tener que cargarlo a mano por separado. _Motivación: es probable que muchos usuarios usen la app solo subiendo el resumen y no den de alta sus medios manualmente._
 - **FR-17** Detección de duplicados al importar (mismo monto+fecha+comercio).
 
 ### 5.5 Categorización
@@ -191,7 +193,7 @@ Resultado: movimiento + adjunto.
 
 **UC-3 — Importar resumen de tarjeta**
 Actor: Admin/Member.
-1. Sube el PDF del resumen. 2. (Fase 2/3) la app lista los movimientos detectados en una pantalla de revisión. 3. El usuario descarta/ajusta/categoriza. 4. Confirma importación.
+1. Sube el PDF del resumen. 2. (Fase 2/3) la app lista los movimientos detectados en una pantalla de revisión. 3. La app identifica la tarjeta/medio del resumen; si no existe, **ofrece crearlo** con los datos detectados (FR-16b). 4. El usuario descarta/ajusta/categoriza. 5. Confirma importación.
 Resultado: N movimientos creados, con detección de duplicados.
 
 **UC-4 — Ver reporte mensual**
