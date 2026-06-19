@@ -15,6 +15,9 @@ function AccountRow({
   canManage: boolean;
   onEdit: (account: Account) => void;
 }) {
+  // TODO(B8/reportes): cuando `owner_member_id` exista, mostrar el nombre vivo del miembro
+  // (vía member_directory) en lugar de `holder_name`, que queda denormalizado si el miembro
+  // cambia su nombre. Caer a `holder_name` solo cuando no hay miembro asociado.
   const details = [account.bank, account.network, account.holder_name]
     .filter(Boolean)
     .join(' · ');

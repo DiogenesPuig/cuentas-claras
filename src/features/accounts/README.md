@@ -26,6 +26,10 @@ tipo, moneda, últimos 4 dígitos, holder (miembro o nombre) y, si es extensión
 
 - Total gastado por medio en el período (FR-6): depende de `transactions` (C11); se deja para
   cuando exista esa lógica.
+- **Mostrar el holder por `owner_member_id` (pendiente):** hoy la lista muestra `holder_name`, que
+  queda denormalizado si el miembro cambia su nombre. A futuro, cuando exista `owner_member_id`,
+  mostrar el nombre vivo del miembro (vía `member_directory`) y caer a `holder_name` solo si no hay
+  miembro asociado. Ver `TODO(B8/reportes)` en `components/AccountList.tsx`.
 
 ## Relacionados
 
