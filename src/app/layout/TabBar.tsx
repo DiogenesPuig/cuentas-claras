@@ -1,4 +1,4 @@
-import { Home, ListChecks, PieChart, Settings, Tags, type LucideIcon } from 'lucide-react';
+import { CreditCard, Home, ListChecks, PieChart, Settings, Tags, type LucideIcon } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
@@ -13,6 +13,7 @@ interface Tab {
 const TABS: Tab[] = [
   { to: '/', label: 'Inicio', icon: Home, end: true },
   { to: '/categorias', label: 'Categorías', icon: Tags },
+  { to: '/medios', label: 'Medios', icon: CreditCard },
   { to: '/movimientos', label: 'Movimientos', icon: ListChecks },
   { to: '/reportes', label: 'Reportes', icon: PieChart },
   { to: '/ajustes', label: 'Ajustes', icon: Settings },
