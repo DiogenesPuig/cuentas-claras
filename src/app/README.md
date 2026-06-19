@@ -5,11 +5,12 @@ Composición de la aplicación: rutas, providers y layout.
 ## Archivos
 
 - `router.tsx` — rutas (`/login`, `/register`, `/onboarding`, `/` protegida con `RequireAuth` +
-  `RequireWorkspace` y envuelta en `AppLayout`, con hijas `movimientos`/`reportes`/`ajustes`).
+  `RequireWorkspace` y envuelta en `AppLayout`, con hijas `categorias`/`movimientos`/`reportes`/`ajustes`).
 - `providers.tsx` — `QueryClientProvider` + `AuthProvider`.
 - `OnboardingPage.tsx` — pantalla `/onboarding`: pide nombre del usuario, nombre del grupo y
   moneda base; crea el primer workspace (A4).
 - `OnboardingPage.test.tsx` — smoke test de validación del form de onboarding.
+- `CategoriesPage.tsx` — pantalla `/categorias`: gestión de categorías del workspace activo (B6).
 
 ## Carpetas
 

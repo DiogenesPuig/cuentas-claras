@@ -7,10 +7,12 @@ layout son del ticket A5; invitar miembros, del C15.
 
 ## Archivos
 
-- `api.ts` — Supabase: `listMyWorkspaces` (vía `workspace_members`) y `createWorkspace`
-  (inserta con `owner_id = auth.uid()`). Sin React.
-- `hooks.ts` — react-query: `useMyWorkspaces` y `useCompleteOnboarding` (asegura `profiles` +
-  crea el primer workspace).
+- `api.ts` — Supabase: `listMyWorkspaces` (vía `workspace_members`), `createWorkspace`
+  (inserta con `owner_id = auth.uid()`) y `getMyRole` (rol del usuario autenticado en un
+  workspace, o `null` si no es miembro). Sin React.
+- `hooks.ts` — react-query: `useMyWorkspaces`, `useCompleteOnboarding` (asegura `profiles` +
+  crea el primer workspace) y `useMyRole` (para mostrar/ocultar acciones de owner/admin, p. ej.
+  en `features/categories`).
 - `schema.ts` — zod del onboarding (`displayName`, `workspaceName`, `baseCurrency`) y la lista
   `BASE_CURRENCIES` (monedas base ofrecidas).
 - `index.ts` — barrel del feature.

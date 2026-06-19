@@ -1,7 +1,8 @@
 import { supabase } from '@/lib/supabase';
-import type { Tables, TablesInsert } from '@/lib/database.types';
+import type { Database, Tables, TablesInsert } from '@/lib/database.types';
 
 export type Workspace = Tables<'workspaces'>;
+export type MemberRole = Database['public']['Enums']['member_role'];
 
 export interface CreateWorkspaceInput {
   name: string;
@@ -40,4 +41,21 @@ export async function createWorkspace(input: CreateWorkspaceInput): Promise<Work
   const { data, error } = await supabase.from('workspaces').insert(payload).select().single();
   if (error) throw error;
   return data;
+}
+
+/** Rol del usuario autenticado en el workspace, o `null` si no es miembro. */
+export async function getMyRole(workspaceId: string): Promise<MemberRole | null> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from('workspace_members')
+    .select('role')
+    .eq('workspace_id', workspaceId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.role ?? null;
 }
