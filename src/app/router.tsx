@@ -3,6 +3,7 @@ import App from '@/App';
 import { LoginPage, RegisterPage, RequireAuth } from '@/features/auth';
 import { RequireWorkspace } from '@/features/workspaces';
 import { AppLayout } from './layout/AppLayout';
+import { CategoriesPage } from './CategoriesPage';
 import { OnboardingPage } from './OnboardingPage';
 
 /** Placeholder para pantallas cuyo contenido llega en tickets posteriores (B/C). */
@@ -37,6 +38,7 @@ const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <App /> },
+      { path: 'categorias', element: <CategoriesPage /> },
       { path: 'movimientos', element: <Placeholder title="Movimientos" ticket="B10" /> },
       { path: 'reportes', element: <Placeholder title="Reportes" ticket="C13" /> },
       { path: 'ajustes', element: <Placeholder title="Ajustes" ticket="C15" /> },
