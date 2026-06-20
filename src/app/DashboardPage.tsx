@@ -20,7 +20,7 @@ export function DashboardPage() {
   const month = useActiveMonth((state) => state.month);
   const { data: categories } = useCategories(workspaceId);
   const { data: accounts } = useAccounts(workspaceId);
-  const { data: transactions, isLoading } = useTransactions(workspaceId);
+  const { data: transactions, isLoading } = useTransactions(workspaceId, { month });
 
   const createTransaction = useCreateTransaction(workspaceId);
   const uploadAttachment = useUploadAttachment(workspaceId);
@@ -30,7 +30,7 @@ export function DashboardPage() {
 
   if (!workspaceId) return null;
 
-  const monthTransactions = (transactions ?? []).filter((tx) => tx.occurred_on.startsWith(month));
+  const monthTransactions = transactions ?? [];
 
   async function handleSubmit(input: TransactionInput, attachment: File | null) {
     setFormError(null);

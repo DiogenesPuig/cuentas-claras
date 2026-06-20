@@ -10,16 +10,21 @@ import {
   type TransactionInput,
   type TransactionView,
 } from './api';
+import type { TransactionFilters } from './filters';
 
 export const transactionsKeys = {
-  list: (workspaceId: string | undefined) => ['transactions', workspaceId] as const,
+  list: (workspaceId: string | undefined, filters: TransactionFilters = {}) =>
+    ['transactions', workspaceId, filters] as const,
 };
 
-/** Movimientos del workspace, más recientes primero (sin filtros, ver B10). */
-export function useTransactions(workspaceId: string | undefined) {
+/**
+ * Movimientos del workspace, más recientes primero, acotados por `filters` (mes, medio,
+ * categoría, moneda, persona y texto — FR-11). Sin filtros trae todo el workspace.
+ */
+export function useTransactions(workspaceId: string | undefined, filters: TransactionFilters = {}) {
   return useQuery<TransactionView[]>({
-    queryKey: transactionsKeys.list(workspaceId),
-    queryFn: () => listTransactions(workspaceId as string),
+    queryKey: transactionsKeys.list(workspaceId, filters),
+    queryFn: () => listTransactions(workspaceId as string, filters),
     enabled: workspaceId !== undefined,
   });
 }

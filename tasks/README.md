@@ -26,7 +26,7 @@ Un archivo por ticket. Cada uno es **autocontenido**: un subagente debería pode
 - ✅ `B7` Medios/tarjetas (lista plana + form, con extensiones) — depende de A5
 - ✅ `B8` Alta/edición de movimientos — depende de B6, B7
 - ✅ `B9` Dashboard mensual — depende de B8
-- `B10` Movimientos: lista + filtros + búsqueda — depende de B8
+- ✅ `B10` Movimientos: lista + filtros + búsqueda — depende de B8
 
 **Sprint C — Visualización y grupo**
 - `C11` Lógica de dinero y ciclos (money + billing) + tests — depende de A1

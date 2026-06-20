@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import type { Database, Tables, TablesInsert, TablesUpdate } from '@/lib/database.types';
+import { buildTransactionFilterArgs, type TransactionFilters } from './filters';
 
 export type Transaction = Tables<'transactions'>;
 export type TransactionType = Database['public']['Enums']['transaction_type'];
@@ -22,19 +23,39 @@ export interface TransactionView extends Transaction {
   category: { name: string; icon: string | null } | null;
 }
 
-const TRANSACTION_SELECT =
-  '*, account:accounts(name,holder_name), category:categories(name,icon)';
+const TRANSACTION_SELECT = '*, account:accounts(name,holder_name), category:categories(name,icon)';
+/** Igual que `TRANSACTION_SELECT`, pero con `!inner` para poder filtrar por `account.holder_name`. */
+const TRANSACTION_SELECT_INNER_ACCOUNT =
+  '*, account:accounts!inner(name,holder_name), category:categories(name,icon)';
 
-/** Movimientos del workspace, más recientes primero. Sin filtros (ver B10). */
-export async function listTransactions(workspaceId: string): Promise<TransactionView[]> {
-  const { data, error } = await supabase
+/**
+ * Movimientos del workspace, más recientes primero, con los filtros de FR-11
+ * aplicados en la query (mes, medio, categoría, moneda, persona/holder y texto).
+ */
+export async function listTransactions(
+  workspaceId: string,
+  filters: TransactionFilters = {},
+): Promise<TransactionView[]> {
+  const args = buildTransactionFilterArgs(filters);
+
+  let query = supabase
     .from('transactions')
-    .select(TRANSACTION_SELECT)
-    .eq('workspace_id', workspaceId)
+    .select(args.holderName ? TRANSACTION_SELECT_INNER_ACCOUNT : TRANSACTION_SELECT)
+    .eq('workspace_id', workspaceId);
+
+  if (args.occurredFrom) query = query.gte('occurred_on', args.occurredFrom);
+  if (args.occurredTo) query = query.lt('occurred_on', args.occurredTo);
+  if (args.accountId) query = query.eq('account_id', args.accountId);
+  if (args.categoryId) query = query.eq('category_id', args.categoryId);
+  if (args.currency) query = query.eq('currency', args.currency);
+  if (args.holderName) query = query.eq('account.holder_name', args.holderName);
+  if (args.search) query = query.ilike('description', `%${args.search}%`);
+
+  const { data, error } = await query
     .order('occurred_on', { ascending: false })
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as TransactionView[];
 }
 
 function toRow(input: TransactionInput) {

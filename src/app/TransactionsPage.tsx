@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/features/auth';
 import { useCategories } from '@/features/categories';
 import { useAccounts } from '@/features/accounts';
 import { useMyRole, type MemberRole } from '@/features/workspaces';
 import {
+  EMPTY_FIELD_FILTERS,
+  FilterBar,
+  SearchBar,
   TransactionForm,
+  TransactionList,
   useCreateTransaction,
   useDeleteTransaction,
   useTransactions,
@@ -12,23 +16,36 @@ import {
   useUploadAttachment,
   type Transaction,
   type TransactionInput,
+  type TransactionView,
 } from '@/features/transactions';
 import { useActiveWorkspace } from '@/hooks/useActiveWorkspace';
+import { useActiveMonth } from '@/hooks/useActiveMonth';
 
 const CAN_MANAGE_ANY_ROLES: readonly MemberRole[] = ['owner', 'admin'];
 
-/**
- * Pantalla `/movimientos`: alta/edición rápida de movimientos (B8).
- * La lista con filtros/búsqueda (FR-11) llega en B10; esto es solo lo necesario
- * para probar y editar/eliminar los movimientos que se van creando.
- */
+/** Pantalla `/movimientos`: lista con filtros y búsqueda (FR-11) + alta/edición/borrado (B8). */
 export function TransactionsPage() {
   const workspaceId = useActiveWorkspace((state) => state.workspaceId);
+  const month = useActiveMonth((state) => state.month);
   const { user } = useAuth();
   const { data: role } = useMyRole(workspaceId);
   const { data: categories } = useCategories(workspaceId);
   const { data: accounts } = useAccounts(workspaceId);
-  const { data: transactions, isLoading } = useTransactions(workspaceId);
+
+  const [fieldFilters, setFieldFilters] = useState(EMPTY_FIELD_FILTERS);
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    const id = setTimeout(() => setSearch(searchInput), 300);
+    return () => clearTimeout(id);
+  }, [searchInput]);
+
+  const { data: transactions, isLoading } = useTransactions(workspaceId, {
+    month,
+    search,
+    ...fieldFilters,
+  });
 
   const createTransaction = useCreateTransaction(workspaceId);
   const updateTransaction = useUpdateTransaction(workspaceId);
@@ -44,7 +61,7 @@ export function TransactionsPage() {
   const isFormOpen = editing !== null || isCreating;
   const canManageAny = role !== null && role !== undefined && CAN_MANAGE_ANY_ROLES.includes(role);
 
-  function canEdit(transaction: Transaction): boolean {
+  function canEdit(transaction: TransactionView): boolean {
     return transaction.created_by === user?.id || canManageAny;
   }
 
@@ -75,7 +92,7 @@ export function TransactionsPage() {
     }
   }
 
-  async function handleDelete(transaction: Transaction) {
+  async function handleDelete(transaction: TransactionView) {
     if (!window.confirm('¿Eliminar este movimiento?')) return;
     await deleteTransaction.mutateAsync(transaction.id);
   }
@@ -112,52 +129,23 @@ export function TransactionsPage() {
         </div>
       )}
 
-      {isLoading ? (
-        <p className="text-sm text-muted-foreground">Cargando movimientos…</p>
-      ) : (
-        <ul className="divide-y divide-border rounded-md border border-border">
-          {(transactions ?? []).map((transaction) => (
-            <li
-              key={transaction.id}
-              className="flex items-center justify-between gap-4 px-3 py-2 text-sm"
-            >
-              <div className="space-y-0.5">
-                <p className="font-medium">
-                  {transaction.type === 'income' ? '+ ' : '- '}
-                  {transaction.amount} {transaction.currency}
-                  {transaction.description ? ` · ${transaction.description}` : ''}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {transaction.occurred_on}
-                  {transaction.category ? ` · ${transaction.category.name}` : ''}
-                  {transaction.account ? ` · ${transaction.account.name}` : ''}
-                </p>
-              </div>
-              {canEdit(transaction) && (
-                <div className="flex shrink-0 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setEditing(transaction)}
-                    className="text-xs font-medium text-primary hover:underline"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(transaction)}
-                    className="text-xs font-medium text-destructive hover:underline"
-                  >
-                    Eliminar
-                  </button>
-                </div>
-              )}
-            </li>
-          ))}
-          {(transactions ?? []).length === 0 && (
-            <li className="px-3 py-2 text-sm text-muted-foreground">Sin movimientos todavía.</li>
-          )}
-        </ul>
-      )}
+      <div className="space-y-2">
+        <SearchBar value={searchInput} onChange={setSearchInput} />
+        <FilterBar
+          value={fieldFilters}
+          categories={categories ?? []}
+          accounts={accounts ?? []}
+          onChange={setFieldFilters}
+        />
+      </div>
+
+      <TransactionList
+        transactions={transactions ?? []}
+        isLoading={isLoading}
+        canEdit={canEdit}
+        onEdit={setEditing}
+        onDelete={handleDelete}
+      />
     </div>
   );
 }
