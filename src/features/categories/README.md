@@ -26,4 +26,4 @@ Implementa **FR-18** (PRD §5.5): categorías por defecto + categorías propias 
 
 - `features/workspaces` (`useMyRole`) — gating de owner/admin en el front (la seguridad real la
   garantiza RLS: `cat_write` en `db/schema_fase1.sql`).
-- `useCategories` se reutilizará en el alta de movimientos (B8).
+- `useCategories` se reutiliza en el alta de movimientos (`features/transactions`, B8).

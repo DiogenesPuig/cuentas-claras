@@ -400,6 +400,39 @@ insert into categories (workspace_id, name, kind, icon) values
   (null, 'Reintegro',       'income',  '↩️'),
   (null, 'Otros ingresos',  'income',  '➕');
 
+  (null, 'Sueldo',          'income',  '💼'),
+  (null, 'Transferencia',   'income',  '💸'),
+  (null, 'Reintegro',       'income',  '↩️'),
+  (null, 'Otros ingresos',  'income',  '➕');
+
+-- ============================================================================
+-- STORAGE: bucket de comprobantes (B8 — FR-10)
+--   Bucket privado: el archivo no es accesible por URL pública, solo vía
+--   signed URL generada por el front para un miembro del workspace.
+--   Convención de path: '{workspace_id}/{nombre de archivo}', así las
+--   políticas de storage.objects pueden leer el workspace desde la ruta sin
+--   tocar la tabla `attachments`.
+-- ============================================================================
+insert into storage.buckets (id, name, public)
+values ('attachments', 'attachments', false)
+on conflict (id) do nothing;
+
+create policy attachments_storage_select on storage.objects
+  for select using (
+    bucket_id = 'attachments'
+    and is_member((storage.foldername(name))[1]::uuid)
+  );
+
+create policy attachments_storage_insert on storage.objects
+  for insert with check (
+    bucket_id = 'attachments'
+    and is_member((storage.foldername(name))[1]::uuid)
+    and owner = auth.uid()
+  );
+
+create policy attachments_storage_delete on storage.objects
+  for delete using (
+    bucket_id = 'attachments'
 -- ============================================================================
 -- FIN — schema Fase 1
 -- ============================================================================

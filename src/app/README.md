@@ -12,6 +12,8 @@ Composición de la aplicación: rutas, providers y layout.
 - `OnboardingPage.test.tsx` — smoke test de validación del form de onboarding.
 - `CategoriesPage.tsx` — pantalla `/categorias`: gestión de categorías del workspace activo (B6).
 - `AccountsPage.tsx` — pantalla `/medios`: gestión de tarjetas/medios del workspace activo (B7).
+- `TransactionsPage.tsx` — pantalla `/movimientos`: alta/edición rápida de movimientos (B8). Lista
+  simple sin filtros (la lista con filtros/búsqueda es B10).
 
 ## Carpetas
 

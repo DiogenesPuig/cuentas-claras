@@ -4,7 +4,7 @@ Esquema SQL de la base (Postgres/Supabase). Es la **fuente de verdad** del model
 
 ## Contenido
 
-- `schema_fase1.sql` — esquema completo de la Fase 1: extensiones, enums, tablas (`profiles`, `workspaces`, `workspace_members`, `invitations`, `accounts`, `categories`, `attachments`, `transactions`), índices, políticas **RLS**, la vista `member_directory` (privacidad del teléfono), el trigger que agrega al creador como `owner` y el seed de categorías globales.
+- `schema_fase1.sql` — esquema completo de la Fase 1: extensiones, enums, tablas (`profiles`, `workspaces`, `workspace_members`, `invitations`, `accounts`, `categories`, `attachments`, `transactions`), índices, políticas **RLS**, la vista `member_directory` (privacidad del teléfono), el trigger que agrega al creador como `owner`, el seed de categorías globales y el bucket de Storage `attachments` (privado, comprobantes — B8) con sus políticas sobre `storage.objects`.
 
 ## Notas
 
