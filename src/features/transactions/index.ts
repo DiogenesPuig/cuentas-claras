@@ -26,3 +26,6 @@ export {
   type TransactionFormInput,
 } from './schema';
 export { TransactionForm } from './components/TransactionForm';
+export { SummaryCard } from './components/SummaryCard';
+export { RecentTransactions } from './components/RecentTransactions';
+export { formatAmount } from './format';
