@@ -278,8 +278,14 @@ create policy profiles_insert_self on profiles
   for insert with check (id = auth.uid());
 
 -- WORKSPACES ---------------------------------------------------------------
+-- ws_select incluye "owner_id = auth.uid()" además de is_member(id): el
+-- INSERT de createWorkspace pide RETURNING, y Postgres aplica también la
+-- política de SELECT sobre la fila nueva. En ese instante el creador
+-- todavía no es miembro (el trigger trg_ws_add_owner lo agrega después),
+-- así que con solo is_member(id) el alta del primer workspace fallaba
+-- para cualquier usuario (bug detectado al verificar B8 manualmente).
 create policy ws_select on workspaces
-  for select using (is_member(id));
+  for select using (is_member(id) or owner_id = auth.uid());
 create policy ws_insert on workspaces
   for insert with check (owner_id = auth.uid());
 create policy ws_update on workspaces
@@ -399,6 +405,37 @@ insert into categories (workspace_id, name, kind, icon) values
   (null, 'Transferencia',   'income',  '💸'),
   (null, 'Reintegro',       'income',  '↩️'),
   (null, 'Otros ingresos',  'income',  '➕');
+
+-- ============================================================================
+-- STORAGE: bucket de comprobantes (B8 — FR-10)
+--   Bucket privado: el archivo no es accesible por URL pública, solo vía
+--   signed URL generada por el front para un miembro del workspace.
+--   Convención de path: '{workspace_id}/{nombre de archivo}', así las
+--   políticas de storage.objects pueden leer el workspace desde la ruta sin
+--   tocar la tabla `attachments`.
+-- ============================================================================
+insert into storage.buckets (id, name, public)
+values ('attachments', 'attachments', false)
+on conflict (id) do nothing;
+
+create policy attachments_storage_select on storage.objects
+  for select using (
+    bucket_id = 'attachments'
+    and is_member((storage.foldername(name))[1]::uuid)
+  );
+
+create policy attachments_storage_insert on storage.objects
+  for insert with check (
+    bucket_id = 'attachments'
+    and is_member((storage.foldername(name))[1]::uuid)
+    and owner = auth.uid()
+  );
+
+create policy attachments_storage_delete on storage.objects
+  for delete using (
+    bucket_id = 'attachments'
+    and has_role((storage.foldername(name))[1]::uuid, array['owner','admin']::member_role[])
+  );
 
 -- ============================================================================
 -- FIN — schema Fase 1

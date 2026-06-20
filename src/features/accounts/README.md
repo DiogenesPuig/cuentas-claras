@@ -35,4 +35,4 @@ tipo, moneda, últimos 4 dígitos, holder (miembro o nombre) y, si es extensión
 
 - `features/workspaces` (`useMyRole`) — gating de owner/admin en el front (la seguridad real la
   garantiza RLS: `acc_write` en `db/schema_fase1.sql`).
-- `useAccounts` se reutilizará en el alta de movimientos (B8).
+- `useAccounts` se reutiliza en el alta de movimientos (`features/transactions`, B8).
