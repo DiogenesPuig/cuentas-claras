@@ -32,6 +32,16 @@ export interface TransactionFilterArgs {
 }
 
 /**
+ * Escapa los comodines de `LIKE`/`ILIKE` (`%`, `_` y la propia `\`) para que el
+ * texto de búsqueda se interprete literal y no como patrón. El patrón final
+ * (`%texto%`) lo arma `api.listTransactions`; acá solo neutralizamos lo que tipea
+ * el usuario.
+ */
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, (char) => `\\${char}`);
+}
+
+/**
  * Mapea los filtros de la UI a los argumentos de la query (`api.listTransactions`).
  * Pura y testeable sin Supabase: el mes se convierte en un rango `[from, to)`
  * (`to` exclusivo, primer día del mes siguiente) para usar `.gte/.lt` en `occurred_on`.
@@ -51,7 +61,7 @@ export function buildTransactionFilterArgs(filters: TransactionFilters): Transac
   if (filters.holderName) args.holderName = filters.holderName;
 
   const search = filters.search?.trim();
-  if (search) args.search = search;
+  if (search) args.search = escapeLike(search);
 
   return args;
 }

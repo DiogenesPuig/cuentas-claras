@@ -46,6 +46,12 @@ describe('buildTransactionFilterArgs', () => {
     expect(buildTransactionFilterArgs({ search: '   ' })).toEqual({});
   });
 
+  it('escapa los comodines de ILIKE en la búsqueda para tratarlos como literales', () => {
+    expect(buildTransactionFilterArgs({ search: '50%' })).toEqual({ search: '50\\%' });
+    expect(buildTransactionFilterArgs({ search: 'a_b' })).toEqual({ search: 'a\\_b' });
+    expect(buildTransactionFilterArgs({ search: 'c:\\temp' })).toEqual({ search: 'c:\\\\temp' });
+  });
+
   it('omite strings vacíos en los demás filtros', () => {
     expect(
       buildTransactionFilterArgs({ accountId: '', categoryId: '', currency: '', holderName: '' }),
