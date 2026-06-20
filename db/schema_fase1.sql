@@ -278,8 +278,14 @@ create policy profiles_insert_self on profiles
   for insert with check (id = auth.uid());
 
 -- WORKSPACES ---------------------------------------------------------------
+-- ws_select incluye "owner_id = auth.uid()" además de is_member(id): el
+-- INSERT de createWorkspace pide RETURNING, y Postgres aplica también la
+-- política de SELECT sobre la fila nueva. En ese instante el creador
+-- todavía no es miembro (el trigger trg_ws_add_owner lo agrega después),
+-- así que con solo is_member(id) el alta del primer workspace fallaba
+-- para cualquier usuario (bug detectado al verificar B8 manualmente).
 create policy ws_select on workspaces
-  for select using (is_member(id));
+  for select using (is_member(id) or owner_id = auth.uid());
 create policy ws_insert on workspaces
   for insert with check (owner_id = auth.uid());
 create policy ws_update on workspaces
