@@ -18,11 +18,12 @@ export interface TransactionInput {
 }
 
 export interface TransactionView extends Transaction {
-  account: { name: string } | null;
+  account: { name: string; holder_name: string } | null;
   category: { name: string; icon: string | null } | null;
 }
 
-const TRANSACTION_SELECT = '*, account:accounts(name), category:categories(name,icon)';
+const TRANSACTION_SELECT =
+  '*, account:accounts(name,holder_name), category:categories(name,icon)';
 
 /** Movimientos del workspace, más recientes primero. Sin filtros (ver B10). */
 export async function listTransactions(workspaceId: string): Promise<TransactionView[]> {

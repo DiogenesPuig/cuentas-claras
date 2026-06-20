@@ -14,6 +14,10 @@ Composición de la aplicación: rutas, providers y layout.
 - `AccountsPage.tsx` — pantalla `/medios`: gestión de tarjetas/medios del workspace activo (B7).
 - `TransactionsPage.tsx` — pantalla `/movimientos`: alta/edición rápida de movimientos (B8). Lista
   simple sin filtros (la lista con filtros/búsqueda es B10).
+- `DashboardPage.tsx` — pantalla `/` (inicio): resumen del mes activo (`SummaryCard`), últimos
+  movimientos (`RecentTransactions`) y alta rápida vía `Fab` + modal con `TransactionForm` (B9).
+  Filtra los movimientos del workspace activo por el mes de `useActiveMonth` en el cliente (ver B10
+  para el filtro por período en `listTransactions`).
 
 ## Carpetas
 

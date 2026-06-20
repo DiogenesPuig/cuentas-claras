@@ -4,9 +4,7 @@ Código de la app (Vite + React + TS strict). Mobile-first.
 
 ## Archivos
 
-- `main.tsx` — punto de entrada: monta `<App/>` en `#root` y carga `index.css`.
-- `App.tsx` — componente raíz. Por ahora pantalla mínima (placeholder del MVP).
-- `App.test.tsx` — smoke test de `App` (Testing Library + Vitest).
+- `main.tsx` — punto de entrada: monta `<AppRouter/>` (vía `AppProviders`) en `#root` y carga `index.css`.
 - `index.css` — directivas de Tailwind + variables de tema de shadcn/ui (light/dark).
 - `vite-env.d.ts` — tipos de `import.meta.env` de Vite.
 

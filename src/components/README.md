@@ -11,3 +11,5 @@ UI reutilizable y transversal.
 
 - `WorkspaceSwitcher.tsx` — selector del workspace activo (usa `useActiveWorkspace`).
 - `MonthSwitcher.tsx` — navegación del período/mes activo (usa `useActiveMonth`).
+- `Fab.tsx` — botón flotante de acción principal (usado en `DashboardPage` para abrir el alta
+  rápida de movimientos, B9).

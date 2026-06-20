@@ -1,10 +1,10 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import App from '@/App';
 import { LoginPage, RegisterPage, RequireAuth } from '@/features/auth';
 import { RequireWorkspace } from '@/features/workspaces';
 import { AppLayout } from './layout/AppLayout';
 import { AccountsPage } from './AccountsPage';
 import { CategoriesPage } from './CategoriesPage';
+import { DashboardPage } from './DashboardPage';
 import { TransactionsPage } from './TransactionsPage';
 import { OnboardingPage } from './OnboardingPage';
 
@@ -39,7 +39,7 @@ const router = createBrowserRouter([
       </RequireAuth>
     ),
     children: [
-      { index: true, element: <App /> },
+      { index: true, element: <DashboardPage /> },
       { path: 'categorias', element: <CategoriesPage /> },
       { path: 'medios', element: <AccountsPage /> },
       { path: 'movimientos', element: <TransactionsPage /> },
