@@ -20,6 +20,7 @@ y la ingesta inteligente de comprobantes y resúmenes de tarjeta.
 | `F2-4` | Detección de duplicados al importar (monto+fecha+comercio) | **FR-17** | F2-3 |
 | `F2-5` | Alta de tarjeta/medio desde el resumen: detectar el medio y, si no existe, ofrecer crearlo desde el staging | **FR-16b** | F2-3, B7 |
 | `F2-6` | Sugerencia automática de categoría según descripción/comercio | **FR-19** | F2-3, B6 |
+| `F2-7` | Visor de comprobantes: ver/descargar el adjunto (imagen/PDF) de un movimiento vía signed URL | **FR-10/FR-13** | B8 |
 
 ## Notas de diseño a resolver al planificar (no decididas)
 
@@ -28,3 +29,12 @@ y la ingesta inteligente de comprobantes y resúmenes de tarjeta.
 - **Extensiones:** un resumen puede mezclar movimientos de la titular y de sus extensiones; el alta automática
   debe contemplar crear cada extensión como medio propio (FR-6c).
 - **Dónde corre el OCR/parseo:** microservicio Python desacoplado (PRD §9.2 Opción C, §9.3), no en el front.
+- **Resúmenes de tarjeta cifrados/con password (F2-3):** los PDF de resumen suelen venir **protegidos con
+  contraseña** (en bancos AR, típicamente el DNI del titular o una variante). El flujo de subida debe **pedir la
+  contraseña** para poder abrir/parsear el PDF, descifrarlo en memoria en el microservicio Python y **no
+  persistir la contraseña** en ningún lado. Definir UX (campo password en el upload, reintento si falla el
+  desbloqueo) y manejo de error → `attachment_status = 'failed'`.
+- **Visor de comprobantes (F2-7):** la "plomería" ya existe desde B8 (`getAttachmentUrl` genera signed URLs del
+  bucket privado). Falta solo la UI (`<img>` para imágenes, link "Ver/Descargar" para PDF). No depende del
+  microservicio Python, así que **podría adelantarse a Fase 1** (p. ej. sumarlo a B10) si se quiere cerrar el
+  ciclo de FR-10/FR-13 antes.

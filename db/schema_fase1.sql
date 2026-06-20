@@ -406,11 +406,6 @@ insert into categories (workspace_id, name, kind, icon) values
   (null, 'Reintegro',       'income',  '↩️'),
   (null, 'Otros ingresos',  'income',  '➕');
 
-  (null, 'Sueldo',          'income',  '💼'),
-  (null, 'Transferencia',   'income',  '💸'),
-  (null, 'Reintegro',       'income',  '↩️'),
-  (null, 'Otros ingresos',  'income',  '➕');
-
 -- ============================================================================
 -- STORAGE: bucket de comprobantes (B8 — FR-10)
 --   Bucket privado: el archivo no es accesible por URL pública, solo vía
@@ -439,6 +434,9 @@ create policy attachments_storage_insert on storage.objects
 create policy attachments_storage_delete on storage.objects
   for delete using (
     bucket_id = 'attachments'
+    and has_role((storage.foldername(name))[1]::uuid, array['owner','admin']::member_role[])
+  );
+
 -- ============================================================================
 -- FIN — schema Fase 1
 -- ============================================================================

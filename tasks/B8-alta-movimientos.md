@@ -31,6 +31,10 @@ Formulario de alta rápida (y edición) de ingresos/gastos, multi-moneda, con la
 ## Fuera de alcance
 - OCR del comprobante (fase 2). Solo se guarda el archivo.
 - Conversión a moneda base (la hace C11/reportes); acá solo se guarda monto+moneda original (y `charged_on`).
+- **Ver/visualizar un comprobante ya subido:** B8 solo permite *subir* el archivo (Storage + `attachment_id`);
+  todavía **no hay UI para mostrarlo/descargarlo**. La plomería ya existe (`getAttachmentUrl` genera signed URLs
+  del bucket privado), falta solo la vista. No es prioritario hoy; queda rezagado a cuando la app esté funcionando
+  → ticket **`F2-7`** en `tasks/fase2/README.md` (podría adelantarse a B10 si se quiere antes).
 
 ## Tests
 - Smoke test del form: validación (monto > 0, moneda 3 letras), default de fecha.
