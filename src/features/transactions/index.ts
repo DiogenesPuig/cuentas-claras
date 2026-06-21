@@ -32,6 +32,8 @@ export { TransactionList } from './components/TransactionList';
 export { TransactionRow } from './components/TransactionRow';
 export { FilterBar, type FilterBarValue } from './components/FilterBar';
 export { SearchBar } from './components/SearchBar';
+export { ExportButton } from './components/ExportButton';
+export { toExportRows, toCsv, downloadCsv, type ExportRow } from './export';
 export { formatAmount } from './format';
 export {
   buildTransactionFilterArgs,

@@ -1,4 +1,4 @@
-# C14 Exportar CSV/XLSX
+# C14 Exportar CSV/XLSX ✅
 
 **Sprint:** C · **Modelo sugerido:** Haiku · **Depende de:** B10
 
@@ -19,9 +19,9 @@ Exportar los movimientos del período/filtros activos a CSV y XLSX.
 4. Descargar el archivo en el navegador.
 
 ## Criterios de aceptación
-- [ ] Exporta el set filtrado actual a CSV correctamente (encoding UTF-8, separador coherente).
-- [ ] Los montos y fechas salen en formato legible.
-- [ ] `typecheck`/`lint` ok.
+- [x] Exporta el set filtrado actual a CSV correctamente (encoding UTF-8, separador coherente).
+- [x] Los montos y fechas salen en formato legible.
+- [x] `typecheck`/`lint` ok.
 
 ## Fuera de alcance
 - Programar exportaciones automáticas.
