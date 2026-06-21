@@ -38,7 +38,7 @@ Un archivo por ticket. Cada uno es **autocontenido**: un subagente debería pode
 C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 
 **Sprint D — Mantenimiento / Calidad**
-- `D16` Saneamiento de dependencias (npm audit + ESLint EOL) — depende de A1. _No bloquea features (son avisos de tooling de dev); saldar en un cambio controlado._
+- ✅ `D16` Saneamiento de dependencias (npm audit + ESLint EOL) — depende de A1. _No bloquea features (son avisos de tooling de dev); saldar en un cambio controlado._
 
 ## Plantilla de ticket
 
