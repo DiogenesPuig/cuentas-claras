@@ -31,7 +31,7 @@ Un archivo por ticket. Cada uno es **autocontenido**: un subagente debería pode
 **Sprint C — Visualización y grupo**
 - ✅ `C11` Lógica de dinero y ciclos (money + billing) + tests — depende de A1
 - ✅ `C12` Edge function de FX + tabla `fx_rates` + cron/keep-alive — depende de A2
-- `C13` Reportes (tabs + gráficos) — depende de B10, C11, C12
+- ✅ `C13` Reportes (tabs + gráficos) — depende de B10, C11, C12
 - `C14` Exportar CSV/XLSX — depende de B10
 - `C15` Grupo: miembros, roles, invitaciones — depende de A5
 
