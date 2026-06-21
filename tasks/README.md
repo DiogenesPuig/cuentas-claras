@@ -33,7 +33,7 @@ Un archivo por ticket. Cada uno es **autocontenido**: un subagente debería pode
 - ✅ `C12` Edge function de FX + tabla `fx_rates` + cron/keep-alive — depende de A2
 - ✅ `C13` Reportes (tabs + gráficos) — depende de B10, C11, C12
 - ✅ `C14` Exportar CSV/XLSX — depende de B10
-- `C15` Grupo: miembros, roles, invitaciones — depende de A5
+- ✅ `C15` Grupo: miembros, roles, invitaciones — depende de A5
 
 C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 
