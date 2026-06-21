@@ -5,7 +5,7 @@ UI reutilizable y transversal.
 ## Carpetas
 
 - `ui/` — componentes de shadcn/ui (copiados con `npx shadcn@latest add <comp>`).
-  No se editan a mano salvo necesidad; quedan fuera del lint (ver `.eslintrc.cjs`).
+  No se editan a mano salvo necesidad; quedan fuera del lint (ver `eslint.config.js`).
 
 ## Archivos
 
