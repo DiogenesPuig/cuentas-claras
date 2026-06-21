@@ -36,6 +36,7 @@ Según PRD §9.2 (Opción C) y §9.3: la ingesta pesada (OCR + parseo de PDFs) v
 
 ### Resueltas
 - **Motor de OCR para comprobantes (FR-14/F2-2): On-box `Tesseract` (`pytesseract`).** Corre dentro del propio microservicio, sin API keys ni costo por uso. Calidad media (puede flaquear con fotos malas); si más adelante hace falta más precisión se evalúa un motor cloud, pero se arranca on-box. El parseo de resúmenes PDF (F2-3) usa `pdfplumber` sobre la capa de texto y **no necesita OCR**.
+- **Modelo de cuotas (installments): cada fila del resumen = un movimiento por la cuota cobrada ese mes.** Es decir, NO se guarda la compra completa con un plan a derivar; se guarda lo que el resumen efectivamente imputa en el período (`charged_on` = imputación del resumen). Se agregan a `transactions` dos columnas **nullables** `installment_n` / `installment_total` (ej. 2 y 3) solo para mostrar/agrupar. Ventaja: los reportes mensuales quedan correctos sin inventar montos futuros, y matchea cómo llega el dato desde el resumen. El dedupe (F2-4) trata cada `(compra, cuota n)` como distinta. Implementación: **F2-0** (migración previa a F2-3).
 
 ### Pendientes (diferidas, no bloquean)
 - **Hosting del microservicio Python (afecta F2-1): diferido a F2-1.** Aclaración importante: **no puede correr en Supabase** — las Edge Functions son Deno (TS), no Python, y no soportan `pdfplumber`/`pytesseract`/el binario Tesseract. El micro va en un host aparte. **Default recomendado: Fly.io con `Dockerfile`** (soporta el binario nativo de Tesseract, free tier, simple). Alternativas: Railway/Render (PaaS desde repo). Se confirma al arrancar F2-1, que además viene después de F2-7.
@@ -44,15 +45,16 @@ Según PRD §9.2 (Opción C) y §9.3: la ingesta pesada (OCR + parseo de PDFs) v
 
 | ID | Título | FR | Depende de | Notas |
 |----|--------|----|-----------|-------|
+| **F2-0** | Modelar cuotas: columnas `installment_n`/`installment_total` en `transactions` (migración) | soporte FR-16 | A2 | Decisión previa a F2-3 (ver §3). Migración chica + espejo en `schema_fase1.sql` + regenerar tipos. |
 | **F2-7** | Visor de comprobantes (ver/descargar adjunto vía signed URL) | FR-10/FR-13 | B8 | **Sin infra nueva.** Solo UI (`<img>` / link a PDF) sobre `getAttachmentUrl`. Candidato a hacer primero. |
 | **F2-1** | Microservicio Python: scaffold FastAPI + contrato `/v1/*` + auth JWT + deploy | infra F2 | Fase 1 cerrada + decisión de hosting | Cascarón fino; lógica pura testeable aparte. Define el contrato del §2. |
-| **F2-3** | Parseo de resúmenes → tabla `staging` + pantalla de revisión/confirmación | FR-16 | F2-1, B8 | Incluye **migración**: tabla `statement_staging`. Bancos objetivo: Nación y Patagonia (Visa/Master). |
+| **F2-3** | Parseo de resúmenes → tabla `staging` + pantalla de revisión/confirmación | FR-16 | F2-1, F2-0, B8 | Incluye **migración**: tabla `statement_staging`. Bancos objetivo: Nación y Patagonia (Visa/Master). |
 | **F2-5** | Alta de medio desde el resumen (match por banco+red+last4+titular; si no existe, crear desde staging) | FR-16b | F2-3, B7 | Definir criterio de *match* contra `accounts`. |
 | **F2-4** | Detección de duplicados al importar (monto+fecha+comercio → `external_hash`) | FR-17 | F2-3 | Reusa `transactions.external_hash`. |
 | **F2-6** | Sugerencia automática de categoría según descripción/comercio | FR-19 | F2-3, B6 | Empezar con reglas/keywords; IA opcional después. |
 | **F2-2** | OCR de comprobantes: extraer monto/fecha/comercio y precargar el alta | FR-14 | F2-1, B8 | Reusa el endpoint `/v1/receipts:extract`. OCR on-box con **Tesseract** (decidido). |
 
-**Secuencia recomendada:** F2-7 (rápido, sin infra) → F2-1 (habilita todo lo demás) → F2-3 → {F2-4, F2-5, F2-6 en paralelo} → F2-2.
+**Secuencia recomendada:** F2-7 (rápido, sin infra) → F2-1 (habilita todo lo demás) → F2-0 (migración cuotas, previa a F2-3) → F2-3 → {F2-4, F2-5, F2-6 en paralelo} → F2-2.
 
 ## 5. Riesgos / cosas a vigilar
 
@@ -71,7 +73,7 @@ Detectadas al planificar Fase 2. Algunas **desbloquean o protegen** Fase 2 y con
 
 ### Conviene hacerlas pronto (desbloquean/protegen Fase 2)
 - **D17 — CI en GitHub Actions.** Correr `typecheck`/`lint`/`test` en cada PR (hoy se hace a mano). Cuando exista el micro, sumar `pytest`/`ruff`. Independiente, barato, alto valor ahora que se mergean PRs seguido. _Sprint D · Sonnet._
-- **Modelar cuotas (installments) — DECISIÓN PREVIA a F2-3.** **Confirmado en muestras reales** (`Cuota 02/03`). Hoy `transactions` no lo modela; si F2-3 las ignora, montos y reportes mensuales quedan mal. Definir esquema (posibles `installment_n`/`installment_total`, ¿cómo se imputan por mes?) → **puede requerir migración**. _Decisión Opus, antes de F2-3._ Nota relacionada de las muestras: un mismo resumen mezcla **varias tarjetas/titulares** (impacta FR-16b/F2-5) y trae **secciones `$` y `U$S`** (multimoneda por fila). Detalle de formato en `F2-3` → "Hallazgos de formato".
+- ~~**Modelar cuotas (installments)**~~ → **RESUELTO** (ver §3 Resueltas). Se implementa en **F2-0** (migración previa a F2-3): columnas nullables `installment_n`/`installment_total` en `transactions`. Nota relacionada de las muestras: un mismo resumen mezcla **varias tarjetas/titulares** (impacta FR-16b/F2-5) y trae **secciones `$` y `U$S`** (multimoneda por fila). Detalle de formato en `F2-3` → "Hallazgos de formato".
 - **FX fallback a día hábil anterior.** Hoy una compra en fin de semana/feriado no tiene cotización de ese día y cae en `missingRates` (C13). Falta usar la cotización del **día hábil anterior**. Lógica pura en `lib/fx.ts` + ajuste en `api.ts`. Mejora de correctitud del dinero. _Sprint C/calidad · Sonnet._
 - **Auditoría de precisión de montos.** Verificar que los montos no se manejen como `float` lossy (un `0.1 + 0.2` en una app de plata es un bug). Confirmar tipo en Postgres (`numeric`) y cómo viaja a JS; decidir representación (entero en centavos / decimal). Chico pero crítico. _Sprint calidad · Opus decide representación → Sonnet._
 

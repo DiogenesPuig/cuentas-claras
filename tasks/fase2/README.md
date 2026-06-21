@@ -7,6 +7,7 @@
 ## Archivos de esta carpeta
 
 - `PLAN.md` — plan de Fase 2: arquitectura, decisiones (resueltas y pendientes), desglose y orden.
+- `F2-0-modelar-cuotas.md` — migración: columnas `installment_n`/`installment_total` (previo a F2-3).
 - `F2-1-microservicio-python.md` — scaffold FastAPI + contrato + auth + deploy.
 - `F2-2-ocr-comprobantes.md` — OCR de comprobantes (Tesseract) → precarga el alta (FR-14).
 - `F2-3-parseo-resumenes-staging.md` — parseo de resúmenes → staging + confirmación (FR-16).
@@ -15,7 +16,7 @@
 - `F2-6-sugerencia-categoria.md` — sugerencia automática de categoría (FR-19).
 - `F2-7-visor-comprobantes.md` — visor/descarga de adjuntos (FR-10/FR-13), sin infra nueva.
 
-**Orden recomendado:** F2-7 → F2-1 → F2-3 → {F2-4, F2-5, F2-6} → F2-2 (ver `PLAN.md` §4).
+**Orden recomendado:** F2-7 → F2-1 → F2-0 → F2-3 → {F2-4, F2-5, F2-6} → F2-2 (ver `PLAN.md` §4).
 
 ## Alcance (PRD §14 — Fase 2: semanas 7–11)
 
