@@ -59,4 +59,4 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 
 ## Definition of Done
 
-Ver `CLAUDE.md` → "Definición de hecho". Resumen: compila, lint ok, tests (si hay lógica pura), cumple criterios de aceptación, sin scope creep, sin dependencias nuevas no autorizadas.
+Ver `CLAUDE.md` → "Definición de hecho". Resumen: compila, lint ok, tests (si hay lógica pura), cumple criterios de aceptación, sin scope creep, sin dependencias nuevas no autorizadas, y **si el ticket trajo migraciones, quedan aplicadas en remoto** (no alcanza con escribir el `.sql`).

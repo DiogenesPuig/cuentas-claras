@@ -85,6 +85,7 @@ npm test            # vitest run  (npm run test:watch para modo watch)
 - No mete cambios fuera del alcance del ticket.
 - No agrega dependencias nuevas salvo que el ticket lo indique.
 - Si crea o borra archivos en una carpeta, el `README.md` de esa carpeta queda actualizado (ver "Convención: índice por carpeta").
+- **Si el ticket necesitó migraciones de DB, quedan aplicadas en el proyecto remoto** (`supabase db push`, verificado con `supabase migration list --linked`) y los tipos regenerados si el esquema cambió. Una migración escrita pero sin aplicar **no** cierra el ticket: el feature no funciona en producción hasta que corre.
 
 ## Política de modelos (editable — cambiá esto si querés)
 
