@@ -1,9 +1,21 @@
 # Backlog — Fase 2 (Ingesta inteligente)
 
-> **Parking lot.** Estos tickets **no se trabajan todavía**: dependen de que Fase 1 (MVP) esté cerrada
-> y de levantar el microservicio Python de ingesta. Se listan acá para no perder el alcance ya decidido
-> en el PRD (§14 Roadmap, §5.4 Ingesta). Cuando se arranque Fase 2, cada ítem se convierte en un archivo
-> de ticket propio siguiendo la plantilla de `tasks/README.md`.
+> **Planificada (2026-06-22).** Fase 1 está cerrada; los tickets de abajo ya existen como archivos
+> propios en esta carpeta. El plan de arquitectura y decisiones está en `PLAN.md`. La mayoría depende
+> del microservicio Python (`F2-1`); `F2-7` no necesita infra nueva y puede ir primero.
+
+## Archivos de esta carpeta
+
+- `PLAN.md` — plan de Fase 2: arquitectura, decisiones (resueltas y pendientes), desglose y orden.
+- `F2-1-microservicio-python.md` — scaffold FastAPI + contrato + auth + deploy.
+- `F2-2-ocr-comprobantes.md` — OCR de comprobantes (Tesseract) → precarga el alta (FR-14).
+- `F2-3-parseo-resumenes-staging.md` — parseo de resúmenes → staging + confirmación (FR-16).
+- `F2-4-dedupe-importacion.md` — detección de duplicados al importar (FR-17).
+- `F2-5-alta-medio-desde-resumen.md` — identificar/crear el medio desde el resumen (FR-16b).
+- `F2-6-sugerencia-categoria.md` — sugerencia automática de categoría (FR-19).
+- `F2-7-visor-comprobantes.md` — visor/descarga de adjuntos (FR-10/FR-13), sin infra nueva.
+
+**Orden recomendado:** F2-7 → F2-1 → F2-3 → {F2-4, F2-5, F2-6} → F2-2 (ver `PLAN.md` §4).
 
 ## Alcance (PRD §14 — Fase 2: semanas 7–11)
 
