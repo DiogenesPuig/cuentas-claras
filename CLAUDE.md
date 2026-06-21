@@ -47,6 +47,17 @@ Cada feature: `api.ts` (habla con Supabase, sin React) · `hooks.ts` (react-quer
 - Nunca exponer la `service_role` key en el front. La `anon key` es pública por diseño.
 - Tipos de la DB: **no editar `database.types.ts` a mano**; se regenera con `supabase gen types`.
 
+## Regla: portabilidad / no encerrarse en Supabase
+
+> Objetivo: que un día se pueda mover el proyecto a backend propio + Postgres pelado (u otra nube) **sin reescribir media app**. No migramos ahora, pero todo lo nuevo debe respetar estas fronteras para que el costo de esa mudanza no crezca ticket a ticket.
+
+- **`api.ts` es la ÚNICA capa que toca Supabase.** Ningún `hooks.ts`, componente, `lib/` ni `schema.ts` importa `supabase` ni `database.types`. Si mañana hay backend propio, se reescribe solo `api.ts` (por feature) y el resto queda intacto. Si te tienta llamar a `supabase` desde un hook o componente, **parálo y movelo a `api.ts`**.
+- **La lógica de negocio vive en `lib/` (pura, testeada, sin red ni Supabase).** Dinero, ciclos, parseos, formato. Es lo más caro de reescribir, así que tiene que ser 100% portable (ej. `lib/money.ts`, `lib/billing.ts`, y la lógica pura de las edge functions en archivos sin imports de Deno como `parse.ts`).
+- **Edge functions: cascarón fino.** El `index.ts` (runtime Deno + env de Supabase) solo orquesta; toda la lógica real va en un módulo puro al lado, importable desde vitest. Migrar = reescribir el cascarón, no la lógica.
+- **Acoplamientos conocidos a Supabase** (a reemplazar el día de la mudanza, NO antes): Auth (`auth.uid()`, `auth.users`), Storage (`storage.objects`), cron+secrets (`pg_cron`/`pg_net`/Vault en migraciones), y la API autogenerada (PostgREST) que hoy consume `supabase-js`. No agregar acoplamientos nuevos fuera de `api.ts` / migraciones.
+- **RLS sigue siendo la fuente de verdad de seguridad** (no debilitarla por "portabilidad"). Es portable a cualquier Postgres; lo que cambiaría es cómo se inyecta la identidad del usuario en la sesión.
+- Ante la duda de si algo "ata" más el proyecto a Supabase de lo necesario, **escalá la decisión** (ver "Política de modelos") en vez de improvisar.
+
 ## Convención: índice por carpeta (mantener actualizado)
 
 - Cada carpeta significativa tiene un `README.md` que describe **qué es y qué contiene**, archivo por archivo (una línea por archivo).
