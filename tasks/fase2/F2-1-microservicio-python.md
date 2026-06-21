@@ -26,6 +26,7 @@ Levantar el microservicio Python (FastAPI) que hace OCR/parseo, desacoplado del 
 4. Estructura para lógica pura testeable (`app/parsing/*.py` sin imports de red) + `pytest` + `ruff`.
 5. `Dockerfile` con Python + Tesseract instalado. Deploy al hosting elegido; smoke test del health y de un endpoint dummy desde la web.
 6. CORS configurado para el origen de la web.
+7. Endurecer el endpoint contra input no confiable: límite de tamaño de archivo, timeout de procesado, y aislamiento del parseo (ver `tasks/fase2/PLAN.md` §5 "Seguridad del parseo").
 
 ## Criterios de aceptación
 - [ ] El micro deployado responde `GET /v1/health` y rechaza requests sin JWT válido.

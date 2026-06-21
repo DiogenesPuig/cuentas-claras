@@ -56,7 +56,26 @@ Según PRD §9.2 (Opción C) y §9.3: la ingesta pesada (OCR + parseo de PDFs) v
 
 ## 5. Riesgos / cosas a vigilar
 
-- **Calidad del parseo por banco:** cada banco/red tiene un layout distinto; F2-3 arranca con 2 bancos y se amplía. Tener fixtures (PDFs de ejemplo anonimizados) para tests de la lógica pura.
+- **Calidad del parseo por banco:** cada banco/red tiene un layout distinto; F2-3 arranca con 2 bancos y se amplía.
+- **Referencia vs. fixtures de test (privacidad):**
+  - **Referencia local (real, privada):** `samples/resumenes-privados/` — resúmenes reales del dueño para construir/probar parsers a mano. Está en `.gitignore`; **nunca se commitea** (datos personales). Ver su README.
+  - **Fixtures de test (versionables):** los `pytest` corren contra resúmenes **anonimizados/sintéticos**, no contra los privados. Definir esa estrategia en F2-3.
+- **Seguridad del parseo (input no confiable):** el micro recibe PDFs/imágenes de cualquiera. Aplicar límites de tamaño y tiempo, no ejecutar contenido embebido, cuidar zip-bombs/PDFs maliciosos, parsear en proceso acotado. A bakear en F2-1 (límites/timeouts del endpoint) y F2-3 (parser defensivo).
 - **Extensiones en un mismo resumen:** un PDF puede mezclar titular + extensiones; F2-5 debe poder crear cada extensión como medio propio (FR-6c).
-- **Costo/latencia del OCR cloud** si se elige esa vía en F2-2.
+- **Costo/latencia del OCR cloud** si algún día se reabre esa vía en F2-2 (hoy: Tesseract on-box).
 - **No persistir nunca la password** del PDF (revisar en review de F2-3).
+
+## 6. Tareas adicionales detectadas (brainstorm 2026-06-22)
+
+Detectadas al planificar Fase 2. Algunas **desbloquean o protegen** Fase 2 y conviene saldarlas pronto; otras son ideas a futuro. Cuando se trabajen, se materializan como tickets propios.
+
+### Conviene hacerlas pronto (desbloquean/protegen Fase 2)
+- **D17 — CI en GitHub Actions.** Correr `typecheck`/`lint`/`test` en cada PR (hoy se hace a mano). Cuando exista el micro, sumar `pytest`/`ruff`. Independiente, barato, alto valor ahora que se mergean PRs seguido. _Sprint D · Sonnet._
+- **Modelar cuotas (installments) — DECISIÓN PREVIA a F2-3.** Los resúmenes AR traen "cuota 3/12"; hoy `transactions` no lo modela. Si F2-3 las ignora, montos y reportes mensuales quedan mal. Definir esquema (posibles `installment_n`/`installment_total`, ¿cómo se imputan por mes?) → **puede requerir migración**. _Decisión Opus, antes de F2-3._
+- **FX fallback a día hábil anterior.** Hoy una compra en fin de semana/feriado no tiene cotización de ese día y cae en `missingRates` (C13). Falta usar la cotización del **día hábil anterior**. Lógica pura en `lib/fx.ts` + ajuste en `api.ts`. Mejora de correctitud del dinero. _Sprint C/calidad · Sonnet._
+- **Auditoría de precisión de montos.** Verificar que los montos no se manejen como `float` lossy (un `0.1 + 0.2` en una app de plata es un bug). Confirmar tipo en Postgres (`numeric`) y cómo viaja a JS; decidir representación (entero en centavos / decimal). Chico pero crítico. _Sprint calidad · Opus decide representación → Sonnet._
+
+### Ideas a futuro (no urgentes)
+- **Onboarding "upload-first":** flujo de entrada centrado en "subí tu resumen y listo" (PRD FR-16b: muchos usuarios no cargarán medios a mano).
+- **PWA / instalable:** mencionada en el PRD §9.3, no hecha en Fase 1.
+- **Export/borrado de datos del usuario:** "descargá/borrá mis datos" cuando haya usuarios reales (C14 ya exporta movimientos a CSV como base).

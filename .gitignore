@@ -35,6 +35,12 @@ supabase/.branches/
 supabase/.temp/
 .supabase/
 
+# Resúmenes de tarjeta privados: referencia LOCAL para construir/validar los
+# parsers de Fase 2 (F2-3). NUNCA commitear: tienen datos personales reales.
+# Solo se versiona el README que explica la convención.
+/samples/resumenes-privados/*
+!/samples/resumenes-privados/README.md
+
 # Editores / SO
 .vscode/*
 !.vscode/extensions.json

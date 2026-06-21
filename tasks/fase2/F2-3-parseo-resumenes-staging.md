@@ -9,6 +9,8 @@ Subir un resumen de tarjeta (PDF), parsearlo en el microservicio Python y mostra
 - PRD §5.4 FR-16 (parseo con staging) y §9.4 (FX por `charged_on`). `tasks/fase2/PLAN.md` §2/§4.
 - Ya existe: subida a `attachments` (`kind='statement'`), `transactions.source='statement_import'`, `charged_on`.
 - `db/schema_fase1.sql`.
+- **Referencia local privada:** `samples/resumenes-privados/` (gitignored) tiene resúmenes reales para construir/probar parsers a mano. Los **tests** corren contra fixtures **anonimizados/sintéticos** versionables, no contra los privados (ver `tasks/fase2/PLAN.md` §5).
+- **Seguridad:** el PDF es input no confiable → parser defensivo, límites de tamaño/tiempo, sin ejecutar contenido embebido (ver PLAN §5).
 
 ## DECISIONES PENDIENTES (resolver al planificar el ticket)
 - **Modelo de staging:** tabla `statement_staging` (filas parseadas, `status` pending/confirmed/discarded, FK al `attachment` y al `workspace`, RLS por workspace) vs. staging efímero en el front. Recomendado: **tabla**, para no perder el trabajo y poder confirmar por partes.
