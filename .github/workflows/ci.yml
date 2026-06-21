@@ -1,0 +1,35 @@
+name: CI
+
+# Corre los checks del proyecto en cada PR a main y en push a main (D17).
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Vite 8 requiere Node >= 20.19 / 22.12; usamos 22 LTS.
+          node-version: 22
+          cache: npm
+
+      - name: Install (reproducible)
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
