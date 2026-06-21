@@ -37,6 +37,13 @@ export function ConsolidatedTotals({ consolidated, baseCurrency }: ConsolidatedT
           ))}
         </ul>
       )}
+
+      {consolidated.missingRates.length > 0 && (
+        <p className="text-xs text-amber-600">
+          Sin cotización para {consolidated.missingRates.join(', ')}: esos montos quedan fuera del
+          consolidado en {baseCurrency}.
+        </p>
+      )}
     </div>
   );
 }

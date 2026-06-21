@@ -24,6 +24,12 @@ export interface ConsolidationResult {
   balance: number;
   /** Totales por moneda original (FR-9b), sin convertir. */
   byCurrency: Record<string, CurrencyTotals>;
+  /**
+   * Monedas (distintas de `base`) que tuvieron al menos un movimiento sin cotización
+   * disponible: sus montos quedaron fuera del consolidado en `base` (sí están en
+   * `byCurrency`). Vacío = el consolidado refleja todos los movimientos. Ordenado.
+   */
+  missingRates: string[];
 }
 
 /**
@@ -38,6 +44,7 @@ export function consolidate(
   rates: Record<string, number>,
 ): ConsolidationResult {
   const byCurrency: Record<string, CurrencyTotals> = {};
+  const missing = new Set<string>();
   let income = 0;
   let expense = 0;
 
@@ -53,14 +60,22 @@ export function consolidate(
     byCurrency[tx.currency] = totals;
 
     const rate = tx.currency === base ? 1 : rates[tx.currency];
-    if (rate === undefined) continue;
+    if (rate === undefined) {
+      missing.add(tx.currency);
+      continue;
+    }
     const amountInBase = tx.amount * rate;
 
     if (tx.type === 'income') income += amountInBase;
     else expense += amountInBase;
   }
 
-  return { income, expense, balance: income - expense, byCurrency };
+  return { income, expense, balance: income - expense, byCurrency, missingRates: sortedKeys(missing) };
+}
+
+/** Monedas con cotización faltante, ordenadas para una salida estable. */
+function sortedKeys(set: Set<string>): string[] {
+  return Array.from(set).sort();
 }
 
 /** Movimiento con la fecha que define qué cotización le corresponde (FX histórico). */
@@ -85,6 +100,7 @@ export function consolidateHistorical(
   rateFor: RateLookup,
 ): ConsolidationResult {
   const byCurrency: Record<string, CurrencyTotals> = {};
+  const missing = new Set<string>();
   let income = 0;
   let expense = 0;
 
@@ -100,12 +116,15 @@ export function consolidateHistorical(
     byCurrency[tx.currency] = totals;
 
     const rate = tx.currency === base ? 1 : rateFor(tx.currency, tx.rateDate);
-    if (rate === undefined) continue;
+    if (rate === undefined) {
+      missing.add(tx.currency);
+      continue;
+    }
     const amountInBase = tx.amount * rate;
 
     if (tx.type === 'income') income += amountInBase;
     else expense += amountInBase;
   }
 
-  return { income, expense, balance: income - expense, byCurrency };
+  return { income, expense, balance: income - expense, byCurrency, missingRates: sortedKeys(missing) };
 }

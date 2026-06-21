@@ -83,7 +83,7 @@ describe('aggregateByDimension', () => {
     for (const dimension of ['banco', 'red', 'medio'] as const) {
       const groups = aggregateByDimension(transactions, dimension, 'ARS', noRate);
       expect(groups).toEqual([
-        { key: 'Sin medio', consolidated: { income: 0, expense: 40, balance: -40, byCurrency: { ARS: { income: 0, expense: 40, balance: -40 } } } },
+        { key: 'Sin medio', consolidated: { income: 0, expense: 40, balance: -40, byCurrency: { ARS: { income: 0, expense: 40, balance: -40 } }, missingRates: [] } },
       ]);
     }
   });

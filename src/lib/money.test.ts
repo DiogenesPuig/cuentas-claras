@@ -19,6 +19,7 @@ describe('consolidate', () => {
       byCurrency: {
         ARS: { income: 1000, expense: 400, balance: 600 },
       },
+      missingRates: [],
     });
   });
 
@@ -67,6 +68,22 @@ describe('consolidate', () => {
 
     expect(result.income).toBe(1000);
     expect(result.byCurrency.BRL).toEqual({ income: 50, expense: 0, balance: 50 });
+    expect(result.missingRates).toEqual(['BRL']);
+  });
+
+  it('reporta cada moneda sin cotización una sola vez, ordenadas', () => {
+    const result = consolidate(
+      [
+        { amount: 1, currency: 'BRL', type: 'expense' },
+        { amount: 2, currency: 'BRL', type: 'expense' },
+        { amount: 3, currency: 'CLP', type: 'expense' },
+        { amount: 4, currency: 'USD', type: 'expense' },
+      ],
+      'ARS',
+      { USD: 1100 },
+    );
+
+    expect(result.missingRates).toEqual(['BRL', 'CLP']);
   });
 
   it('sin movimientos: todos los totales en cero y byCurrency vacío', () => {
@@ -75,6 +92,7 @@ describe('consolidate', () => {
       expense: 0,
       balance: 0,
       byCurrency: {},
+      missingRates: [],
     });
   });
 });
@@ -123,5 +141,6 @@ describe('consolidateHistorical', () => {
 
     expect(result.expense).toBe(0);
     expect(result.byCurrency.USD).toEqual({ income: 0, expense: 10, balance: -10 });
+    expect(result.missingRates).toEqual(['USD']);
   });
 });
