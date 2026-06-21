@@ -59,7 +59,7 @@ cuentas-claras/
 │  ├─ hooks/                      # hooks transversales
 │  └─ types/                      # tipos de dominio (mapean al esquema)
 ├─ .env.local                     # VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
-├─ .eslintrc.cjs · .prettierrc · tsconfig.json
+├─ eslint.config.js · .prettierrc · tsconfig.json
 └─ vite.config.ts
 ```
 

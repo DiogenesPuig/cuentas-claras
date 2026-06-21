@@ -11,7 +11,7 @@ del front). Se despliegan con `supabase functions deploy <nombre>`.
 ## Notas de tooling
 
 - No las cubre `npm run typecheck` (el `tsconfig` del proyecto solo incluye `src/`).
-- `npm run lint` sí las lintea: `.eslintrc.cjs` tiene un override que expone el
+- `npm run lint` sí las lintea: `eslint.config.js` tiene un override que expone el
   global `Deno` para esa carpeta.
 - La lógica pura de cada función vive en archivos sin imports de Deno (ej.
   `parse.ts`) para poder testearla con vitest.
