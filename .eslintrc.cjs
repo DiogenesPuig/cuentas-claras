@@ -21,4 +21,14 @@ module.exports = {
   rules: {
     'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
   },
+  overrides: [
+    {
+      // Edge functions corren en Deno (no en el bundle del front): exponen el
+      // global `Deno` y se importan por URL/npm-specifier. Solo ajustamos el
+      // global para que `no-undef` no falle; la lógica pura (parse.ts) se lintea
+      // igual que el resto.
+      files: ['supabase/functions/**/*.ts'],
+      globals: { Deno: 'readonly' },
+    },
+  ],
 };

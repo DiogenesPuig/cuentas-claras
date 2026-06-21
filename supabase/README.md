@@ -8,6 +8,9 @@ Proyecto Supabase linkeado (`supabase link`) y migraciones versionadas que lleva
 - `migrations/0001_init.sql` — migración inicial: extensiones, enums, funciones, tablas, índices, RLS, vista `member_directory`, trigger de owner y seed de categorías globales. Espejo de `db/schema_fase1.sql`, con una salvedad: `gen_random_bytes` se referencia calificado como `extensions.gen_random_bytes`, porque en Supabase `pgcrypto` se instala en el esquema `extensions`, no en `public`.
 - `migrations/0002_attachments_storage.sql` — bucket privado `attachments` (comprobantes, FR-10) + políticas de `storage.objects` (lectura/escritura por miembro del workspace, vía el primer segmento del path `{workspace_id}/...`; borrado solo owner/admin). Espejo de la sección "STORAGE" de `db/schema_fase1.sql`.
 - `migrations/0003_fix_workspace_select_on_create.sql` — fix de `ws_select` (bug preexistente que rompía el alta de workspace para cualquier usuario nuevo; ver el comentario en el archivo y en `db/schema_fase1.sql`).
+- `migrations/0004_fx_rates.sql` — tabla global `fx_rates` (cache de cotizaciones, C12) con `unique (date, source, quote, currency)`; RLS de solo lectura para autenticados (escritura solo service_role).
+- `migrations/0005_fx_refresh_cron.sql` — cron diario (pg_cron + pg_net) que invoca la edge function `fx-refresh`; también keep-alive (PRD §15). La service_role key se lee de Vault, no se versiona (ver cabecera del archivo).
+- `functions/fx-refresh/` — edge function que cachea cotizaciones de dolarapi en `fx_rates` (C12). Ver su `README.md`.
 
 ## Notas
 
