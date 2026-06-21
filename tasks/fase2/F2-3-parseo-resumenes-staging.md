@@ -12,9 +12,19 @@ Subir un resumen de tarjeta (PDF), parsearlo en el microservicio Python y mostra
 - **Referencia local privada:** `samples/resumenes-privados/` (gitignored) tiene resúmenes reales para construir/probar parsers a mano. Los **tests** corren contra fixtures **anonimizados/sintéticos** versionables, no contra los privados (ver `tasks/fase2/PLAN.md` §5).
 - **Seguridad:** el PDF es input no confiable → parser defensivo, límites de tamaño/tiempo, sin ejecutar contenido embebido (ver PLAN §5).
 
+## Hallazgos de formato (muestras privadas, 2026-06)
+Del análisis de resúmenes reales en `samples/resumenes-privados/` (todos con capa de texto y **sin password** en estas muestras):
+- **Dos familias de layout** (→ se necesita un parser por plantilla, no uno solo):
+  - *Patagonia (Visa/Master) y Visa de Nación:* tabular, parseable por línea. Fila ≈ `FECHA(dd.mm.aa)  COMPROBANTE(6díg+sufijo)  DETALLE  [Cuota NN/NN]  IMPORTE(1.234,56)`. Encabezado por tarjeta: `Tarjeta NNNN Total Consumos de <NOMBRE>` → de ahí salen **últimos 4 + titular**.
+  - *Nativa Internacional (Nación, Mastercard):* el texto sale sin estructura de columnas con extracción por líneas (dio **0 filas**) → requiere `pdfplumber` por **coordenadas/tablas**. Plantilla aparte.
+- **Cuotas presentes** en filas reales (`Cuota 02/03`) → hay que modelarlas (ver decisión).
+- **Multi-tarjeta por resumen:** un mismo PDF agrupa titular + adicionales, cada uno con su last4/holder → el parser debe **agrupar filas por tarjeta** (alimenta FR-16b / extensiones de F2-5).
+- **Multimoneda:** secciones `$` y `U$S`; las compras en dólar liquidan con un TC mostrado en el propio resumen → capturar **moneda por fila**.
+- **Signo:** importes con sufijo `-` = pagos/devoluciones (no son gastos).
+
 ## DECISIONES PENDIENTES (resolver al planificar el ticket)
 - **Modelo de staging:** tabla `statement_staging` (filas parseadas, `status` pending/confirmed/discarded, FK al `attachment` y al `workspace`, RLS por workspace) vs. staging efímero en el front. Recomendado: **tabla**, para no perder el trabajo y poder confirmar por partes.
-- **Cuotas (installments):** los resúmenes AR traen "cuota 3/12". Definir si se modela (campos `installment_n`/`installment_total`) — **puede requerir migración de `transactions`**. Ver brainstorm de Fase 2.
+- **Cuotas (installments):** confirmado en muestras (`Cuota 02/03`). Definir el modelo (campos `installment_n`/`installment_total`, cómo se imputan por mes) — **puede requerir migración de `transactions`**. Decisión PREVIA a este ticket (ver `PLAN.md` §6).
 - **Password del PDF:** se pide en el upload y se manda al micro; **nunca se persiste** (verificar en review).
 
 ## Archivos a crear/editar

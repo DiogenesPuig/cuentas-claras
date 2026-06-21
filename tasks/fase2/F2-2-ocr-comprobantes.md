@@ -9,6 +9,7 @@ Al subir un comprobante (imagen/PDF), extraer automáticamente **monto, fecha y 
 - PRD §5.4 FR-14. `tasks/fase2/PLAN.md` §2/§3 (Tesseract on-box).
 - Ya existe: subida a `attachments` (`kind='receipt'`) y `transactions.source='ocr'`.
 - El micro (F2-1) expone `POST /v1/receipts:extract`.
+- **Subtipos de comprobante (visto en muestras):** además del ticket de compra de comercio, están los **comprobantes de transferencia** (imágenes estructuradas clave-valor: Banco, Fecha/hora, Nº transacción, Origen, Destino+CBU, Importe, Concepto). Son muy OCR-friendly y a menudo mapean a un movimiento distinto (transferencia, no compra). Conviene detectar el subtipo y extraer los campos relevantes de cada uno.
 
 ## Archivos a crear/editar
 - Micro (F2-1): implementar `/v1/receipts:extract` con `pytesseract` + heurísticas de extracción (módulo puro `app/parsing/receipts.py`).
