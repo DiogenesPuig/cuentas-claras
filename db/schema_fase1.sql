@@ -149,6 +149,77 @@ create index idx_invitations_workspace on invitations (workspace_id);
 create index idx_invitations_email      on invitations (lower(email));
 
 -- ============================================================================
+-- HELPERS: aceptar invitación por token (C15)
+--   La policy `inv_admin` (más abajo) solo deja ver/escribir invitations a
+--   owner/admin. Quien todavía no es miembro no puede leer su propia
+--   invitación por select normal, así que estas funciones SECURITY DEFINER
+--   validan el token y hacen el alta de forma controlada.
+-- ============================================================================
+create or replace function invitation_preview(p_token text)
+returns table (
+  workspace_id   uuid,
+  workspace_name text,
+  role           member_role,
+  email          text,
+  is_expired     boolean,
+  is_usable      boolean
+)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select
+    i.workspace_id,
+    w.name,
+    i.role,
+    i.email,
+    i.expires_at < now()              as is_expired,
+    i.status = 'pending' and i.expires_at >= now() as is_usable
+  from invitations i
+  join workspaces w on w.id = i.workspace_id
+  where i.token = p_token;
+$$;
+
+revoke all on function invitation_preview(text) from public;
+grant execute on function invitation_preview(text) to authenticated;
+
+create or replace function accept_invitation(p_token text)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  inv invitations;
+begin
+  if auth.uid() is null then
+    raise exception 'No hay sesión activa.';
+  end if;
+
+  select * into inv from invitations where token = p_token;
+
+  if inv is null then
+    raise exception 'Invitación inválida.';
+  end if;
+  if inv.status <> 'pending' or inv.expires_at < now() then
+    raise exception 'Invitación vencida o no disponible.';
+  end if;
+
+  insert into workspace_members (workspace_id, user_id, role)
+  values (inv.workspace_id, auth.uid(), inv.role)
+  on conflict (workspace_id, user_id) do nothing;
+
+  update invitations set status = 'accepted' where id = inv.id;
+
+  return inv.workspace_id;
+end;
+$$;
+
+revoke all on function accept_invitation(text) from public;
+grant execute on function accept_invitation(text) to authenticated;
+
+-- ============================================================================
 -- ACCOUNTS  (tarjetas / medios de pago)
 -- ============================================================================
 create table accounts (

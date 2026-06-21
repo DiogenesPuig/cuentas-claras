@@ -570,12 +570,24 @@ export type Database = {
       }
     }
     Functions: {
+      accept_invitation: { Args: { p_token: string }; Returns: string }
       has_role: {
         Args: {
           roles: Database["public"]["Enums"]["member_role"][]
           ws: string
         }
         Returns: boolean
+      }
+      invitation_preview: {
+        Args: { p_token: string }
+        Returns: {
+          email: string
+          is_expired: boolean
+          is_usable: boolean
+          role: Database["public"]["Enums"]["member_role"]
+          workspace_id: string
+          workspace_name: string
+        }[]
       }
       is_member: { Args: { ws: string }; Returns: boolean }
     }
