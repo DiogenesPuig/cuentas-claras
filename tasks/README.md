@@ -39,7 +39,7 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 
 **Sprint D — Mantenimiento / Calidad**
 - ✅ `D16` Saneamiento de dependencias (npm audit + ESLint EOL) — depende de A1. _No bloquea features (son avisos de tooling de dev); saldar en un cambio controlado._
-- `D17` CI en GitHub Actions (typecheck/lint/test/build en cada PR) — depende de A1.
+- ✅ `D17` CI en GitHub Actions (typecheck/lint/test/build en cada PR) — depende de A1.
 
 ## Plantilla de ticket
 
