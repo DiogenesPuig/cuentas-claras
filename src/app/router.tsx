@@ -5,19 +5,11 @@ import { AppLayout } from './layout/AppLayout';
 import { AccountsPage } from './AccountsPage';
 import { CategoriesPage } from './CategoriesPage';
 import { DashboardPage } from './DashboardPage';
+import { GroupPage } from './GroupPage';
+import { InviteAcceptPage } from './InviteAcceptPage';
 import { ReportsPage } from './ReportsPage';
 import { TransactionsPage } from './TransactionsPage';
 import { OnboardingPage } from './OnboardingPage';
-
-/** Placeholder para pantallas cuyo contenido llega en tickets posteriores (B/C). */
-function Placeholder({ title, ticket }: { title: string; ticket: string }) {
-  return (
-    <div className="space-y-2">
-      <h1 className="text-2xl font-bold">{title}</h1>
-      <p className="text-muted-foreground">Disponible en el ticket {ticket}.</p>
-    </div>
-  );
-}
 
 const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -27,6 +19,14 @@ const router = createBrowserRouter([
     element: (
       <RequireAuth>
         <OnboardingPage />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/invite/:token',
+    element: (
+      <RequireAuth>
+        <InviteAcceptPage />
       </RequireAuth>
     ),
   },
@@ -45,7 +45,7 @@ const router = createBrowserRouter([
       { path: 'medios', element: <AccountsPage /> },
       { path: 'movimientos', element: <TransactionsPage /> },
       { path: 'reportes', element: <ReportsPage /> },
-      { path: 'ajustes', element: <Placeholder title="Ajustes" ticket="C15" /> },
+      { path: 'grupo', element: <GroupPage /> },
     ],
   },
 ]);

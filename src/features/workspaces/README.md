@@ -1,25 +1,28 @@
 # src/features/workspaces
 
-Pertenencia del usuario a workspaces y creación del primero (onboarding). Implementa parte de
-**FR-2** (PRD §5.2): un usuario individual es un workspace de 1 miembro; al crear un grupo, el
-creador queda como `owner` (trigger `trg_ws_add_owner`). El selector de workspace activo y el
-layout son del ticket A5; invitar miembros, del C15.
+Pertenencia del usuario a workspaces, creación del primero (onboarding), gestión del grupo
+(miembros/roles/invitaciones) y configuración del workspace. Implementa **FR-2**, **FR-3** y
+**FR-4** (PRD §5.1).
 
 ## Archivos
 
-- `api.ts` — Supabase: `listMyWorkspaces` (vía `workspace_members`), `createWorkspace`
-  (inserta con `owner_id = auth.uid()`) y `getMyRole` (rol del usuario autenticado en un
-  workspace, o `null` si no es miembro). Sin React.
-- `hooks.ts` — react-query: `useMyWorkspaces`, `useCompleteOnboarding` (asegura `profiles` +
-  crea el primer workspace) y `useMyRole` (para mostrar/ocultar acciones de owner/admin, p. ej.
-  en `features/categories`).
-- `schema.ts` — zod del onboarding (`displayName`, `workspaceName`, `baseCurrency`) y la lista
-  `BASE_CURRENCIES` (monedas base ofrecidas).
+- `api.ts` — Supabase: `listMyWorkspaces`, `createWorkspace`, `getMyRole`, `getWorkspace`,
+  `updateWorkspaceSettings` (name/base_currency/fx_quote); `listMembers` (vía `member_directory`,
+  nunca `profiles` directo: privacidad del teléfono), `updateMemberRole`, `removeMember`;
+  `listInvitations`, `createInvitation`; `previewInvitation`/`acceptInvitation` (RPC a las
+  funciones `SECURITY DEFINER` `invitation_preview`/`accept_invitation` — quien todavía no es
+  miembro no puede leer `invitations` por RLS, así que el alta por token pasa por esas funciones).
+  Sin React.
+- `hooks.ts` — react-query equivalente a cada función de `api.ts` (`useMyWorkspaces`,
+  `useCompleteOnboarding`, `useMyRole`, `useWorkspace`, `useUpdateWorkspaceSettings`,
+  `useMembers`, `useUpdateMemberRole`, `useRemoveMember`, `useInvitations`,
+  `useCreateInvitation`, `useInvitationPreview`, `useAcceptInvitation`).
+- `schema.ts` — zod del onboarding, `BASE_CURRENCIES`; `ASSIGNABLE_ROLES`/`inviteSchema` (roles
+  que se pueden otorgar desde la UI: nunca `owner`); `FX_QUOTES`/`workspaceSettingsSchema`.
 - `index.ts` — barrel del feature.
-- `components/RequireWorkspace.tsx` — guard: si el usuario no tiene workspaces, redirige a
-  `/onboarding`.
+- `components/` — ver su `README.md`.
 
 ## Relacionados
 
 - La creación/actualización de la fila en `profiles` vive en `features/auth` (`upsertMyProfile`).
-- `OnboardingPage` vive en `src/app/` (composición de la app).
+- `GroupPage` (`/grupo`) e `InviteAcceptPage` (`/invite/:token`) viven en `src/app/` (composición).

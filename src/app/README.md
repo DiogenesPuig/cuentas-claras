@@ -4,8 +4,9 @@ Composición de la aplicación: rutas, providers y layout.
 
 ## Archivos
 
-- `router.tsx` — rutas (`/login`, `/register`, `/onboarding`, `/` protegida con `RequireAuth` +
-  `RequireWorkspace` y envuelta en `AppLayout`, con hijas `categorias`/`medios`/`movimientos`/`reportes`/`ajustes`).
+- `router.tsx` — rutas (`/login`, `/register`, `/onboarding`, `/invite/:token` protegida solo con
+  `RequireAuth`, `/` protegida con `RequireAuth` + `RequireWorkspace` y envuelta en `AppLayout`,
+  con hijas `categorias`/`medios`/`movimientos`/`reportes`/`grupo`).
 - `providers.tsx` — `QueryClientProvider` + `AuthProvider`.
 - `OnboardingPage.tsx` — pantalla `/onboarding`: pide nombre del usuario, nombre del grupo y
   moneda base; crea el primer workspace (A4).
@@ -23,6 +24,13 @@ Composición de la aplicación: rutas, providers y layout.
   totales consolidados (`ConsolidatedTotals`) y comparativa mes a mes (`BarChart`) (C13). Trae los
   movimientos de una ventana de 6 meses en una sola query y agrega/consolida todo en el cliente
   con `features/reports` (sin lógica de datos propia).
+- `GroupPage.tsx` — pantalla `/grupo`: miembros (`MemberList`), invitar por email/link
+  (`InviteSection`) y configuración del workspace activo (`WorkspaceSettings`) (C15).
+- `InviteAcceptPage.tsx` — pantalla `/invite/:token`: muestra a qué grupo/rol invita el token
+  (`useInvitationPreview`) y lo acepta (`useAcceptInvitation`); rechaza tokens vencidos/inválidos
+  (C15). No requiere `RequireWorkspace`: quien acepta puede no tener workspaces todavía.
+- `InviteAcceptPage.test.tsx` — valida los tres casos: token usable (muestra y acepta), vencido o
+  revocado (sin botón de aceptar), y token inexistente.
 
 ## Carpetas
 
