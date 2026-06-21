@@ -48,3 +48,27 @@ tabla → re-correr el mismo día actualiza la fila, no duplica.
 
 `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` los inyecta la plataforma; no se
 setean a mano.
+
+## Verificación post-deploy (importante)
+
+El cron **falla en silencio** si los secrets de Vault faltan o están mal: la URL
+queda nula y el POST no hace nada, sin error visible. Después de desplegar, y de
+tanto en tanto, confirmá que realmente corre:
+
+1. Última corrida del cron sin error:
+   ```sql
+   select status, return_message, start_time
+   from cron.job_run_details
+   where jobid = (select jobid from cron.job where jobname = 'fx-refresh-daily')
+   order by start_time desc
+   limit 5;
+   ```
+2. Hay filas del día en la tabla:
+   ```sql
+   select date, source, quote, currency, buy, sell
+   from fx_rates
+   where date = current_date;
+   ```
+
+Si (1) muestra fallos o (2) no devuelve filas, revisá que existan los dos secrets
+de Vault (`project_url`, `service_role_key`) y que la función esté desplegada.
