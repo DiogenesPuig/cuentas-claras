@@ -62,3 +62,50 @@ export function consolidate(
 
   return { income, expense, balance: income - expense, byCurrency };
 }
+
+/** Movimiento con la fecha que define qué cotización le corresponde (FX histórico). */
+export interface HistoricalConsolidationInput extends ConsolidationInput {
+  /** Fecha (`YYYY-MM-DD`) a usar para buscar la cotización de `currency`. */
+  rateDate: string;
+}
+
+/** Busca la cotización de `currency` a una fecha dada; `undefined` si no hay. */
+export type RateLookup = (currency: string, date: string) => number | undefined;
+
+/**
+ * Igual que {@link consolidate}, pero cada movimiento puede tener su propia cotización
+ * según su fecha (`rateDate`), en vez de una sola tasa fija por moneda para todo el lote.
+ * Necesario porque en Argentina el FX de una compra en moneda extranjera depende de
+ * cuándo se la cobra: al día (débito) o al cierre del ciclo (tarjeta de crédito) —
+ * ver `lib/fx.ts` para cómo se resuelve `rateDate` por movimiento.
+ */
+export function consolidateHistorical(
+  txs: HistoricalConsolidationInput[],
+  base: string,
+  rateFor: RateLookup,
+): ConsolidationResult {
+  const byCurrency: Record<string, CurrencyTotals> = {};
+  let income = 0;
+  let expense = 0;
+
+  for (const tx of txs) {
+    const totals = byCurrency[tx.currency] ?? { income: 0, expense: 0, balance: 0 };
+    if (tx.type === 'income') {
+      totals.income += tx.amount;
+      totals.balance += tx.amount;
+    } else {
+      totals.expense += tx.amount;
+      totals.balance -= tx.amount;
+    }
+    byCurrency[tx.currency] = totals;
+
+    const rate = tx.currency === base ? 1 : rateFor(tx.currency, tx.rateDate);
+    if (rate === undefined) continue;
+    const amountInBase = tx.amount * rate;
+
+    if (tx.type === 'income') income += amountInBase;
+    else expense += amountInBase;
+  }
+
+  return { income, expense, balance: income - expense, byCurrency };
+}

@@ -5,6 +5,7 @@ import { AppLayout } from './layout/AppLayout';
 import { AccountsPage } from './AccountsPage';
 import { CategoriesPage } from './CategoriesPage';
 import { DashboardPage } from './DashboardPage';
+import { ReportsPage } from './ReportsPage';
 import { TransactionsPage } from './TransactionsPage';
 import { OnboardingPage } from './OnboardingPage';
 
@@ -43,7 +44,7 @@ const router = createBrowserRouter([
       { path: 'categorias', element: <CategoriesPage /> },
       { path: 'medios', element: <AccountsPage /> },
       { path: 'movimientos', element: <TransactionsPage /> },
-      { path: 'reportes', element: <Placeholder title="Reportes" ticket="C13" /> },
+      { path: 'reportes', element: <ReportsPage /> },
       { path: 'ajustes', element: <Placeholder title="Ajustes" ticket="C15" /> },
     ],
   },

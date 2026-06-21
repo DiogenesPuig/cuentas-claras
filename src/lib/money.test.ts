@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { consolidate } from './money';
+import { consolidate, consolidateHistorical } from './money';
 
 describe('consolidate', () => {
   it('solo movimientos en la moneda base: el consolidado es la suma directa', () => {
@@ -76,5 +76,52 @@ describe('consolidate', () => {
       balance: 0,
       byCurrency: {},
     });
+  });
+});
+
+describe('consolidateHistorical', () => {
+  it('cada movimiento usa la cotización de su propia fecha, no una sola global', () => {
+    const rates: Record<string, Record<string, number>> = {
+      '2026-01-10': { USD: 1000 },
+      '2026-02-10': { USD: 1100 },
+    };
+    const rateFor = (currency: string, date: string) => rates[date]?.[currency];
+
+    const result = consolidateHistorical(
+      [
+        { amount: 10, currency: 'USD', type: 'expense', rateDate: '2026-01-10' },
+        { amount: 10, currency: 'USD', type: 'expense', rateDate: '2026-02-10' },
+      ],
+      'ARS',
+      rateFor,
+    );
+
+    expect(result.expense).toBe(10 * 1000 + 10 * 1100);
+    expect(result.byCurrency.USD).toEqual({ income: 0, expense: 20, balance: -20 });
+  });
+
+  it('moneda base: no consulta rateFor, usa el monto directo', () => {
+    const rateFor = (): number | undefined => {
+      throw new Error('no debería llamarse para la moneda base');
+    };
+
+    const result = consolidateHistorical(
+      [{ amount: 500, currency: 'ARS', type: 'income', rateDate: '2026-01-10' }],
+      'ARS',
+      rateFor,
+    );
+
+    expect(result.income).toBe(500);
+  });
+
+  it('sin cotización para esa fecha: se excluye del consolidado pero se ve en byCurrency', () => {
+    const result = consolidateHistorical(
+      [{ amount: 10, currency: 'USD', type: 'expense', rateDate: '2026-01-10' }],
+      'ARS',
+      () => undefined,
+    );
+
+    expect(result.expense).toBe(0);
+    expect(result.byCurrency.USD).toEqual({ income: 0, expense: 10, balance: -10 });
   });
 });
