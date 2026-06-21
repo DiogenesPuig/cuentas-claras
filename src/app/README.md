@@ -19,6 +19,10 @@ Composición de la aplicación: rutas, providers y layout.
   movimientos (`RecentTransactions`) y alta rápida vía `Fab` + modal con `TransactionForm` (B9).
   El filtro de mes se aplica en la query (`useTransactions(workspaceId, { month })`, B10), no en
   el cliente.
+- `ReportsPage.tsx` — pantalla `/reportes`: desglose por dimensión (`ReportTabs` + `DonutChart`),
+  totales consolidados (`ConsolidatedTotals`) y comparativa mes a mes (`BarChart`) (C13). Trae los
+  movimientos de una ventana de 6 meses en una sola query y agrega/consolida todo en el cliente
+  con `features/reports` (sin lógica de datos propia).
 
 ## Carpetas
 

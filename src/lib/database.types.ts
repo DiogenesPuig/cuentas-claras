@@ -221,6 +221,39 @@ export type Database = {
           },
         ]
       }
+      fx_rates: {
+        Row: {
+          buy: number | null
+          created_at: string
+          currency: string
+          date: string
+          id: string
+          quote: string
+          sell: number | null
+          source: string
+        }
+        Insert: {
+          buy?: number | null
+          created_at?: string
+          currency: string
+          date: string
+          id?: string
+          quote: string
+          sell?: number | null
+          source: string
+        }
+        Update: {
+          buy?: number | null
+          created_at?: string
+          currency?: string
+          date?: string
+          id?: string
+          quote?: string
+          sell?: number | null
+          source?: string
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           created_at: string
