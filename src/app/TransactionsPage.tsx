@@ -5,6 +5,7 @@ import { useAccounts } from '@/features/accounts';
 import { useMyRole, type MemberRole } from '@/features/workspaces';
 import {
   EMPTY_FIELD_FILTERS,
+  ExportButton,
   FilterBar,
   SearchBar,
   TransactionForm,
@@ -137,6 +138,7 @@ export function TransactionsPage() {
           accounts={accounts ?? []}
           onChange={setFieldFilters}
         />
+        <ExportButton transactions={transactions ?? []} />
       </div>
 
       <TransactionList

@@ -4,18 +4,20 @@ Alta/edición de movimientos (ingresos y gastos), multi-moneda, con la persona d
 el resumen/lista del dashboard mensual y la lista con filtros/búsqueda de `/movimientos`.
 Implementa **FR-7, FR-7b, FR-8, FR-9, FR-10** (PRD §5.3): alta manual con tipo, monto+moneda,
 motivo, categoría, medio, fecha y fecha de cobro opcional, sin selector de persona, y comprobante
-adjunto opcional. También **FR-20, FR-21** (PRD §5.6): resumen mensual y últimos movimientos, y
-**FR-11** (PRD §5.3): filtrar/buscar movimientos por mes, persona, tarjeta, categoría, moneda y texto.
+adjunto opcional. También **FR-20, FR-21** (PRD §5.6): resumen mensual y últimos movimientos,
+**FR-11** (PRD §5.3): filtrar/buscar movimientos por mes, persona, tarjeta, categoría, moneda y
+texto, y **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado.
 
 ## Archivos
 
 - `api.ts` — Supabase: `listTransactions` (del workspace, con los filtros de `filters.ts` aplicados
   en la query — mes como rango `occurred_on`, medio/categoría/moneda por igualdad, persona vía join
   `accounts!inner` filtrando `account.holder_name`, texto vía `ilike` sobre `description`; incluye
-  `account.holder_name` además de `account.name` para mostrar la persona en listas/resumen),
-  `createTransaction` (`source = 'manual'`, `created_by = auth.uid()`), `updateTransaction`,
-  `deleteTransaction`, `uploadAttachment` (sube el archivo al bucket privado `attachments` y crea su
-  fila) y `getAttachmentUrl` (signed URL temporal para mostrarlo/descargarlo). Sin React.
+  `account.holder_name` y `account.bank` además de `account.name` para mostrar la persona/banco en
+  listas/resumen/export), `createTransaction` (`source = 'manual'`, `created_by = auth.uid()`),
+  `updateTransaction`, `deleteTransaction`, `uploadAttachment` (sube el archivo al bucket privado
+  `attachments` y crea su fila) y `getAttachmentUrl` (signed URL temporal para mostrarlo/descargarlo).
+  Sin React.
 - `filters.ts` — `TransactionFilters` (mes, medio, categoría, moneda, persona, texto) y
   `buildTransactionFilterArgs`: función pura que mapea esos filtros a los argumentos de la query
   (rango `[occurredFrom, occurredTo)`, recorte de texto, etc.), sin tocar Supabase.
@@ -51,10 +53,22 @@ adjunto opcional. También **FR-20, FR-21** (PRD §5.6): resumen mensual y últi
   Editar/Eliminar si `canEdit` (extraído de `TransactionsPage` en B10 para reutilizar en la lista).
 - `format.ts` — `formatAmount(value, currency)`: formato de moneda (`Intl.NumberFormat`) compartido
   por `SummaryCard`, `RecentTransactions` y `TransactionRow`, sin conversión entre monedas (B9).
+- `export.ts` — lógica pura de exportación (C14, FR-23), sin Supabase: `toExportRows` (mapea
+  `TransactionView[]` ya filtrados a filas planas: fecha, se-cobra, tipo, monto, moneda, persona,
+  medio, banco, categoría, descripción), `toCsv` (arma el CSV con encabezados en español, escapando
+  comas/comillas/saltos de línea) y `downloadCsv` (dispara la descarga en el navegador con BOM UTF-8
+  para que Excel reconozca los acentos).
+- `export.test.ts` — tests de `toExportRows`/`toCsv`: mapeo completo, datos opcionales faltantes,
+  tipo ingreso/gasto, encabezado y escape de campos con comas/comillas.
+- `components/ExportButton.tsx` — botón "Exportar CSV" de `/movimientos`; usa el mismo set de
+  movimientos ya filtrado que `TransactionList` (C14). Solo CSV, sin XLSX (ver "Por qué este
+  modelo" en `tasks/done/C14-export.md`: evitar sumar una dependencia nueva sin escalar).
 
-## Fuera de alcance (ver tickets B8/B9/B10)
+## Fuera de alcance (ver tickets B8/B9/B10/C14)
 
-- Export (FR de exportar CSV/XLSX): es C14.
+- XLSX nativo (requeriría sumar una librería, ej. SheetJS): no se agregó sin autorización; CSV
+  cubre el criterio de aceptación de C14.
+- Programar exportaciones automáticas: fuera de alcance de C14.
 - OCR del comprobante (fase 2, FR-14): solo se guarda el archivo.
 - Conversión a moneda base (`amount_base`/`fx_rate`) y gráficos: los calcula C11/C13; acá solo se
   guarda y muestra el monto y moneda original, agrupado por moneda.

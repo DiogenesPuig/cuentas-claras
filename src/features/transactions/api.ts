@@ -19,14 +19,15 @@ export interface TransactionInput {
 }
 
 export interface TransactionView extends Transaction {
-  account: { name: string; holder_name: string } | null;
+  account: { name: string; holder_name: string; bank: string | null } | null;
   category: { name: string; icon: string | null } | null;
 }
 
-const TRANSACTION_SELECT = '*, account:accounts(name,holder_name), category:categories(name,icon)';
+const TRANSACTION_SELECT =
+  '*, account:accounts(name,holder_name,bank), category:categories(name,icon)';
 /** Igual que `TRANSACTION_SELECT`, pero con `!inner` para poder filtrar por `account.holder_name`. */
 const TRANSACTION_SELECT_INNER_ACCOUNT =
-  '*, account:accounts!inner(name,holder_name), category:categories(name,icon)';
+  '*, account:accounts!inner(name,holder_name,bank), category:categories(name,icon)';
 
 /**
  * Movimientos del workspace, más recientes primero, con los filtros de FR-11
