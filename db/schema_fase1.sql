@@ -307,8 +307,16 @@ create table transactions (
   is_shared           boolean not null default false,              -- base para "quién debe a quién"
   attachment_id       uuid references attachments (id)        on delete set null,
   external_hash       text,                                        -- detección de duplicados
+  installment_n       smallint,                                    -- nº de cuota cobrada (ej. 2); NULL si no es en cuotas
+  installment_total   smallint,                                    -- total de cuotas del plan (ej. 3); NULL si no es en cuotas
   created_at          timestamptz not null default now(),
-  updated_at          timestamptz not null default now()
+  updated_at          timestamptz not null default now(),
+  -- Coherencia del rango solo cuando ambas están presentes (ver 0007).
+  constraint transactions_installment_range_check check (
+    installment_n is null
+    or installment_total is null
+    or (installment_n >= 1 and installment_n <= installment_total)
+  )
 );
 
 -- Índices para los filtros/reportes más comunes

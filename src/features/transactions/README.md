@@ -53,6 +53,9 @@ texto, y **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado.
   Editar/Eliminar si `canEdit` (extraído de `TransactionsPage` en B10 para reutilizar en la lista).
 - `format.ts` — `formatAmount(value, currency)`: formato de moneda (`Intl.NumberFormat`) compartido
   por `SummaryCard`, `RecentTransactions` y `TransactionRow`, sin conversión entre monedas (B9).
+  `formatInstallment(n, total)`: arma "Cuota N/M" para movimientos en cuotas, o `null` si no aplica (F2-0).
+- `format.test.ts` — tests de `formatInstallment`: cuota válida, campos null (no es en cuotas) y datos
+  incoherentes/no enteros (F2-0).
 - `export.ts` — lógica pura de exportación (C14, FR-23), sin Supabase: `toExportRows` (mapea
   `TransactionView[]` ya filtrados a filas planas: fecha, se-cobra, tipo, monto, moneda, persona,
   medio, banco, categoría, descripción), `toCsv` (arma el CSV con encabezados en español, escapando
