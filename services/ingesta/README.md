@@ -31,7 +31,8 @@ app/
     statements.py    parse_statement(bytes, password?) → StatementParse (stub F2-1)
 tests/               pytest: health, auth, contrato, límite, y heurística de comprobantes (F2-2)
 Dockerfile           Python 3.12 + Tesseract (es/en)
-fly.toml             deploy en Fly.io
+run-local.sh         corre el micro local + Cloudflare Quick Tunnel (URL pública)
+fly.toml             deploy en Fly.io (alternativa)
 pyproject.toml       deps + ruff + pytest
 ```
 
@@ -66,7 +67,56 @@ ruff check .                   # lint
 uvicorn app.main:app --reload  # http://localhost:8000/v1/health
 ```
 
-## Deploy (Google Cloud Run)
+## Correr local + túnel (vía elegida — sin cuenta ni tarjeta)
+
+Corre el micro en tu máquina y lo expone con una URL HTTPS pública vía Cloudflare
+Quick Tunnel (no requiere cuenta ni tarjeta). Sirve mientras la PC está prendida.
+
+1. **Instalar cloudflared** (una vez):
+   ```bash
+   curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
+     -o /tmp/cloudflared && sudo install /tmp/cloudflared /usr/local/bin/cloudflared
+   cloudflared --version
+   ```
+2. **(Opcional, para OCR real) instalar Tesseract:**
+   ```bash
+   sudo apt update && sudo apt install -y tesseract-ocr tesseract-ocr-spa
+   ```
+3. **Config:** `cp .env.example .env` y completar `SUPABASE_JWT_SECRET` (o `SUPABASE_URL`)
+   y `WEB_ORIGIN` (el origen de tu web, ej. `http://localhost:5173`).
+4. **Levantar todo:**
+   ```bash
+   ./run-local.sh
+   ```
+   Imprime una URL `https://<algo>.trycloudflare.com`. Probá:
+   `curl https://<algo>.trycloudflare.com/v1/health`.
+5. En la web: `VITE_INGESTA_URL=https://<algo>.trycloudflare.com`.
+
+> La URL del Quick Tunnel **cambia cada vez** que reiniciás el túnel. Para una URL
+> estable hace falta un túnel con nombre (requiere cuenta Cloudflare free + un dominio).
+
+## Deploy (Koyeb — alternativa, requiere tarjeta/plan pago)
+
+Koyeb buildea el `Dockerfile` desde el repo de GitHub. No requiere tarjeta; el
+plan free incluye 1 servicio (instancia nano, se duerme tras inactividad).
+
+Requisito: el branch con `services/ingesta` tiene que estar pusheado a GitHub.
+
+Por dashboard (app.koyeb.com → **Create Service**):
+1. **Source:** GitHub → este repo → branch correspondiente.
+2. **Builder:** Dockerfile. **Work directory:** `services/ingesta`
+   (Dockerfile path queda `services/ingesta/Dockerfile`).
+3. **Instance:** Free / Nano. **Region:** Washington (`was`) o Frankfurt (`fra`).
+4. **Ports / Exposing:** puerto `8000` (Koyeb inyecta `PORT=8000`, que el `CMD` lee).
+   Health check HTTP path `/v1/health`.
+5. **Env vars:** `WEB_ORIGIN=http://localhost:5173` (público) y, como **Secret**,
+   `SUPABASE_JWT_SECRET=<tu JWT secret de Supabase>` (o `SUPABASE_URL` para JWKS).
+6. **Deploy** → Koyeb da una URL `https://<servicio>-<org>.koyeb.app`.
+   Smoke test: `curl https://<servicio>-<org>.koyeb.app/v1/health`.
+
+Luego, en la web: `VITE_INGESTA_URL=https://<servicio>-<org>.koyeb.app`.
+
+## Deploy (Google Cloud Run — alternativa con tarjeta)
 
 El mismo `Dockerfile` sirve (el `CMD` escucha en `$PORT`, que Cloud Run inyecta).
 Se buildea en la nube con Cloud Build (no hace falta Docker local):
@@ -98,8 +148,8 @@ curl https://cuentas-claras-ingesta-XXXX.a.run.app/v1/health
 hace el micro validando el JWT de Supabase (no es un endpoint abierto). Alternativa a
 HS256: `--set-env-vars SUPABASE_URL=https://TU-PROYECTO.supabase.co` (valida vía JWKS).
 
-> `fly.toml` queda como alternativa de hosting (Fly.io), pero el deploy soportado/free
-> elegido es Cloud Run.
+> Koyeb, Cloud Run y `fly.toml` (Fly.io) quedan como alternativas de deploy; la vía
+> elegida para arrancar sin cuenta ni tarjeta es **local + Cloudflare Quick Tunnel**.
 
 ## Estado
 
