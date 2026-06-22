@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { Category } from '@/features/categories';
@@ -9,7 +9,10 @@ import {
   TRANSACTION_TYPES,
   type TransactionFormInput,
 } from '../schema';
-import type { Transaction, TransactionInput } from '../api';
+import type { ReceiptExtraction, Transaction, TransactionInput } from '../api';
+
+/** Debajo de este valor avisamos que la extracción puede ser imprecisa. */
+const LOW_CONFIDENCE = 0.5;
 
 const TYPE_LABELS: Record<TransactionFormInput['type'], string> = {
   expense: 'Gasto',
@@ -39,6 +42,11 @@ interface TransactionFormProps {
   onSubmit: (input: TransactionInput, attachment: File | null) => Promise<void>;
   onCancel?: () => void;
   isSubmitting?: boolean;
+  /**
+   * OCR del comprobante elegido (FR-14). Si se pasa, aparece el botón para
+   * precargar monto/fecha/comercio. Si falla o no se configuró, el alta sigue manual.
+   */
+  onExtractReceipt?: (file: File) => Promise<ReceiptExtraction>;
 }
 
 /** Alta/edición rápida de un movimiento (ingreso/gasto) del workspace. */
@@ -49,13 +57,18 @@ export function TransactionForm({
   onSubmit,
   onCancel,
   isSubmitting,
+  onExtractReceipt,
 }: TransactionFormProps) {
   const amountRef = useRef<HTMLInputElement | null>(null);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrMessage, setOcrMessage] = useState<string | null>(null);
+  const [ocrApplied, setOcrApplied] = useState(false);
   const {
     register,
     handleSubmit,
     watch,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<TransactionFormInput>({
     resolver: zodResolver(transactionSchema),
@@ -64,6 +77,8 @@ export function TransactionForm({
 
   useEffect(() => {
     reset(defaultValuesFor(transaction));
+    setOcrApplied(false);
+    setOcrMessage(null);
   }, [transaction, reset]);
 
   useEffect(() => {
@@ -71,8 +86,38 @@ export function TransactionForm({
   }, []);
 
   const type = watch('type');
+  const selectedFile = watch('attachment')?.[0] ?? null;
   const categoryOptions = categories.filter((c) => c.kind === type);
   const amountField = register('amount');
+
+  async function handleExtract() {
+    if (!onExtractReceipt || !selectedFile) return;
+    setOcrLoading(true);
+    setOcrMessage(null);
+    try {
+      const result = await onExtractReceipt(selectedFile);
+      const found =
+        result.amount != null || result.date != null || (result.merchant?.trim().length ?? 0) > 0;
+      if (!found) {
+        setOcrMessage('No se pudieron extraer datos del comprobante. Completá manualmente.');
+        return;
+      }
+      if (result.amount != null) setValue('amount', String(result.amount));
+      if (result.currency) setValue('currency', result.currency.toUpperCase());
+      if (result.date) setValue('occurredOn', result.date);
+      if (result.merchant?.trim()) setValue('description', result.merchant.trim().slice(0, 140));
+      setOcrApplied(true);
+      setOcrMessage(
+        result.confidence < LOW_CONFIDENCE
+          ? 'Datos precargados con baja confianza: revisalos antes de guardar.'
+          : 'Datos precargados desde el comprobante: revisalos antes de guardar.',
+      );
+    } catch {
+      setOcrMessage('No se pudo procesar el comprobante. Podés cargar los datos a mano.');
+    } finally {
+      setOcrLoading(false);
+    }
+  }
 
   async function handleFormSubmit(values: TransactionFormInput) {
     const file = values.attachment?.[0] ?? null;
@@ -87,6 +132,8 @@ export function TransactionForm({
         occurredOn: values.occurredOn,
         chargedOn: values.chargedOn || null,
         attachmentId: transaction?.attachment_id ?? null,
+        // Si se precargó desde un comprobante, el alta es de origen OCR (FR-14).
+        source: !transaction && ocrApplied ? 'ocr' : undefined,
       },
       file,
     );
@@ -239,6 +286,19 @@ export function TransactionForm({
           className="w-full text-sm"
           {...register('attachment')}
         />
+        {onExtractReceipt && (
+          <div className="space-y-1">
+            <button
+              type="button"
+              onClick={handleExtract}
+              disabled={!selectedFile || ocrLoading}
+              className="rounded-md border border-input px-3 py-1.5 text-sm font-medium hover:bg-accent disabled:opacity-50"
+            >
+              {ocrLoading ? 'Leyendo comprobante…' : 'Extraer datos del comprobante'}
+            </button>
+            {ocrMessage && <p className="text-sm text-muted-foreground">{ocrMessage}</p>}
+          </div>
+        )}
       </div>
 
       <div className="flex gap-2">

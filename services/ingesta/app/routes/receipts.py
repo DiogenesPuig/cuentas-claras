@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, File, UploadFile
 
 from app.auth import AuthenticatedUser, require_user
 from app.config import Settings, get_settings
+from app.ocr import image_or_pdf_to_text
 from app.parsing.receipts import extract_from_text
 from app.schemas import ReceiptExtraction
 from app.uploads import read_upload_limited, run_with_timeout
@@ -25,10 +26,10 @@ async def extract_receipt(
     settings: Settings = Depends(get_settings),
 ) -> ReceiptExtraction:
     content = await read_upload_limited(file, settings.max_upload_bytes)
+    content_type = file.content_type
 
     def _work(raw: bytes) -> ReceiptExtraction:
-        # F2-2: text = ocr_image_or_pdf(raw) con Tesseract. Por ahora no hay OCR.
-        text = ""
+        text = image_or_pdf_to_text(raw, content_type)
         return extract_from_text(text)
 
     return await run_with_timeout(lambda: _work(content), settings.process_timeout_seconds)

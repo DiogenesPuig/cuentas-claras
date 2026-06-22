@@ -7,6 +7,8 @@ export type Transaction = Tables<'transactions'>;
 export type TransactionType = Database['public']['Enums']['transaction_type'];
 export type Attachment = Tables<'attachments'>;
 
+export type TransactionSource = Database['public']['Enums']['transaction_source'];
+
 export interface TransactionInput {
   type: TransactionType;
   amount: number;
@@ -17,6 +19,8 @@ export interface TransactionInput {
   occurredOn: string;
   chargedOn: string | null;
   attachmentId: string | null;
+  /** Origen del alta. Default `'manual'`; `'ocr'` si se precargó desde un comprobante (FR-14). */
+  source?: TransactionSource;
 }
 
 export interface TransactionView extends Transaction {
@@ -87,7 +91,7 @@ export async function createTransaction(
   const payload: TablesInsert<'transactions'> = {
     workspace_id: workspaceId,
     created_by: user.id,
-    source: 'manual',
+    source: input.source ?? 'manual',
     ...toRow(input),
   };
   const { data, error } = await supabase.from('transactions').insert(payload).select().single();

@@ -21,14 +21,15 @@ app/
   auth.py            validación del JWT de Supabase (HS256 o JWKS) — no toca la DB
   schemas.py         contrato HTTP (pydantic): forma de las respuestas
   uploads.py         endurecimiento: límite de tamaño + timeout de procesado
+  ocr.py             borde IO: bytes (imagen/PDF) → texto (Tesseract/pdfplumber, lazy) (F2-2)
   routes/
     health.py        GET  /v1/health (público)
-    receipts.py      POST /v1/receipts:extract (FR-14) — cascarón, OCR en F2-2
+    receipts.py      POST /v1/receipts:extract (FR-14) — OCR (ocr.py) + heurística pura
     statements.py    POST /v1/statements:parse (FR-16) — cascarón, parseo en F2-3
   parsing/           LÓGICA PURA (sin FastAPI/red/IO), testeable y portable
-    receipts.py      extract_from_text(text) → ReceiptExtraction (stub F2-1)
+    receipts.py      extract_from_text(text) → ReceiptExtraction: monto/fecha/comercio (F2-2)
     statements.py    parse_statement(bytes, password?) → StatementParse (stub F2-1)
-tests/               pytest: health, auth (rechaza/acepta), forma del contrato, límite
+tests/               pytest: health, auth, contrato, límite, y heurística de comprobantes (F2-2)
 Dockerfile           Python 3.12 + Tesseract (es/en)
 fly.toml             deploy en Fly.io
 pyproject.toml       deps + ruff + pytest
@@ -72,5 +73,9 @@ Ver cabecera de `fly.toml`. Resumen: `fly launch --no-deploy` → `fly secrets s
 
 ## Estado
 
-F2-1: scaffold + contrato + auth + endurecimiento + tests. Los endpoints devuelven
-**stubs** con la forma del contrato. La lógica real llega en F2-2 (OCR) y F2-3 (resúmenes).
+- **F2-1:** scaffold + contrato + auth + endurecimiento + tests.
+- **F2-2:** `POST /v1/receipts:extract` implementado — OCR con Tesseract (`ocr.py`) +
+  heurística de extracción (monto cerca de "TOTAL", fecha, comercio; detecta el
+  subtipo *comprobante de transferencia*). Si faltan las deps `[ocr]` o el OCR
+  falla, devuelve confianza 0 (la web cae a carga manual).
+- **F2-3 (pendiente):** `POST /v1/statements:parse` todavía es stub.

@@ -14,7 +14,8 @@ texto, y **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado.
   en la query — mes como rango `occurred_on`, medio/categoría/moneda por igualdad, persona vía join
   `accounts!inner` filtrando `account.holder_name`, texto vía `ilike` sobre `description`; incluye
   `account.holder_name` y `account.bank` además de `account.name` para mostrar la persona/banco en
-  listas/resumen/export), `createTransaction` (`source = 'manual'`, `created_by = auth.uid()`),
+  listas/resumen/export), `createTransaction` (`source = input.source ?? 'manual'` — `'ocr'` si el
+  alta se precargó desde un comprobante; `created_by = auth.uid()`),
   `updateTransaction`, `deleteTransaction`, `uploadAttachment` (sube el archivo al bucket privado
   `attachments` y crea su fila), `getAttachmentUrl` (signed URL temporal para mostrarlo/descargarlo)
   y `extractReceiptData` (F2-1/F2-2: saca el access token de la sesión y llama al micro de ingesta vía
@@ -27,7 +28,8 @@ texto, y **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado.
   combinación con el resto de filtros, recorte/omisión de texto vacío.
 - `hooks.ts` — react-query: `useTransactions(workspaceId, filters?)` (la query key incluye
   `filters`, así que cada combinación cachea por separado), `useCreateTransaction`,
-  `useUpdateTransaction`, `useDeleteTransaction`, `useUploadAttachment`.
+  `useUpdateTransaction`, `useDeleteTransaction`, `useUploadAttachment`, `useExtractReceipt`
+  (OCR de un comprobante vía `extractReceiptData`/el micro de ingesta, no escribe en la DB — F2-2).
 - `schema.ts` — zod del form: `type`, `amount`, `currency`, `description`, `categoryId`,
   `accountId`, `occurredOn` (default hoy), `chargedOn`, `attachment` (`FileList` opcional).
 - `index.ts` — barrel del feature.
@@ -35,7 +37,10 @@ texto, y **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado.
   filtradas por tipo (gasto/ingreso) vía `useCategories`, medios vía `useAccounts`. La persona NO
   se elige: se deduce del `account_id` (su holder) en reportes/listas, no en este form. El archivo
   elegido se entrega al `onSubmit` (no se sube dentro del form, que no tiene lógica de datos); quien
-  lo use decide cuándo subirlo (ver `TransactionsPage`/`DashboardPage`).
+  lo use decide cuándo subirlo (ver `TransactionsPage`/`DashboardPage`). Si recibe `onExtractReceipt`,
+  muestra el botón "Extraer datos del comprobante" que llama al OCR y precarga monto/moneda/fecha/comercio
+  (editables), avisando si la confianza es baja o si no se pudo extraer; al guardar un alta así, marca
+  `source = 'ocr'` (FR-14). Sin la prop (o sin `VITE_INGESTA_URL`), el alta sigue 100% manual.
 - `components/TransactionForm.test.tsx` — smoke test: monto > 0, moneda de 3 letras, fecha de hoy
   por defecto.
 - `components/SummaryCard.tsx` — resumen del período (ingresos/gastos/balance) desglosado por

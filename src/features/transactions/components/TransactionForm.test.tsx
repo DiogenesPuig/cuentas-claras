@@ -58,4 +58,69 @@ describe('TransactionForm', () => {
     });
     expect(onSubmit).not.toHaveBeenCalled();
   });
+
+  it('precarga monto/fecha/comercio desde el OCR del comprobante (FR-14)', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    const onExtractReceipt = vi.fn().mockResolvedValue({
+      amount: 2350.5,
+      currency: 'ARS',
+      date: '2026-05-21',
+      merchant: 'Supermercado La Economia',
+      confidence: 0.9,
+    });
+    render(
+      <TransactionForm
+        categories={[]}
+        accounts={[]}
+        onSubmit={onSubmit}
+        onExtractReceipt={onExtractReceipt}
+      />,
+    );
+
+    const file = new File(['x'], 'ticket.jpg', { type: 'image/jpeg' });
+    await userEvent.upload(screen.getByLabelText('Comprobante (opcional)'), file);
+    await userEvent.click(screen.getByRole('button', { name: 'Extraer datos del comprobante' }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Monto')).toHaveValue(2350.5);
+    });
+    expect(screen.getByLabelText('Motivo (opcional)')).toHaveValue('Supermercado La Economia');
+    expect(screen.getByLabelText('Fecha')).toHaveValue('2026-05-21');
+
+    // Al guardar, el alta queda marcada como origen OCR.
+    await userEvent.click(screen.getByRole('button', { name: 'Crear movimiento' }));
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 2350.5, source: 'ocr' }),
+        file,
+      );
+    });
+  });
+
+  it('avisa y no precarga si el OCR no extrae datos', async () => {
+    const onExtractReceipt = vi.fn().mockResolvedValue({
+      amount: null,
+      currency: null,
+      date: null,
+      merchant: null,
+      confidence: 0,
+    });
+    render(
+      <TransactionForm
+        categories={[]}
+        accounts={[]}
+        onSubmit={vi.fn()}
+        onExtractReceipt={onExtractReceipt}
+      />,
+    );
+
+    const file = new File(['x'], 'borroso.jpg', { type: 'image/jpeg' });
+    await userEvent.upload(screen.getByLabelText('Comprobante (opcional)'), file);
+    await userEvent.click(screen.getByRole('button', { name: 'Extraer datos del comprobante' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/No se pudieron extraer datos/i)).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText('Monto')).toHaveValue(null);
+  });
 });
