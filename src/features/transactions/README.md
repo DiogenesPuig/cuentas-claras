@@ -43,7 +43,8 @@ texto, y **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado.
   (editables), avisando si la confianza es baja o si no se pudo extraer; al guardar un alta así, marca
   `source = 'ocr'` (FR-14). Sin la prop (o sin `VITE_INGESTA_URL`), el alta sigue 100% manual.
   Si el gasto no tiene categoría, muestra una **sugerencia** por descripción (`lib/category-suggest`,
-  F2-6) con un botón "Usar" (nunca se aplica sola).
+  F2-6) con un botón "Usar" (nunca se aplica sola). El combo de medios muestra banco · red · ••últimos4
+  (`accounts/format.accountLabel`) para distinguir tarjetas.
 - `components/TransactionForm.test.tsx` — smoke test: monto > 0, moneda de 3 letras, fecha de hoy
   por defecto.
 - `components/SummaryCard.tsx` — resumen del período (ingresos/gastos/balance) desglosado por

@@ -51,3 +51,5 @@ Al cargar el staging, cada tarjeta del resumen se matchea contra los medios del 
 `lib/account-match` (`matchAccount`): fuerte por `last4` + red, o por titular + banco cuando el
 resumen no trae `last4` (ej. Nativa). Si hay match, el medio queda asociado; si no, el usuario lo
 elige del combo o lo crea inline (`AccountQuickCreate`, precargado con `accountDefaultsFromHint`).
+Si una tarjeta no matchea, el alta inline se **abre sola** precargada. El combo de medios muestra
+banco · red · ••últimos4 (`accounts/format.accountLabel`).
