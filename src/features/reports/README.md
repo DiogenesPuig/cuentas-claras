@@ -19,6 +19,11 @@ mes a mes, con consolidado multi-moneda. Implementa **FR-20, FR-21, FR-22, FR-24
   - `personaAccounts`: para la vista "por persona", mapea cada holder a sus medios marcando
     cuáles son extensiones y de qué titular (FR-22: "se listan sus extensiones y las tarjetas
     titulares de las que cuelgan").
+  - `filterReportTransactions`: subconjunto que cumple filtros combinables (persona/categoría/
+    medio/banco/red, AND); permite drillear el desglose a una persona/categoría/medio.
+  - `personaSpending`: gasto por persona — cuánto aporta cada holder, su `share` (% del gasto
+    total) y su categoría dominante (o "Varios" si ninguna supera el 40%). Para "p1 = 50%
+    (mayormente en super)".
 - `hooks.ts` — react-query: `useWorkspaceFxSettings`, `useReportTransactions(workspaceId, range)`,
   `useFxRates(currencies, fxSource, fxQuote, upTo)` (no dispara query si `currencies` está vacío,
   es decir, todo el período ya está en la moneda base).
@@ -28,6 +33,9 @@ mes a mes, con consolidado multi-moneda. Implementa **FR-20, FR-21, FR-22, FR-24
 - `components/BarChart.tsx` — barras (Recharts) de ingresos/gastos consolidados mes a mes.
 - `components/ConsolidatedTotals.tsx` — totales por moneda original + consolidado en la moneda
   base del workspace (FR-21/FR-9b).
+- `components/PersonaBreakdown.tsx` — detalle del gasto por persona: % del total y categoría
+  dominante ("mayormente en Super" / "varios"). Acompaña al donut de personas.
+- `components/ReportFilterBar.tsx` — filtros combinables (persona/categoría/medio) del reporte.
 
 ## FX histórico (cómo se resuelve la cotización de cada movimiento)
 

@@ -96,6 +96,78 @@ export function aggregateByDimension(
   );
 }
 
+/** Filtros combinables del reporte (AND). `null`/ausente = sin filtrar esa dimensión. */
+export interface ReportFilters {
+  persona?: string | null;
+  categoria?: string | null;
+  medio?: string | null;
+  banco?: string | null;
+  red?: string | null;
+}
+
+/** Subconjunto de movimientos que cumple todos los filtros activos (FR-22). */
+export function filterReportTransactions(
+  transactions: ReportTransactionView[],
+  filters: ReportFilters,
+): ReportTransactionView[] {
+  const active = (Object.entries(filters) as [ReportDimension, string | null | undefined][]).filter(
+    ([, value]) => value,
+  );
+  if (active.length === 0) return transactions;
+  return transactions.filter((tx) =>
+    active.every(([dimension, value]) => dimensionKeyFor(dimension, tx) === value),
+  );
+}
+
+/** Categoría dominante de una persona si supera este umbral de su gasto; si no, "Varios". */
+const DOMINANT_THRESHOLD = 0.4;
+const MIXED_LABEL = 'Varios';
+
+export interface PersonaSpending {
+  /** Persona (holder del medio usado). */
+  holder: string;
+  /** Gasto consolidado de la persona, en la moneda base. */
+  expense: number;
+  /** Fracción 0..1 del gasto total del período que aporta esta persona. */
+  share: number;
+  /** Categoría en la que más gastó (o null si no tiene categoría). */
+  mainCategory: string | null;
+  /** Etiqueta legible: la categoría dominante o "Varios" si ninguna supera el umbral. */
+  mainLabel: string;
+}
+
+/**
+ * Gasto por persona (FR-22): cuánto aporta cada holder al gasto total del período, su
+ * participación (`share`) y en qué categoría gastó mayormente. Ordenado de mayor a menor
+ * gasto. Solo considera gastos (no ingresos). Pensado para "p1 = 50% (mayormente en super)".
+ */
+export function personaSpending(
+  transactions: ReportTransactionView[],
+  base: string,
+  rateFor: RateLookup,
+): PersonaSpending[] {
+  const expenses = transactions.filter((tx) => tx.type === 'expense');
+  const byHolder = aggregateByDimension(expenses, 'persona', base, rateFor);
+  const totalExpense = byHolder.reduce((sum, group) => sum + group.consolidated.expense, 0);
+
+  return byHolder
+    .filter((group) => group.consolidated.expense > 0)
+    .map((group) => {
+      const holderTxs = expenses.filter((tx) => dimensionKeyFor('persona', tx) === group.key);
+      const byCategory = aggregateByDimension(holderTxs, 'categoria', base, rateFor);
+      const top = byCategory.find((c) => c.consolidated.expense > 0) ?? null;
+      const holderExpense = group.consolidated.expense;
+      const topShare = top ? top.consolidated.expense / holderExpense : 0;
+      return {
+        holder: group.key,
+        expense: holderExpense,
+        share: totalExpense > 0 ? holderExpense / totalExpense : 0,
+        mainCategory: top?.key ?? null,
+        mainLabel: top && topShare >= DOMINANT_THRESHOLD ? top.key : MIXED_LABEL,
+      };
+    });
+}
+
 export interface MonthlyTotal {
   /** `YYYY-MM`. */
   month: string;

@@ -34,9 +34,17 @@ Semilla de keyword → categoría (ampliar; case/acento-insensitive, match por s
 4. (Opcional) aprender de correcciones del usuario — fuera de alcance inicial, dejar nota.
 
 ## Criterios de aceptación
-- [ ] Descripciones conocidas sugieren la categoría correcta; desconocidas no sugieren (no rompen).
-- [ ] La sugerencia es siempre editable (nunca se aplica sin que el usuario pueda cambiarla).
-- [ ] `lib/category-suggest.ts` testeado; `typecheck`/`lint`/`test` ok.
+- [x] Descripciones conocidas sugieren la categoría correcta; desconocidas no sugieren (no rompen).
+- [x] La sugerencia es siempre editable (nunca se aplica sin que el usuario pueda cambiarla).
+- [x] `lib/category-suggest.ts` testeado; `typecheck`/`lint`/`test` ok.
+
+## Estado
+Hecho (2026-06-23). `lib/category-suggest.ts` (`suggestCategory`, 5 tests): reglas keyword→categoría
+(substring, case/acento-insensitive; gana la keyword más específica) que resuelven contra las
+categorías del workspace (cada regla acepta varios nombres canónicos, ej. Restaurantes/Comida, porque
+el seed usa "Restaurantes"). Integrado en: el **staging** de importación (precarga la categoría, F2-3)
+y el **alta manual** (B8) como sugerencia con botón "Usar" (nunca se aplica sola). 113 tests web,
+typecheck/lint ok. IA/embeddings y edición de reglas por el usuario → fuera de alcance (mejora futura).
 
 ## Fuera de alcance
 - IA/embeddings (mejora futura). Edición de reglas por el usuario (evaluar como ticket aparte).
