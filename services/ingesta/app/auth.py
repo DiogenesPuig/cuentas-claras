@@ -14,6 +14,7 @@ Dos modos, elegidos por configuración:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 
 import jwt
 from fastapi import Depends, Header, HTTPException, status
@@ -77,11 +78,18 @@ class TokenVerifier:
         return AuthenticatedUser(user_id=sub, claims=claims)
 
 
+@lru_cache(maxsize=4)
+def _verifier_for(
+    jwt_secret: str | None, jwks_url: str | None, audience: str
+) -> TokenVerifier:
+    # Cacheado por configuración: en modo JWKS reusa el mismo PyJWKClient entre
+    # requests (y su caché de claves), en vez de refetchear el JWKS cada vez.
+    return TokenVerifier(jwt_secret=jwt_secret, jwks_url=jwks_url, audience=audience)
+
+
 def build_verifier(settings: Settings) -> TokenVerifier:
-    return TokenVerifier(
-        jwt_secret=settings.supabase_jwt_secret,
-        jwks_url=settings.jwks_url,
-        audience=settings.jwt_audience,
+    return _verifier_for(
+        settings.supabase_jwt_secret, settings.jwks_url, settings.jwt_audience
     )
 
 
