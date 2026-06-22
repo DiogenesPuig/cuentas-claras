@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { useAccounts } from '@/features/accounts';
+import { useAccounts, type Account } from '@/features/accounts';
 import { useCategories } from '@/features/categories';
+import { matchAccount } from '@/lib/account-match';
 import { IngestaError } from '@/lib/ingesta';
 import { useConfirmImport, useFindExistingHashes, useParseStatement } from '../hooks';
 import {
@@ -10,7 +11,20 @@ import {
   type EditableRow,
   type StagingModel,
 } from '../staging';
+import { AccountQuickCreate } from './AccountQuickCreate';
 import { StagingRow } from './StagingRow';
+
+/** `accounts` → forma mínima para el match de medios (F2-5). */
+function toMatchable(accounts: Account[]) {
+  return accounts.map((a) => ({
+    id: a.id,
+    bank: a.bank,
+    network: a.network,
+    last4: a.last4,
+    holderName: a.holder_name,
+    isExtension: a.is_extension,
+  }));
+}
 
 interface StatementImportProps {
   workspaceId: string;
@@ -40,6 +54,8 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
   const [model, setModel] = useState<StagingModel | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<number | null>(null);
+  /** Índice de la tarjeta cuyo "crear medio" inline está abierto (FR-16b). */
+  const [creatingCard, setCreatingCard] = useState<number | null>(null);
 
   const expenseCategories = (categories ?? []).filter((c) => c.kind === 'expense');
 
@@ -56,10 +72,24 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
       const draft = buildStagingModel(result);
       const hashes = draft.cards.flatMap((c) => c.rows.map((r) => r.externalHash));
       const existing = await findExistingHashes.mutateAsync(hashes);
-      setModel(buildStagingModel(result, existing));
+      const built = buildStagingModel(result, existing);
+      // Asociar cada tarjeta al medio que matchea (F2-5, FR-16b); si no hay, queda en ''.
+      const matchable = toMatchable(accounts ?? []);
+      built.cards.forEach((card) => {
+        const { matched } = matchAccount(card.accountHint, matchable);
+        if (matched) card.accountId = matched.id;
+      });
+      setCreatingCard(null);
+      setModel(built);
     } catch (err) {
       setError(parseErrorMessage(err));
     }
+  }
+
+  /** Tras crear un medio inline, asociarlo a esa tarjeta y cerrar el form. */
+  function handleAccountCreated(cardIdx: number, account: Account) {
+    setCardAccount(cardIdx, account.id);
+    setCreatingCard(null);
   }
 
   function patchRow(cardIdx: number, rowId: string, patch: Partial<EditableRow>) {
@@ -179,20 +209,43 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
                     .join(' · ')}
                 </span>
               </div>
-              <select
-                value={card.accountId}
-                onChange={(e) => setCardAccount(cardIdx, e.target.value)}
-                className="rounded-md border border-input bg-background px-2 py-1 text-sm"
-                aria-label="Medio para esta tarjeta"
-              >
-                <option value="">Sin medio</option>
-                {(accounts ?? []).map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-center gap-2">
+                <select
+                  value={card.accountId}
+                  onChange={(e) => setCardAccount(cardIdx, e.target.value)}
+                  className="rounded-md border border-input bg-background px-2 py-1 text-sm"
+                  aria-label="Medio para esta tarjeta"
+                >
+                  <option value="">Sin medio</option>
+                  {(accounts ?? []).map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setCreatingCard(creatingCard === cardIdx ? null : cardIdx)}
+                  className="rounded-md border border-input px-2 py-1 text-sm font-medium hover:bg-accent"
+                >
+                  {creatingCard === cardIdx ? 'Cerrar' : '+ Crear medio'}
+                </button>
+              </div>
             </div>
+            {!card.accountId && creatingCard !== cardIdx && (
+              <p className="text-xs text-muted-foreground">
+                No encontramos un medio para esta tarjeta. Elegí uno o crealo con los datos del resumen.
+              </p>
+            )}
+            {creatingCard === cardIdx && (
+              <AccountQuickCreate
+                workspaceId={workspaceId}
+                hint={card.accountHint}
+                accounts={accounts ?? []}
+                onCreated={(account) => handleAccountCreated(cardIdx, account)}
+                onCancel={() => setCreatingCard(null)}
+              />
+            )}
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="text-xs text-muted-foreground">

@@ -26,10 +26,19 @@ Al parsear un resumen, identificar la **tarjeta/medio** al que pertenece (banco 
 4. Una vez resuelto el medio, asociarlo a las filas del lote.
 
 ## Criterios de aceptación
-- [ ] Un resumen de un medio ya cargado asocia los movimientos a ese medio (sin crear duplicado).
-- [ ] Un resumen de un medio nuevo ofrece crearlo precargado; al confirmarlo, las filas quedan asociadas.
-- [ ] Se puede dar de alta una extensión como medio propio ligada a su titular.
-- [ ] `lib/account-match.ts` testeado; `typecheck`/`lint`/`test` ok.
+- [x] Un resumen de un medio ya cargado asocia los movimientos a ese medio (sin crear duplicado).
+- [x] Un resumen de un medio nuevo ofrece crearlo precargado; al confirmarlo, las filas quedan asociadas.
+- [x] Se puede dar de alta una extensión como medio propio ligada a su titular.
+- [x] `lib/account-match.ts` testeado; `typecheck`/`lint`/`test` ok.
+
+## Estado
+Hecho (2026-06-23). `lib/account-match.ts` (`matchAccount` + `accountDefaultsFromHint`, 9 tests):
+match fuerte por `last4`+red, o por titular+banco cuando el resumen no trae `last4` (Nativa).
+Integrado en `StatementImport`: al cargar asocia la tarjeta al medio que matchea; si no hay, el
+usuario elige del combo o crea inline con `AccountQuickCreate`, que reusa el `AccountForm` de B7
+(nuevo prop `defaults`) precargado y soporta extensiones. 108 tests web, typecheck/lint ok.
+**Criterio de match definido (Opus):** `last4`+red es la señal fuerte; el titular desambigua
+mismo-last4 o suple la falta de `last4`; coincidencias parciales → `candidates` (el usuario elige).
 
 ## Fuera de alcance
 - El parseo (F2-3), dedupe (F2-4), categorías (F2-6).

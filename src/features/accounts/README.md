@@ -20,7 +20,8 @@ tipo, moneda, últimos 4 dígitos, holder (miembro o nombre) y, si es extensión
   muestra el form de alta/edición solo si el usuario es owner/admin (`useMyRole`).
 - `components/AccountForm.tsx` — alta/edición de un medio: resuelve `owner_member_id` (si el
   holder es un miembro) u `holder_name` (si es "otra persona"), y exige `parent_account_id`
-  cuando `isExtension` está activo.
+  cuando `isExtension` está activo. Acepta `defaults?` para precargar valores en modo alta (lo
+  usa el alta inline desde la importación de resúmenes, F2-5).
 
 ## Fuera de alcance (ver ticket B7)
 

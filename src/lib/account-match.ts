@@ -1,0 +1,139 @@
+/**
+ * Match de la tarjeta de un resumen (`account_hint` del micro) contra los medios
+ * (`accounts`) del workspace, para asociar los movimientos importados al medio
+ * correcto o, si no existe, ofrecer crearlo (FR-16b). Lógica PURA y testeable: no
+ * conoce Supabase ni el tipo `Account` de la DB (opera sobre una forma mínima), así
+ * el criterio de match vive en un solo lugar portable.
+ *
+ * Criterio (de más a menos fuerte):
+ * 1. **`last4` + red compatible**: la señal más confiable. Un único medio con ese
+ *    `last4` → match directo. Varios (ej. titular y extensión con distinto last4 no
+ *    aplica; mismo last4 sí) → se desambigua por titular.
+ * 2. **Titular + banco** (cuando el resumen no trae `last4`, ej. Nativa-Nación): un
+ *    único medio cuyo titular comparte nombre/apellido y banco compatible → match.
+ * 3. Coincidencias parciales → `candidates` para que el usuario elija; nada → crear.
+ */
+
+export interface AccountHint {
+  bank: string | null;
+  network: string | null;
+  last4: string | null;
+  holder: string | null;
+}
+
+/** Forma mínima de un medio necesaria para el match (subconjunto de `accounts`). */
+export interface MatchableAccount {
+  id: string;
+  bank: string | null;
+  network: string | null;
+  last4: string | null;
+  holderName: string | null;
+  isExtension?: boolean;
+}
+
+export interface AccountMatchResult<T> {
+  /** Único medio que matchea con confianza → se asocia directo. */
+  matched: T | null;
+  /** Varios posibles o match parcial → el usuario elige (o crea uno nuevo). */
+  candidates: T[];
+}
+
+function norm(value: string | null | undefined): string {
+  return (value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Tokens significativos del nombre (ignora iniciales tipo "D" para no inflar el overlap). */
+function nameTokens(value: string | null | undefined): string[] {
+  return norm(value)
+    .split(' ')
+    .filter((t) => t.length >= 3);
+}
+
+/** Cuántos tokens de nombre comparten dos titulares (apellido/nombre), sin importar el orden. */
+function holderOverlap(a: string | null | undefined, b: string | null | undefined): number {
+  const tokensA = new Set(nameTokens(a));
+  return nameTokens(b).filter((t) => tokensA.has(t)).length;
+}
+
+/** Compatibles si coinciden o si falta el dato de algún lado (no descarta por ausencia). */
+function networkCompatible(a: string | null, b: string | null): boolean {
+  if (!a || !b) return true;
+  return norm(a) === norm(b);
+}
+
+function bankCompatible(a: string | null, b: string | null): boolean {
+  if (!a || !b) return true;
+  const na = norm(a);
+  const nb = norm(b);
+  return na === nb || na.includes(nb) || nb.includes(na);
+}
+
+export function matchAccount<T extends MatchableAccount>(
+  hint: AccountHint,
+  accounts: readonly T[],
+): AccountMatchResult<T> {
+  // 1. Match fuerte por last4 (+ red compatible).
+  if (hint.last4) {
+    const byLast4 = accounts.filter(
+      (a) => a.last4 != null && a.last4 === hint.last4 && networkCompatible(a.network, hint.network),
+    );
+    if (byLast4.length === 1) return { matched: byLast4[0], candidates: [] };
+    if (byLast4.length > 1) {
+      // Mismo last4 en varios medios → desambiguar por titular.
+      const byHolder = byLast4.filter((a) => holderOverlap(a.holderName, hint.holder) >= 2);
+      if (byHolder.length === 1) return { matched: byHolder[0], candidates: [] };
+      return { matched: null, candidates: byLast4 };
+    }
+    // last4 no encontrado → no hay match fuerte; seguimos por titular abajo.
+  }
+
+  // 2. Por titular + banco (caso sin last4 en el resumen, ej. Nativa-Nación).
+  if (hint.holder) {
+    const strong = accounts.filter(
+      (a) =>
+        holderOverlap(a.holderName, hint.holder) >= 2 &&
+        bankCompatible(a.bank, hint.bank) &&
+        networkCompatible(a.network, hint.network),
+    );
+    if (strong.length === 1) return { matched: strong[0], candidates: [] };
+    if (strong.length > 1) return { matched: null, candidates: strong };
+
+    // Candidatos débiles: comparten al menos un token de nombre y banco compatible.
+    const weak = accounts.filter(
+      (a) => holderOverlap(a.holderName, hint.holder) >= 1 && bankCompatible(a.bank, hint.bank),
+    );
+    if (weak.length > 0) return { matched: null, candidates: weak };
+  }
+
+  return { matched: null, candidates: [] };
+}
+
+/**
+ * Valores neutros para precargar el alta de un medio nuevo desde el `account_hint`.
+ * No depende del schema del form (eso lo mapea la feature), para no atar `lib/` a la UI.
+ */
+export interface AccountDefaultsFromHint {
+  name: string;
+  bank: string;
+  network: string;
+  last4: string;
+  holderName: string;
+}
+
+export function accountDefaultsFromHint(hint: AccountHint): AccountDefaultsFromHint {
+  const name =
+    [hint.bank, hint.network, hint.last4 ? `••${hint.last4}` : null].filter(Boolean).join(' ') ||
+    'Tarjeta';
+  return {
+    name,
+    bank: hint.bank ?? '',
+    network: hint.network ?? '',
+    last4: hint.last4 ?? '',
+    holderName: hint.holder ?? '',
+  };
+}

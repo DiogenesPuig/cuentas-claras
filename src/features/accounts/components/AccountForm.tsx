@@ -46,6 +46,8 @@ function defaultValuesFor(account?: Account): AccountFormInput {
 interface AccountFormProps {
   /** Si se pasa, el form edita este medio; si no, crea uno nuevo. */
   account?: Account;
+  /** Valores precargados en modo alta (sin `account`), ej. detectados de un resumen (F2-5). */
+  defaults?: Partial<AccountFormInput>;
   /** Miembros del workspace, para elegir el holder. */
   members: MemberOption[];
   /** Medios titulares disponibles como tarjeta padre (excluye el medio en edición). */
@@ -58,12 +60,18 @@ interface AccountFormProps {
 /** Alta/edición de un medio de pago/tarjeta del workspace. */
 export function AccountForm({
   account,
+  defaults,
   members,
   parentOptions,
   onSubmit,
   onCancel,
   isSubmitting,
 }: AccountFormProps) {
+  // En modo alta, los `defaults` (ej. del resumen) pisan los valores vacíos; en
+  // edición mandan los del medio. `account` siempre tiene prioridad si está.
+  const initialValues = account
+    ? defaultValuesFor(account)
+    : { ...defaultValuesFor(undefined), ...defaults };
   const {
     register,
     handleSubmit,
@@ -72,12 +80,15 @@ export function AccountForm({
     formState: { errors },
   } = useForm<AccountFormInput>({
     resolver: zodResolver(accountSchema),
-    defaultValues: defaultValuesFor(account),
+    defaultValues: initialValues,
   });
 
   useEffect(() => {
-    reset(defaultValuesFor(account));
-  }, [account, reset]);
+    reset(account ? defaultValuesFor(account) : { ...defaultValuesFor(undefined), ...defaults });
+    // `defaults` es un objeto nuevo en cada render del padre; lo serializamos para
+    // no reinicializar el form en cada tecla mientras el usuario edita.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account, reset, JSON.stringify(defaults)]);
 
   const holderKind = watch('holderKind');
   const isExtension = watch('isExtension');
