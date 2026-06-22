@@ -4,8 +4,8 @@
 > propios en esta carpeta. El plan de arquitectura y decisiones está en `PLAN.md`. La mayoría depende
 > del microservicio Python (`F2-1`); `F2-7` no necesita infra nueva y puede ir primero.
 >
-> **Estado (2026-06-22):** ✅ F2-0, F2-1, F2-2 hechos y mergeados (PR #18). F2-3 **planificado**
-> (decisiones resueltas en su ticket). Pendientes: F2-3, F2-3b, F2-4, F2-5, F2-6, F2-7.
+> **Estado (2026-06-22):** ✅ F2-0, F2-1, F2-2 (PR #18) y ✅ F2-3 (Patagonia tabular) implementados.
+> Pendientes: F2-3b (Nativa-Nación por coordenadas), F2-4, F2-5, F2-6, F2-7.
 
 ## Archivos de esta carpeta
 
@@ -14,7 +14,7 @@
 - `F2-1-microservicio-python.md` — scaffold FastAPI + contrato + auth + deploy.
 - `F2-2-ocr-comprobantes.md` — OCR de comprobantes (Tesseract) → precarga el alta (FR-14).
 - `F2-3-parseo-resumenes-staging.md` — parseo de resúmenes (tabulares: Patagonia/Visa-Nación) → revisión + confirmación en bloque (FR-16). _Planificado: staging efímero en el front, contrato multi-tarjeta._
-- _F2-3b (pendiente de crear)_ — parser de Nativa-Nación (Mastercard) por coordenadas/tablas (diferido de F2-3).
+- `F2-3b-nativa-nacion.md` — parser de Nativa-Nación (Mastercard) por coordenadas/tablas (diferido de F2-3).
 - `F2-4-dedupe-importacion.md` — detección de duplicados al importar (FR-17).
 - `F2-5-alta-medio-desde-resumen.md` — identificar/crear el medio desde el resumen (FR-16b).
 - `F2-6-sugerencia-categoria.md` — sugerencia automática de categoría (FR-19).
