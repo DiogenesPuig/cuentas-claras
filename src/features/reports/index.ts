@@ -30,4 +30,5 @@ export { DonutChart } from './components/DonutChart';
 export { BarChart } from './components/BarChart';
 export { ConsolidatedTotals } from './components/ConsolidatedTotals';
 export { PersonaBreakdown } from './components/PersonaBreakdown';
+export { GroupBreakdown } from './components/GroupBreakdown';
 export { ReportFilterBar, type ReportFilterOptions } from './components/ReportFilterBar';

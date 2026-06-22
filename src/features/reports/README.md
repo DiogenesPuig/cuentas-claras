@@ -28,14 +28,26 @@ mes a mes, con consolidado multi-moneda. Implementa **FR-20, FR-21, FR-22, FR-24
   `useFxRates(currencies, fxSource, fxQuote, upTo)` (no dispara query si `currencies` está vacío,
   es decir, todo el período ya está en la moneda base).
 - `index.ts` — barrel del feature.
-- `components/ReportTabs.tsx` — pills para elegir la dimensión de desglose.
-- `components/DonutChart.tsx` — torta (Recharts) del gasto consolidado por dimensión, con leyenda.
+- `components/ReportTabs.tsx` — pills para elegir la dimensión (desglose general y "ver por" del detalle).
+- `components/DonutChart.tsx` — torta (Recharts) del gasto consolidado por dimensión. `showLegend`
+  apaga la leyenda cuando la info va en una columna aparte (`GroupBreakdown`).
+- `components/GroupBreakdown.tsx` — info del gráfico: cada grupo con su color (igual que el donut),
+  monto y % del total mostrado. Sirve para el grupo entero o para el subconjunto de un filtro.
+- `components/chartColors.ts` — paleta compartida donut/listas (mismo orden → mismo color).
 - `components/BarChart.tsx` — barras (Recharts) de ingresos/gastos consolidados mes a mes.
 - `components/ConsolidatedTotals.tsx` — totales por moneda original + consolidado en la moneda
   base del workspace (FR-21/FR-9b).
 - `components/PersonaBreakdown.tsx` — detalle del gasto por persona: % del total y categoría
   dominante ("mayormente en Super" / "varios"). Acompaña al donut de personas.
-- `components/ReportFilterBar.tsx` — filtros combinables (persona/categoría/medio) del reporte.
+- `components/ReportFilterBar.tsx` — filtros combinables y removibles (persona/banco/medio/categoría,
+  con "Limpiar") que alimentan el bloque de detalle.
+
+## Layout de la pantalla (C13)
+
+`ReportsPage` se organiza en: **General** (todo el grupo, tabs de dimensión; gráfico a la izquierda
+e info a la derecha) · **Detalle por filtro** (filtros apilables → subconjunto + "ver por" dimensión;
+info a la izquierda y gráfico a la derecha, invertido; vacío hasta filtrar) · **Mes a mes** (6 meses)
+· **Anual** (acumulado del año en curso hasta el mes activo). El filtro alimenta SOLO el detalle.
 
 ## FX histórico (cómo se resuelve la cotización de cada movimiento)
 
