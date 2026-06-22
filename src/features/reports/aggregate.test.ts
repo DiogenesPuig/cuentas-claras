@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { aggregateByDimension, monthlySeries, personaAccounts } from './aggregate';
+import {
+  aggregateByDimension,
+  filterReportTransactions,
+  monthlySeries,
+  personaAccounts,
+  personaSpending,
+} from './aggregate';
 import type { ReportTransactionView, ReportAccount } from './api';
 
 function makeAccount(overrides: Partial<ReportAccount> = {}): ReportAccount {
@@ -103,6 +109,71 @@ describe('aggregateByDimension', () => {
 
     const groups = aggregateByDimension(transactions, 'banco', 'ARS', rateFor);
     expect(groups[0].consolidated.expense).toBe(10 * 1000);
+  });
+});
+
+describe('filterReportTransactions', () => {
+  const txs = [
+    makeTx({ amount: 100, category: { name: 'Super' }, account: makeAccount({ holder_name: 'Ana' }) }),
+    makeTx({ amount: 50, category: { name: 'Transporte' }, account: makeAccount({ holder_name: 'Ana' }) }),
+    makeTx({ amount: 200, category: { name: 'Super' }, account: makeAccount({ holder_name: 'Beto' }) }),
+  ];
+
+  it('sin filtros devuelve todo', () => {
+    expect(filterReportTransactions(txs, {})).toHaveLength(3);
+    expect(filterReportTransactions(txs, { persona: null })).toHaveLength(3);
+  });
+
+  it('filtra por persona', () => {
+    const out = filterReportTransactions(txs, { persona: 'Ana' });
+    expect(out).toHaveLength(2);
+  });
+
+  it('combina filtros (AND): persona + categoría', () => {
+    const out = filterReportTransactions(txs, { persona: 'Ana', categoria: 'Super' });
+    expect(out.map((t) => t.amount)).toEqual([100]);
+  });
+});
+
+describe('personaSpending', () => {
+  it('da participación del total y la categoría dominante de cada persona', () => {
+    const txs = [
+      // Ana: 600 (450 Super = 75% → domina), 150 Transporte. Total general = 800 → Ana 75%.
+      makeTx({ amount: 450, category: { name: 'Super' }, account: makeAccount({ holder_name: 'Ana' }) }),
+      makeTx({ amount: 150, category: { name: 'Transporte' }, account: makeAccount({ holder_name: 'Ana' }) }),
+      // Beto: 200 repartido 100/100 → ninguna supera el 40% del umbral relativo... 50% sí.
+      makeTx({ amount: 100, category: { name: 'Super' }, account: makeAccount({ holder_name: 'Beto' }) }),
+      makeTx({ amount: 100, category: { name: 'Ocio' }, account: makeAccount({ holder_name: 'Beto' }) }),
+    ];
+
+    const result = personaSpending(txs, 'ARS', noRate);
+    const ana = result.find((p) => p.holder === 'Ana')!;
+    const beto = result.find((p) => p.holder === 'Beto')!;
+
+    expect(ana.expense).toBe(600);
+    expect(ana.share).toBeCloseTo(0.75, 5);
+    expect(ana.mainLabel).toBe('Super'); // 450/600 = 75% ≥ 40%
+    expect(beto.share).toBeCloseTo(0.25, 5);
+    expect(beto.mainLabel).toBe('Super'); // 100/200 = 50% ≥ 40% (primera por volumen)
+  });
+
+  it('marca "Varios" cuando ninguna categoría domina', () => {
+    const txs = [
+      makeTx({ amount: 30, category: { name: 'A' }, account: makeAccount({ holder_name: 'Ana' }) }),
+      makeTx({ amount: 30, category: { name: 'B' }, account: makeAccount({ holder_name: 'Ana' }) }),
+      makeTx({ amount: 30, category: { name: 'C' }, account: makeAccount({ holder_name: 'Ana' }) }),
+    ];
+    expect(personaSpending(txs, 'ARS', noRate)[0].mainLabel).toBe('Varios'); // 33% < 40%
+  });
+
+  it('ignora ingresos (solo gasto)', () => {
+    const txs = [
+      makeTx({ amount: 100, type: 'income', account: makeAccount({ holder_name: 'Ana' }) }),
+      makeTx({ amount: 40, type: 'expense', category: { name: 'Super' }, account: makeAccount({ holder_name: 'Ana' }) }),
+    ];
+    const result = personaSpending(txs, 'ARS', noRate);
+    expect(result).toHaveLength(1);
+    expect(result[0].expense).toBe(40);
   });
 });
 

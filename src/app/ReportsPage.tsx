@@ -4,15 +4,21 @@ import {
   BarChart,
   ConsolidatedTotals,
   DonutChart,
+  PersonaBreakdown,
+  ReportFilterBar,
   ReportTabs,
   aggregateByDimension,
   consolidateTransactions,
+  filterReportTransactions,
   monthlySeries,
   personaAccounts,
+  personaSpending,
   useFxRates,
   useReportTransactions,
   useWorkspaceFxSettings,
   type ReportDimension,
+  type ReportFilterOptions,
+  type ReportFilters,
 } from '@/features/reports';
 import { buildRateIndex, lookupRate } from '@/lib/fx';
 import { useActiveMonth, formatMonthLabel, shiftMonth } from '@/hooks/useActiveMonth';
@@ -30,6 +36,7 @@ export function ReportsPage() {
   const workspaceId = useActiveWorkspace((state) => state.workspaceId);
   const activeMonth = useActiveMonth((state) => state.month);
   const [dimension, setDimension] = useState<ReportDimension>('categoria');
+  const [filters, setFilters] = useState<ReportFilters>({});
 
   const months = useMemo(
     () => Array.from({ length: MONTHS_WINDOW }, (_, i) => shiftMonth(activeMonth, i - (MONTHS_WINDOW - 1))),
@@ -63,10 +70,25 @@ export function ReportsPage() {
   const allTransactions = transactions ?? [];
   const monthTransactions = allTransactions.filter((tx) => tx.occurred_on.startsWith(activeMonth));
 
-  const groups = aggregateByDimension(monthTransactions, dimension, base, rateFor);
-  const totals = consolidateTransactions(monthTransactions, base, rateFor);
-  const series = monthlySeries(allTransactions, months, base, rateFor);
+  // Opciones de filtro a partir de lo que hay en el mes (FR-22).
+  const distinct = (values: (string | null | undefined)[], fallback: string) =>
+    Array.from(new Set(values.map((v) => v ?? fallback))).sort((a, b) => a.localeCompare(b, 'es'));
+  const filterOptions: ReportFilterOptions = {
+    persona: distinct(monthTransactions.map((tx) => tx.account?.holder_name), 'Sin medio'),
+    categoria: distinct(monthTransactions.map((tx) => tx.category?.name), 'Sin categoría'),
+    medio: distinct(monthTransactions.map((tx) => tx.account?.name), 'Sin medio'),
+  };
+
+  // Filtros combinables (persona/categoría/medio) aplicados al período y a la serie.
+  const filtered = filterReportTransactions(monthTransactions, filters);
+  const filteredAll = filterReportTransactions(allTransactions, filters);
+
+  const groups = aggregateByDimension(filtered, dimension, base, rateFor);
+  const totals = consolidateTransactions(filtered, base, rateFor);
+  const series = monthlySeries(filteredAll, months, base, rateFor);
   const personaInfo = personaAccounts(accounts ?? []);
+  const personas = personaSpending(filtered, base, rateFor);
+  const personaGroups = aggregateByDimension(filtered, 'persona', base, rateFor);
 
   return (
     <div className="space-y-6">
@@ -77,9 +99,18 @@ export function ReportsPage() {
         <p className="text-sm text-muted-foreground">Cargando…</p>
       ) : (
         <>
+          <ReportFilterBar filters={filters} options={filterOptions} onChange={setFilters} />
+
           <ConsolidatedTotals consolidated={totals} baseCurrency={base} />
 
           <div className="space-y-3">
+            <h2 className="text-sm font-semibold">Gasto por persona</h2>
+            <DonutChart groups={personaGroups} baseCurrency={base} />
+            <PersonaBreakdown people={personas} baseCurrency={base} />
+          </div>
+
+          <div className="space-y-3">
+            <h2 className="text-sm font-semibold">Desglose</h2>
             <ReportTabs value={dimension} onChange={setDimension} />
             <DonutChart groups={groups} baseCurrency={base} />
 
