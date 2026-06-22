@@ -19,7 +19,7 @@ export interface EditableRow {
   categoryId: string;
   installmentN: number | null;
   installmentTotal: number | null;
-  kind: 'charge' | 'payment';
+  kind: 'charge' | 'refund' | 'payment';
 }
 
 export interface EditableCard {
@@ -49,7 +49,8 @@ export function buildStagingModel(parse: StatementParse): StagingModel {
       accountId: '',
       rows: card.rows.map((row) => ({
         id: newId(),
-        include: row.kind === 'charge',
+        // Consumos y reintegros se importan; solo los pagos de tarjeta van destildados.
+        include: row.kind !== 'payment',
         description: row.description ?? '',
         amount: row.amount != null ? String(row.amount) : '',
         currency: row.currency ?? 'ARS',
@@ -79,8 +80,10 @@ export function toImportRows(model: StagingModel): ImportRowInput[] {
   for (const card of model.cards) {
     for (const row of card.rows) {
       if (!isRowValid(row)) continue;
+      // Un reintegro es un gasto NEGATIVO: netea el total por tarjeta/categoría.
+      const magnitude = Number(row.amount);
       out.push({
-        amount: Number(row.amount),
+        amount: row.kind === 'refund' ? -magnitude : magnitude,
         currency: row.currency.toUpperCase(),
         description: row.description.trim() || null,
         accountId: card.accountId || null,

@@ -21,8 +21,9 @@ revisan/editan en memoria y se confirman **todas de una**, creando los `transact
 - `hooks.ts` — `useParseStatement` (parseo, no escribe) y `useConfirmImport` (crea en bloque e
   invalida la lista de movimientos).
 - `staging.ts` — lógica PURA del staging editable: `buildStagingModel` (parseo → modelo editable;
-  pagos/devoluciones destildados), `isRowValid`, `countSelected`, `toImportRows` (modelo → inputs,
-  solo filas válidas; convierte fecha DD/MM/AAAA→ISO).
+  solo los **pagos de tarjeta** van destildados, los consumos y **reintegros** quedan tildados),
+  `isRowValid`, `countSelected`, `toImportRows` (modelo → inputs; convierte fecha DD/MM/AAAA→ISO y
+  exporta los **reintegros como gasto negativo** para que neteen el total — requiere la migración 0008).
 - `staging.test.ts` — tests de la lógica pura (destildado de pagos, conteo, conversión, exclusión
   de filas inválidas).
 - `components/StatementImport.tsx` — flujo completo: subir PDF + password → revisar por tarjeta

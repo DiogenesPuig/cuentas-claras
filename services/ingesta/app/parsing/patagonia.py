@@ -93,9 +93,8 @@ def _parse_row(rest: str) -> StatementRow | None:
     if amount is None:
         return None
 
-    # Pago/devolución: sufijo '-' pegado al importe (en pesos).
-    after = body[first.end() : first.end() + 1]
-    is_payment = after == "-"
+    # Sufijo '-' pegado al importe (pesos) = crédito (pago de tarjeta o reintegro).
+    has_minus = body[first.end() : first.end() + 1] == "-"
 
     description = body[: first.start()].strip(" .-$")
     installment = None
@@ -104,8 +103,16 @@ def _parse_row(rest: str) -> StatementRow | None:
         installment = StatementInstallment(n=int(cuota.group(1)), total=int(cuota.group(2)))
         description = (description[: cuota.start()] + description[cuota.end() :]).strip(" .-$")
 
-    if re.search(r"\bSU\s+PAGO\b|\bPAGO\s+EN\s+PESOS\b", description, re.IGNORECASE):
-        is_payment = True
+    # Pago del saldo de la tarjeta (no es gasto → se excluye) vs. reintegro/devolución
+    # (revierte una compra → gasto negativo que netea).
+    _payment_re = r"\bSU\s+PAGO\b|\bPAGO\s+EN\s+PESOS\b|\bPAGO\s+M[IÍ]NIMO\b"
+    is_card_payment = bool(re.search(_payment_re, description, re.IGNORECASE))
+    if is_card_payment:
+        kind = "payment"
+    elif has_minus:
+        kind = "refund"
+    else:
+        kind = "charge"
 
     return StatementRow(
         occurred_on=None,  # lo completa el caller con la fecha de la fila
@@ -113,7 +120,7 @@ def _parse_row(rest: str) -> StatementRow | None:
         amount=amount,
         currency="ARS",
         installment=installment,
-        kind="payment" if is_payment else "charge",
+        kind=kind,
     )
 
 

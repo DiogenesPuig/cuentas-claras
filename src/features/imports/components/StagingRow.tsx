@@ -42,10 +42,15 @@ export function StagingRow({ row, categories, onChange }: StagingRowProps) {
           className={`${inputCls} w-full min-w-40`}
           aria-label="Descripción"
         />
-        {(cuota || row.kind === 'payment') && (
+        {(cuota || row.kind !== 'charge') && (
           <span className="ml-1 text-xs text-muted-foreground">
-            {cuota}
-            {row.kind === 'payment' && ' · pago/devolución'}
+            {[
+              cuota,
+              row.kind === 'payment' && 'pago de tarjeta',
+              row.kind === 'refund' && 'reintegro (resta)',
+            ]
+              .filter(Boolean)
+              .join(' · ')}
           </span>
         )}
       </td>

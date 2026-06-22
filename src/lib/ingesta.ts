@@ -29,8 +29,8 @@ export interface StatementRow {
   amount: number | null;
   currency: string | null;
   installment: StatementInstallment | null;
-  /** 'charge' = consumo (gasto); 'payment' = pago/devolución. */
-  kind: 'charge' | 'payment';
+  /** 'charge' = consumo; 'refund' = reintegro/devolución (resta); 'payment' = pago de tarjeta (se excluye). */
+  kind: 'charge' | 'refund' | 'payment';
 }
 
 export interface StatementAccountHint {

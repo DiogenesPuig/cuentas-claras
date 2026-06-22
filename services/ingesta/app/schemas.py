@@ -33,7 +33,8 @@ class StatementRow(BaseModel):
     amount: float | None = None
     currency: str | None = None
     installment: StatementInstallment | None = None
-    # 'charge' = consumo (gasto); 'payment' = pago/devolución (sufijo '-' en el resumen).
+    # 'charge' = consumo; 'refund' = reintegro/devolución (gasto negativo, netea);
+    # 'payment' = pago del saldo de la tarjeta (no es gasto, se excluye).
     kind: str = "charge"
 
 

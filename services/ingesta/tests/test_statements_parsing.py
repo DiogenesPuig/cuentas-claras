@@ -55,8 +55,9 @@ def test_rows_of_first_card() -> None:
     assert cuota.description == "COMERCIO CUOTAS"
     assert cuota.amount == 11566.66
 
-    assert devol.kind == "payment"  # importe con sufijo '-' (devolución)
+    assert devol.kind == "refund"  # sufijo '-' y NO es pago de tarjeta → reintegro
     assert devol.amount == 19016.78
+    assert pago.kind == "payment"  # "SU PAGO EN PESOS" → pago del saldo (se excluye)
 
 
 def test_impuesto_sin_tarjeta() -> None:
