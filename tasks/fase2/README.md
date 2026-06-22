@@ -4,21 +4,20 @@
 > `PLAN.md`. La mayoría depende del microservicio Python (`F2-1`); `F2-7` no necesita infra nueva.
 >
 > **Estado (2026-06-23):** ✅ F2-0, F2-1, F2-2 (PR #18); ✅ F2-3 (Patagonia tabular, + reintegros como
-> gasto negativo), ✅ F2-3b (Nativa-Nación) y ✅ F2-4 (dedupe al importar). **Pendientes: F2-5, F2-6, F2-7.**
+> gasto negativo), ✅ F2-3b (Nativa-Nación), ✅ F2-4 (dedupe), ✅ F2-5 (medio desde el resumen) y
+> ✅ F2-6 (sugerencia de categoría). **Pendiente: F2-7 (visor de comprobantes).**
 > Los tickets completados se movieron a `tasks/done/` (ver allí su estado/criterios).
 
 ## Archivos de esta carpeta
 
 - `PLAN.md` — plan de Fase 2: arquitectura, decisiones (resueltas y pendientes), desglose y orden.
-- `F2-5-alta-medio-desde-resumen.md` — identificar/crear el medio desde el resumen (FR-16b).
-- `F2-6-sugerencia-categoria.md` — sugerencia automática de categoría (FR-19).
 - `F2-7-visor-comprobantes.md` — visor/descarga de adjuntos (FR-10/FR-13), sin infra nueva.
 
 Completados (en `tasks/done/`): `F2-0-modelar-cuotas`, `F2-1-microservicio-python`,
 `F2-2-ocr-comprobantes`, `F2-3-parseo-resumenes-staging`, `F2-3b-nativa-nacion`,
-`F2-4-dedupe-importacion`.
+`F2-4-dedupe-importacion`, `F2-5-alta-medio-desde-resumen`, `F2-6-sugerencia-categoria`.
 
-**Orden recomendado restante:** {F2-5, F2-6} (dependen de F2-3, ya hecho) y F2-7 (independiente).
+**Pendiente:** F2-7 (independiente, no necesita el microservicio).
 
 ## Alcance (PRD §14 — Fase 2: semanas 7–11)
 
