@@ -66,10 +66,40 @@ ruff check .                   # lint
 uvicorn app.main:app --reload  # http://localhost:8000/v1/health
 ```
 
-## Deploy (Fly.io)
+## Deploy (Google Cloud Run)
 
-Ver cabecera de `fly.toml`. Resumen: `fly launch --no-deploy` → `fly secrets set …`
-→ `fly deploy` → smoke test `GET /v1/health`. Los secrets nunca se commitean.
+El mismo `Dockerfile` sirve (el `CMD` escucha en `$PORT`, que Cloud Run inyecta).
+Se buildea en la nube con Cloud Build (no hace falta Docker local):
+
+```bash
+# 1. Setup (una vez)
+gcloud auth login
+gcloud config set project TU_PROJECT_ID
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com secretmanager.googleapis.com
+
+# 2. Guardar el JWT secret de Supabase en Secret Manager (no en la config del servicio)
+printf '%s' 'TU_SUPABASE_JWT_SECRET' | gcloud secrets create supabase-jwt-secret --data-file=-
+
+# 3. Deploy desde services/ingesta/ (Cloud Build buildea el Dockerfile)
+gcloud run deploy cuentas-claras-ingesta \
+  --source . \
+  --region southamerica-east1 \
+  --allow-unauthenticated \
+  --memory 1Gi \
+  --max-instances 2 \
+  --set-env-vars WEB_ORIGIN=https://TU-WEB,http://localhost:5173 \
+  --set-secrets SUPABASE_JWT_SECRET=supabase-jwt-secret:latest
+
+# 4. Smoke test (la URL la imprime el deploy)
+curl https://cuentas-claras-ingesta-XXXX.a.run.app/v1/health
+```
+
+`--allow-unauthenticated` deja entrar requests del browser; la autorización real la
+hace el micro validando el JWT de Supabase (no es un endpoint abierto). Alternativa a
+HS256: `--set-env-vars SUPABASE_URL=https://TU-PROYECTO.supabase.co` (valida vía JWKS).
+
+> `fly.toml` queda como alternativa de hosting (Fly.io), pero el deploy soportado/free
+> elegido es Cloud Run.
 
 ## Estado
 
