@@ -61,12 +61,12 @@ Subir un resumen de tarjeta (PDF), parsearlo en el microservicio Python y mostra
 4. Confirmar → crear `transactions` en bloque (`source='statement_import'`, `charged_on=statement_close_on`, `installment_n/total`, `attachment_id`) bajo RLS del usuario; marcar `attachment_status='processed'`.
 
 ## Criterios de aceptación
-- [ ] Subir un PDF de Patagonia/Visa-Nación parsea filas con monto/fecha/descripción/cuotas correctos (fixtures), agrupadas por tarjeta.
-- [ ] El usuario edita/destilda y confirma en bloque; se crean los movimientos (`source='statement_import'`).
-- [ ] Pagos/devoluciones llegan destildados por defecto.
-- [ ] PDF con password: desbloquea con la clave correcta; clave incorrecta → `failed` sin persistir la clave.
-- [ ] Toda la escritura respeta RLS por workspace.
-- [ ] Lógica pura de parseo testeada con fixtures anonimizados; `typecheck`/`lint`/`test`/`pytest`/`ruff` ok.
+- [x] Subir un PDF de Patagonia parsea filas con monto/fecha/descripción/cuotas correctos (fixtures + validado a mano contra muestras reales), agrupadas por tarjeta.
+- [x] El usuario edita/destilda y confirma en bloque; se crean los movimientos (`source='statement_import'`).
+- [x] Pagos/devoluciones llegan destildados por defecto.
+- [x] PDF con password: la clave viaja al micro y se usa en memoria (no se persiste); clave incorrecta/faltante → 422 → la web avisa. _(Camino implementado; las muestras no tenían password, así que no se probó contra un PDF realmente protegido.)_
+- [x] Toda la escritura respeta RLS por workspace (insert vía `supabase-js` con la sesión del usuario).
+- [x] Lógica pura de parseo testeada con fixtures anonimizados; `typecheck`/`lint`/`test`/`pytest`/`ruff` ok.
 
 ## Fuera de alcance
 - **Nativa-Nación (Mastercard) por coordenadas → F2-3b.**

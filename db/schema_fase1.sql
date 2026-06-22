@@ -292,7 +292,7 @@ create table transactions (
   id                  uuid primary key default gen_random_uuid(),
   workspace_id        uuid not null references workspaces (id) on delete cascade,
   type                transaction_type not null,
-  amount              numeric(14,2) not null check (amount > 0),  -- monto original
+  amount              numeric(14,2) not null check (amount <> 0),  -- monto original (negativo = reintegro, ver 0008)
   currency            char(3) not null,                            -- moneda original
   amount_base         numeric(14,2),                               -- convertido a base_currency
   fx_rate             numeric(18,6),                               -- tipo de cambio aplicado

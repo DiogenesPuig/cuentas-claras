@@ -29,6 +29,10 @@ export interface StatementRow {
   amount: number | null;
   currency: string | null;
   installment: StatementInstallment | null;
+  /** 'charge' = consumo; 'refund' = reintegro/devolución (resta); 'payment' = pago de tarjeta (se excluye). */
+  kind: 'charge' | 'refund' | 'payment';
+  /** Nº de comprobante del resumen (si está): clave fuerte para dedupe (FR-17). */
+  ref: string | null;
 }
 
 export interface StatementAccountHint {
@@ -38,9 +42,15 @@ export interface StatementAccountHint {
   holder: string | null;
 }
 
-export interface StatementParse {
+export interface StatementCard {
   account_hint: StatementAccountHint;
   rows: StatementRow[];
+}
+
+export interface StatementParse {
+  /** Cierre/imputación del resumen (ISO) → charged_on de los movimientos. */
+  statement_close_on: string | null;
+  cards: StatementCard[];
 }
 
 /** Error de la llamada al micro (red, auth o respuesta no-2xx). */

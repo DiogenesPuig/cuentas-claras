@@ -21,15 +21,19 @@ app/
   auth.py            validación del JWT de Supabase (HS256 o JWKS) — no toca la DB
   schemas.py         contrato HTTP (pydantic): forma de las respuestas
   uploads.py         endurecimiento: límite de tamaño + timeout de procesado
-  ocr.py             borde IO: bytes (imagen/PDF) → texto (Tesseract/pdfplumber, lazy) (F2-2)
+  ocr.py             borde IO: bytes (imagen) → texto (Tesseract, lazy) (F2-2)
+  pdf.py             borde IO: bytes (PDF) → texto (pdfplumber, lazy; password en memoria) (F2-3)
   routes/
     health.py        GET  /v1/health (público)
     receipts.py      POST /v1/receipts:extract (FR-14) — OCR (ocr.py) + heurística pura
-    statements.py    POST /v1/statements:parse (FR-16) — cascarón, parseo en F2-3
+    statements.py    POST /v1/statements:parse (FR-16) — pdf.py + dispatcher de parseo
   parsing/           LÓGICA PURA (sin FastAPI/red/IO), testeable y portable
     receipts.py      extract_from_text(text) → ReceiptExtraction: monto/fecha/comercio (F2-2)
-    statements.py    parse_statement(bytes, password?) → StatementParse (stub F2-1)
-tests/               pytest: health, auth, contrato, límite, y heurística de comprobantes (F2-2)
+    statements.py    parse_statement_text(text) → StatementParse: dispatcher por plantilla (F2-3)
+    patagonia.py     parser tabular Patagonia (Visa/Master/CR): filas por tarjeta, cuotas, pagos (F2-3)
+    nativa_nacion.py parser Nativa-Nación (Mastercard, Banco Nación): grupos por titular/adicional (F2-3b)
+tests/               pytest: health, auth, contrato, límite, comprobantes (F2-2) y resúmenes (F2-3/F2-3b)
+  fixtures/          textos ANONIMIZADOS de resúmenes para los tests (nunca PDFs reales)
 Dockerfile           Python 3.12 + Tesseract (es/en)
 run-local.sh         corre el micro local + Cloudflare Quick Tunnel (URL pública)
 pyproject.toml       deps + ruff + pytest
@@ -39,7 +43,8 @@ pyproject.toml       deps + ruff + pytest
 
 - `POST /v1/receipts:extract` (multipart: `file`) → `{ amount, currency, date, merchant, confidence }`
 - `POST /v1/statements:parse` (multipart: `file`, `password?`) →
-  `{ account_hint: { bank, network, last4, holder }, rows: [{ occurred_on, description, amount, currency, installment? }] }`
+  `{ statement_close_on, cards: [{ account_hint: { bank, network, last4, holder }, rows: [{ occurred_on, description, amount, currency, installment?, kind }] }] }`
+  (`kind`: `"charge"` | `"payment"`)
 
 Todos (salvo `/v1/health`) exigen `Authorization: Bearer <access_token de Supabase>`.
 
@@ -118,4 +123,13 @@ micro igual valida el JWT de Supabase en cada request.
   heurística de extracción (monto cerca de "TOTAL", fecha, comercio; detecta el
   subtipo *comprobante de transferencia*). Si faltan las deps `[ocr]` o el OCR
   falla, devuelve confianza 0 (la web cae a carga manual).
-- **F2-3 (pendiente):** `POST /v1/statements:parse` todavía es stub.
+- **F2-3:** `POST /v1/statements:parse` implementado para el layout **tabular de
+  Patagonia** (Visa/Master/CR): extrae texto del PDF (`pdf.py`, con password en
+  memoria), agrupa filas por tarjeta (last4 + titular), detecta cuotas y
+  pagos/devoluciones, y devuelve `{ statement_close_on, cards[] }`.
+- **F2-3b:** `nativa_nacion.py` suma el layout **Nativa-Nación** (Mastercard, Banco
+  Nación) al dispatcher. La capa de texto del PDF sale legible, así que el parser
+  trabaja sobre texto (no por coordenadas, como se preveía): toma el cierre de
+  "Estado de cuenta al", agrupa el detalle por `TOTAL TITULAR`/`TOTAL ADICIONAL`
+  (una tarjeta por titular y adicional, FR-6c) e ignora el consolidado/SU PAGO.
+  El PAN no aparece en el texto → `last4` queda None (F2-5 matchea por titular).

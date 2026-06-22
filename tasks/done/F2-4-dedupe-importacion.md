@@ -24,9 +24,12 @@ Al importar movimientos desde un resumen (staging), detectar los que ya existen 
 4. Persistir `external_hash` en los movimientos creados para futuras importaciones.
 
 ## Criterios de aceptación
-- [ ] Reimportar el mismo resumen no crea duplicados (quedan marcados/omitidos).
-- [ ] Dos movimientos legítimamente iguales pero distintos (mismo monto/fecha en compras diferentes) no se marcan erróneamente, o el usuario puede forzar el alta.
-- [ ] `lib/dedupe.ts` testeado; `typecheck`/`lint`/`test` ok.
+- [x] Reimportar el mismo resumen no crea duplicados (quedan marcados "ya importado", destildados, y filtrados al confirmar).
+- [x] Dos movimientos legítimamente iguales pero distintos no se marcan erróneamente (el hash incluye el **nº de comprobante**); además el usuario puede re-tildar para forzar el alta.
+- [x] `lib/dedupe.ts` testeado; `typecheck`/`lint`/`test`/`pytest`/`ruff` ok.
+
+## Estado
+Hecho (2026-06-22). Clave: `statementExternalHash` en `lib/dedupe.ts` (tarjeta+fecha+monto+cuota + comprobante/descr). El parser del micro ahora devuelve `ref` (comprobante). Persistido en `transactions.external_hash` (índice único ya existía). Fecha **exacta** (sin tolerancia ±N).
 
 ## Fuera de alcance
 - El parseo en sí (F2-3) y el alta de medio (F2-5).

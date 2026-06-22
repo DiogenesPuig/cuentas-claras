@@ -33,6 +33,11 @@ class StatementRow(BaseModel):
     amount: float | None = None
     currency: str | None = None
     installment: StatementInstallment | None = None
+    # Nº de comprobante del resumen (si está): clave fuerte para dedupe (FR-17).
+    ref: str | None = None
+    # 'charge' = consumo; 'refund' = reintegro/devolución (gasto negativo, netea);
+    # 'payment' = pago del saldo de la tarjeta (no es gasto, se excluye).
+    kind: str = "charge"
 
 
 class StatementAccountHint(BaseModel):
@@ -44,11 +49,19 @@ class StatementAccountHint(BaseModel):
     holder: str | None = None
 
 
-class StatementParse(BaseModel):
-    """Resultado de `POST /v1/statements:parse` (FR-16)."""
+class StatementCard(BaseModel):
+    """Una tarjeta del resumen (titular o adicional) con sus filas."""
 
     account_hint: StatementAccountHint = Field(default_factory=StatementAccountHint)
     rows: list[StatementRow] = Field(default_factory=list)
+
+
+class StatementParse(BaseModel):
+    """Resultado de `POST /v1/statements:parse` (FR-16), agrupado por tarjeta."""
+
+    # Imputación del resumen (cierre) → charged_on de los movimientos importados.
+    statement_close_on: str | None = None
+    cards: list[StatementCard] = Field(default_factory=list)
 
 
 class HealthResponse(BaseModel):

@@ -37,7 +37,7 @@ export { FilterBar, type FilterBarValue } from './components/FilterBar';
 export { SearchBar } from './components/SearchBar';
 export { ExportButton } from './components/ExportButton';
 export { toExportRows, toCsv, downloadCsv, type ExportRow } from './export';
-export { formatAmount } from './format';
+export { formatAmount, formatInstallment, isoToDisplayDate, displayToIsoDate } from './format';
 export {
   buildTransactionFilterArgs,
   EMPTY_FIELD_FILTERS,

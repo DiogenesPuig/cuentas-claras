@@ -6,7 +6,7 @@ Composición de la aplicación: rutas, providers y layout.
 
 - `router.tsx` — rutas (`/login`, `/register`, `/onboarding`, `/invite/:token` protegida solo con
   `RequireAuth`, `/` protegida con `RequireAuth` + `RequireWorkspace` y envuelta en `AppLayout`,
-  con hijas `categorias`/`medios`/`movimientos`/`reportes`/`grupo`).
+  con hijas `categorias`/`medios`/`movimientos`/`importar`/`reportes`/`grupo`).
 - `providers.tsx` — `QueryClientProvider` + `AuthProvider`.
 - `OnboardingPage.tsx` — pantalla `/onboarding`: pide nombre del usuario, nombre del grupo y
   moneda base; crea el primer workspace (A4).
@@ -20,6 +20,8 @@ Composición de la aplicación: rutas, providers y layout.
   movimientos (`RecentTransactions`) y alta rápida vía `Fab` + modal con `TransactionForm` (B9).
   El filtro de mes se aplica en la query (`useTransactions(workspaceId, { month })`, B10), no en
   el cliente.
+- `ImportPage.tsx` — pantalla `/importar`: subir un resumen de tarjeta (PDF), revisar los
+  movimientos detectados y confirmarlos en bloque (`features/imports`, FR-16/F2-3).
 - `ReportsPage.tsx` — pantalla `/reportes`: desglose por dimensión (`ReportTabs` + `DonutChart`),
   totales consolidados (`ConsolidatedTotals`) y comparativa mes a mes (`BarChart`) (C13). Trae los
   movimientos de una ventana de 6 meses en una sola query y agrega/consolida todo en el cliente

@@ -1,0 +1,40 @@
+NOMBRE APELLIDO TITULAR Hoja 01 / 03
+CALLE FALSA 1234
+05000 CORDOBA CUIT Entidad: 30-50001091-2
+MASTERCARD BLACK
+CONSUMIDOR FINAL
+N° de Socio 071-0000000-0-1
+N° de Resumen 071100000000
+7100000000100000000000000000000000000000000000
+Estado de cuenta al : 21-May-26 Saldo actual: $ 100.000,00 U$S 0,00
+Vencimiento actual : 03-Jun-26 Pago Minimo: $ 25.000,00
+Cierre Anterior : 23-Abr-26 Compras Anteriores: $ 300.000,00 U$S 0,00 Proximo Cierre : 25-Jun-26
+Vencimiento Anterior: 06-May-26 Pago Minimo Anterior:$ 40.000,00 Proximo Vencimiento : 08-Jul-26
+Limite Contado $ 6.000.000,00 Limite Adelanto $ 1.200.000,00 Lim.Prest.Financiacion $ 6.000.000,00
+Lim.Credito $ 4.800.000,00 Limite Cuotas $ 6.000.000,00
+__________________________________________________________________________________________________
+R_E_S_U_M_E_N_ _C_O_N_S_O_L_I_D_A_D_O_________________________________________P_E_S_O_S____________D_O_L_A_R___________________
+06-May-26 SU PAGO -300000,00
+SALDO PENDIENTE 0,00 0,00
+TOTAL CONSUMOS DEL MES 150000,00 0,00
+SUBTOTAL 150000,00 0,00
+__________________________________________________________________________________________________
+SALDO ACTUAL 100000,00 0,00
+__________________________________________________________________________________________________
+DETALLE DEL MES NRO CUPON PESOS DOLAR
+DEBITOS AUTOMATICOS
+04-May-26 NAC SE11/0923093600201 05308 1350,00
+CUOTAS DEL MES
+05-Nov-25 COMISION SERVICIO 07/12 06995 24570,00
+23-Dic-25 TIENDA EJEMPLO SHOPPING 06/06 04280 16566,50
+TOTAL TITULAR NOMBRE APELLIDO TITULAR 42486,50 0,00
+DEBITOS AUTOMATICOS
+06-May-26 MOD*SUPERMERCADO CBA 04625 49724,63
+CUOTAS DEL MES
+18-Ene-26 AEROLINEA EJEMPLO 05/06 00238 32484,57
+COMPRAS DEL MES
+18-Ene-26 TIENDA ONLINE 06919 2969,00
+20-May-26 DEVOLUCION COMERCIO 01122 -5000,00
+TOTAL ADICIONAL NOMBRE APELLIDO ADICIONAL 80178,20 0,00
+Debitaremos de su c.ahorro 0000000000 el importe de su saldo actual
+** USTED DISPONE DE 30 DIAS PARA CUESTIONAR SU RESUMEN DE CUENTA DESDE SU RECEPCION **.

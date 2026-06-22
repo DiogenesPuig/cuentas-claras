@@ -41,6 +41,6 @@ async def run_with_timeout(func: Callable[[], T], timeout_seconds: float) -> T:
         return await asyncio.wait_for(asyncio.to_thread(func), timeout=timeout_seconds)
     except TimeoutError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="El procesado del archivo tardó demasiado y se abortó.",
         ) from exc

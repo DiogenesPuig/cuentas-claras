@@ -17,8 +17,18 @@ Sugerir automáticamente una categoría para cada movimiento (sobre todo al impo
 - Integración en el alta de movimientos (B8) y en el staging de importación (F2-3): precargar la categoría sugerida, editable.
 - Opcional: una tabla/seed de reglas por workspace (si se quiere que el usuario las edite) — evaluar alcance.
 
+## Reglas iniciales sugeridas (del usuario, 2026-06-22)
+Semilla de keyword → categoría (ampliar; case/acento-insensitive, match por substring del comercio):
+- `uber`, `cabify`, `ypf`, `pedidosya*...` (si es viaje) → **Transporte**
+- `carrefour`, `changomas`, `hiper`, `coto`, `dia` → **Supermercado**
+- `pedidosya`, `mcdonalds`, `starbucks`, `cantina`, `la celeste` (gastronomía) → **Comida**
+- `kiosco`, `pilusso` → **Compras** (o Kiosco)
+- `farmacity`, `farmacia` → **Salud**
+> Nota: algunos comercios son ambiguos (PedidosYa hace envíos de comida y de market). Resolver por
+> prioridad/especificidad y dejar la sugerencia siempre editable.
+
 ## Pasos
-1. Definir el set inicial de reglas (keywords → categoría) cubriendo comercios comunes AR.
+1. Definir el set inicial de reglas (keywords → categoría) cubriendo comercios comunes AR (ver arriba).
 2. `category-suggest.ts`: matching case/acentos-insensitive, prioridad por especificidad, devolver score.
 3. Precargar la categoría sugerida en el form/staging, siempre editable por el usuario.
 4. (Opcional) aprender de correcciones del usuario — fuera de alcance inicial, dejar nota.
