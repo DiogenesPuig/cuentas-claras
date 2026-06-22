@@ -1,21 +1,23 @@
-"""Lógica pura de parseo de resúmenes de tarjeta (FR-16).
+"""Dispatcher de parseo de resúmenes (FR-16) — lógica PURA sobre texto.
 
-SIN imports de FastAPI/red/IO: recibe bytes (y password opcional) y devuelve el
-modelo del contrato. Así es 100% testeable con fixtures y portable el día que se
-cambie de runtime. F2-3 implementa los parsers reales (Nación/Patagonia) sobre
-`pdfplumber`; acá solo el esqueleto.
+Recibe el texto ya extraído del PDF (la extracción vive en `app/pdf.py`, el borde
+de IO) y elige el parser por plantilla. Hoy: Patagonia tabular (Visa/Master/CR).
+Nativa-Nación (Mastercard, por coordenadas) → F2-3b.
 """
 
 from __future__ import annotations
 
+from app.parsing import patagonia
 from app.schemas import StatementParse
 
 
-def parse_statement(content: bytes, password: str | None = None) -> StatementParse:
-    """Stub de F2-1: devuelve la forma del contrato vacía.
+class UnsupportedStatementError(Exception):
+    """El layout del resumen no coincide con ningún parser conocido."""
 
-    F2-3 reemplaza esto por el parseo real (capa de texto del PDF con
-    `pdfplumber`, descifrado en memoria con `password` si viene protegido,
-    extracción de filas y `account_hint`). La password NUNCA se persiste.
-    """
-    return StatementParse()
+
+def parse_statement_text(text: str) -> StatementParse:
+    if patagonia.matches(text):
+        return patagonia.parse(text)
+    raise UnsupportedStatementError(
+        "No reconocemos el formato de este resumen (por ahora: Banco Patagonia Visa/Master)."
+    )

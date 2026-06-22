@@ -19,20 +19,6 @@ def test_receipts_extract_shape(client: TestClient, auth_header: dict[str, str])
     assert body["confidence"] == 0.0
 
 
-def test_statements_parse_shape(client: TestClient, auth_header: dict[str, str]) -> None:
-    res = client.post(
-        "/v1/statements:parse",
-        files={"file": ("s.pdf", b"%PDF-1.4", "application/pdf")},
-        data={"password": "12345678"},
-        headers=auth_header,
-    )
-    assert res.status_code == 200
-    body = res.json()
-    assert set(body) == {"account_hint", "rows"}
-    assert set(body["account_hint"]) == {"bank", "network", "last4", "holder"}
-    assert body["rows"] == []
-
-
 def test_upload_size_limit(settings: Settings, auth_header: dict[str, str]) -> None:
     from app.main import app
 
