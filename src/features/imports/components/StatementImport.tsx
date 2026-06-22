@@ -72,7 +72,8 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
       const draft = buildStagingModel(result);
       const hashes = draft.cards.flatMap((c) => c.rows.map((r) => r.externalHash));
       const existing = await findExistingHashes.mutateAsync(hashes);
-      const built = buildStagingModel(result, existing);
+      // Precargar categoría sugerida por comercio (F2-6) — solo gastos.
+      const built = buildStagingModel(result, existing, expenseCategories);
       // Asociar cada tarjeta al medio que matchea (F2-5, FR-16b); si no hay, queda en ''.
       const matchable = toMatchable(accounts ?? []);
       built.cards.forEach((card) => {

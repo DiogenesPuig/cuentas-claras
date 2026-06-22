@@ -11,6 +11,7 @@ import {
 } from '../schema';
 import type { ReceiptExtraction, Transaction, TransactionInput } from '../api';
 import { displayToIsoDate, isoToDisplayDate } from '../format';
+import { suggestCategory } from '@/lib/category-suggest';
 
 /** Debajo de este valor avisamos que la extracción puede ser imprecisa. */
 const LOW_CONFIDENCE = 0.5;
@@ -87,9 +88,16 @@ export function TransactionForm({
   }, []);
 
   const type = watch('type');
+  const description = watch('description');
+  const categoryId = watch('categoryId');
   const selectedFile = watch('attachment')?.[0] ?? null;
   const categoryOptions = categories.filter((c) => c.kind === type);
   const amountField = register('amount');
+
+  // Sugerencia de categoría por descripción (F2-6, FR-19): solo si no hay una elegida.
+  // Nunca se aplica sola; el usuario decide con el botón "Usar".
+  const suggestedCategory =
+    type === 'expense' && !categoryId ? suggestCategory(description, categoryOptions) : null;
 
   async function handleExtract() {
     if (!onExtractReceipt || !selectedFile) return;
@@ -223,6 +231,19 @@ export function TransactionForm({
               </option>
             ))}
           </select>
+          {suggestedCategory && (
+            <p className="text-xs text-muted-foreground">
+              Sugerida: {suggestedCategory.icon ? `${suggestedCategory.icon} ` : ''}
+              {suggestedCategory.name}{' '}
+              <button
+                type="button"
+                onClick={() => setValue('categoryId', suggestedCategory.id)}
+                className="font-medium text-primary hover:underline"
+              >
+                Usar
+              </button>
+            </p>
+          )}
         </div>
 
         <div className="space-y-1">

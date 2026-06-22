@@ -77,3 +77,33 @@ describe('dedupe (FR-17)', () => {
     expect(rows.every((r) => r.externalHash.startsWith('stmt|'))).toBe(true);
   });
 });
+
+describe('sugerencia de categoría (FR-19, F2-6)', () => {
+  const WITH_MERCHANTS: StatementParse = {
+    statement_close_on: '2026-05-28',
+    cards: [
+      {
+        account_hint: { bank: 'Banco Patagonia', network: 'visa', last4: '1234', holder: 'JUAN' },
+        rows: [
+          { occurred_on: '2026-05-15', description: 'MOD*CARREFOUR CBA', amount: 6099, currency: 'ARS', installment: null, kind: 'charge', ref: '1' },
+          { occurred_on: '2026-05-16', description: 'PAGO XYZ S.A.', amount: 500, currency: 'ARS', installment: null, kind: 'charge', ref: '2' },
+        ],
+      },
+    ],
+  };
+  const CATS = [
+    { id: 'super', name: 'Supermercado' },
+    { id: 'transp', name: 'Transporte' },
+  ];
+
+  it('precarga la categoría sugerida por comercio (conocido) y deja vacío el desconocido', () => {
+    const model = buildStagingModel(WITH_MERCHANTS, new Set(), CATS);
+    expect(model.cards[0].rows[0].categoryId).toBe('super'); // Carrefour → Supermercado
+    expect(model.cards[0].rows[1].categoryId).toBe(''); // desconocido → sin categoría
+  });
+
+  it('sin categorías disponibles no sugiere (no rompe)', () => {
+    const model = buildStagingModel(WITH_MERCHANTS);
+    expect(model.cards[0].rows[0].categoryId).toBe('');
+  });
+});

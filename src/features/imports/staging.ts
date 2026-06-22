@@ -2,6 +2,7 @@
 // re-exporta `api.ts` (Supabase), que rompe esta lógica pura en tests sin env.
 import { displayToIsoDate, isoToDisplayDate } from '@/features/transactions/format';
 import { statementExternalHash } from '@/lib/dedupe';
+import { suggestCategory, type SuggestableCategory } from '@/lib/category-suggest';
 import type { ImportRowInput } from './api';
 import type { StatementAccountHint, StatementParse } from '@/lib/ingesta';
 
@@ -50,11 +51,13 @@ function newId(): string {
 /**
  * Parseo del micro → modelo editable. Solo los pagos de tarjeta van destildados.
  * Marca como `duplicate` (y destilda) las filas cuyo `external_hash` ya existe en
- * la DB (`existingHashes`) o que se repiten dentro del mismo lote.
+ * la DB (`existingHashes`) o que se repiten dentro del mismo lote. Si se pasan
+ * `categories`, precarga la categoría sugerida por descripción (F2-6, editable).
  */
 export function buildStagingModel(
   parse: StatementParse,
   existingHashes: ReadonlySet<string> = new Set(),
+  categories: readonly SuggestableCategory[] = [],
 ): StagingModel {
   const seen = new Set<string>();
   return {
@@ -82,7 +85,8 @@ export function buildStagingModel(
           amount: row.amount != null ? String(row.amount) : '',
           currency: row.currency ?? 'ARS',
           occurredOn: isoToDisplayDate(row.occurred_on),
-          categoryId: '',
+          // Categoría sugerida por el comercio (F2-6, FR-19); editable por el usuario.
+          categoryId: suggestCategory(row.description, categories)?.id ?? '',
           installmentN: row.installment?.n ?? null,
           installmentTotal: row.installment?.total ?? null,
           kind: row.kind,
