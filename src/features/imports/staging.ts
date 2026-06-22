@@ -1,4 +1,6 @@
-import { displayToIsoDate, isoToDisplayDate } from '@/features/transactions';
+// Import directo del módulo puro (no del barrel `@/features/transactions`): el barrel
+// re-exporta `api.ts` (Supabase), que rompe esta lógica pura en tests sin env.
+import { displayToIsoDate, isoToDisplayDate } from '@/features/transactions/format';
 import { statementExternalHash } from '@/lib/dedupe';
 import type { ImportRowInput } from './api';
 import type { StatementAccountHint, StatementParse } from '@/lib/ingesta';
