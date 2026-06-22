@@ -10,6 +10,7 @@ import {
   type TransactionFormInput,
 } from '../schema';
 import type { ReceiptExtraction, Transaction, TransactionInput } from '../api';
+import { displayToIsoDate, isoToDisplayDate } from '../format';
 
 /** Debajo de este valor avisamos que la extracción puede ser imprecisa. */
 const LOW_CONFIDENCE = 0.5;
@@ -28,8 +29,8 @@ function defaultValuesFor(transaction?: Transaction): TransactionFormInput {
     description: transaction.description ?? '',
     categoryId: transaction.category_id ?? '',
     accountId: transaction.account_id ?? '',
-    occurredOn: transaction.occurred_on,
-    chargedOn: transaction.charged_on ?? '',
+    occurredOn: isoToDisplayDate(transaction.occurred_on),
+    chargedOn: isoToDisplayDate(transaction.charged_on),
   };
 }
 
@@ -104,7 +105,7 @@ export function TransactionForm({
       }
       if (result.amount != null) setValue('amount', String(result.amount));
       if (result.currency) setValue('currency', result.currency.toUpperCase());
-      if (result.date) setValue('occurredOn', result.date);
+      if (result.date) setValue('occurredOn', isoToDisplayDate(result.date));
       if (result.merchant?.trim()) setValue('description', result.merchant.trim().slice(0, 140));
       setOcrApplied(true);
       setOcrMessage(
@@ -129,8 +130,8 @@ export function TransactionForm({
         description: values.description || null,
         categoryId: values.categoryId || null,
         accountId: values.accountId || null,
-        occurredOn: values.occurredOn,
-        chargedOn: values.chargedOn || null,
+        occurredOn: displayToIsoDate(values.occurredOn),
+        chargedOn: values.chargedOn ? displayToIsoDate(values.chargedOn) : null,
         attachmentId: transaction?.attachment_id ?? null,
         // Si se precargó desde un comprobante, el alta es de origen OCR (FR-14).
         source: !transaction && ocrApplied ? 'ocr' : undefined,
@@ -250,7 +251,9 @@ export function TransactionForm({
           </label>
           <input
             id="tx-occurred-on"
-            type="date"
+            type="text"
+            inputMode="numeric"
+            placeholder="DD/MM/AAAA"
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             {...register('occurredOn')}
           />
@@ -265,7 +268,9 @@ export function TransactionForm({
           </label>
           <input
             id="tx-charged-on"
-            type="date"
+            type="text"
+            inputMode="numeric"
+            placeholder="DD/MM/AAAA"
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             {...register('chargedOn')}
           />

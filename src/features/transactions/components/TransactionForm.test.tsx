@@ -16,11 +16,11 @@ describe('TransactionForm', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it('usa la fecha de hoy por defecto', () => {
+  it('usa la fecha de hoy por defecto en formato DD/MM/AAAA', () => {
     render(<TransactionForm categories={[]} accounts={[]} onSubmit={vi.fn()} />);
 
-    const today = new Date().toISOString().slice(0, 10);
-    expect(screen.getByLabelText('Fecha')).toHaveValue(today);
+    const [y, m, d] = new Date().toISOString().slice(0, 10).split('-');
+    expect(screen.getByLabelText('Fecha')).toHaveValue(`${d}/${m}/${y}`);
   });
 
   it('crea un gasto con monto y moneda válidos', async () => {
@@ -85,7 +85,7 @@ describe('TransactionForm', () => {
       expect(screen.getByLabelText('Monto')).toHaveValue(2350.5);
     });
     expect(screen.getByLabelText('Motivo (opcional)')).toHaveValue('Supermercado La Economia');
-    expect(screen.getByLabelText('Fecha')).toHaveValue('2026-05-21');
+    expect(screen.getByLabelText('Fecha')).toHaveValue('21/05/2026');
 
     // Al guardar, el alta queda marcada como origen OCR.
     await userEvent.click(screen.getByRole('button', { name: 'Crear movimiento' }));
