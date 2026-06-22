@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import type { Database, Tables, TablesInsert, TablesUpdate } from '@/lib/database.types';
+import { extractReceipt, type ReceiptExtraction } from '@/lib/ingesta';
 import { buildTransactionFilterArgs, type TransactionFilters } from './filters';
 
 export type Transaction = Tables<'transactions'>;
@@ -140,6 +141,23 @@ export async function uploadAttachment(workspaceId: string, file: File): Promise
   const { data, error } = await supabase.from('attachments').insert(payload).select().single();
   if (error) throw error;
   return data;
+}
+
+export type { ReceiptExtraction } from '@/lib/ingesta';
+
+/**
+ * OCR de un comprobante vía el microservicio de ingesta (FR-14). Esta función es
+ * la que toca Supabase (saca el access token de la sesión); el HTTP puro vive en
+ * `lib/ingesta`. Devuelve los campos detectados para precargar el form de alta.
+ */
+export async function extractReceiptData(file: File): Promise<ReceiptExtraction> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  return extractReceipt(file, {
+    baseUrl: import.meta.env.VITE_INGESTA_URL,
+    accessToken: session?.access_token,
+  });
 }
 
 /** Signed URL temporal para mostrar/descargar un comprobante del bucket privado. */

@@ -33,3 +33,26 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # Microservicio de ingesta (Python/FastAPI, F2-1). Lint + tests de la lógica
+  # pura y el contrato. No instala el extra `ocr` (Tesseract) para que sea rápido.
+  ingesta:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/ingesta
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install (dev)
+        run: pip install -e ".[dev]"
+
+      - name: Ruff
+        run: ruff check .
+
+      - name: Pytest
+        run: pytest -q

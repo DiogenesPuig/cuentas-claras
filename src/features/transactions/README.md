@@ -16,7 +16,9 @@ texto, y **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado.
   `account.holder_name` y `account.bank` además de `account.name` para mostrar la persona/banco en
   listas/resumen/export), `createTransaction` (`source = 'manual'`, `created_by = auth.uid()`),
   `updateTransaction`, `deleteTransaction`, `uploadAttachment` (sube el archivo al bucket privado
-  `attachments` y crea su fila) y `getAttachmentUrl` (signed URL temporal para mostrarlo/descargarlo).
+  `attachments` y crea su fila), `getAttachmentUrl` (signed URL temporal para mostrarlo/descargarlo)
+  y `extractReceiptData` (F2-1/F2-2: saca el access token de la sesión y llama al micro de ingesta vía
+  `lib/ingesta` para precargar monto/fecha/comercio — es la capa que toca Supabase; el HTTP es puro).
   Sin React.
 - `filters.ts` — `TransactionFilters` (mes, medio, categoría, moneda, persona, texto) y
   `buildTransactionFilterArgs`: función pura que mapea esos filtros a los argumentos de la query
