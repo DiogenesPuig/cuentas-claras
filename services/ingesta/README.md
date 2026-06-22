@@ -32,7 +32,6 @@ app/
 tests/               pytest: health, auth, contrato, límite, y heurística de comprobantes (F2-2)
 Dockerfile           Python 3.12 + Tesseract (es/en)
 run-local.sh         corre el micro local + Cloudflare Quick Tunnel (URL pública)
-fly.toml             deploy en Fly.io (alternativa)
 pyproject.toml       deps + ruff + pytest
 ```
 
@@ -95,61 +94,22 @@ Quick Tunnel (no requiere cuenta ni tarjeta). Sirve mientras la PC está prendid
 > La URL del Quick Tunnel **cambia cada vez** que reiniciás el túnel. Para una URL
 > estable hace falta un túnel con nombre (requiere cuenta Cloudflare free + un dominio).
 
-## Deploy (Koyeb — alternativa, requiere tarjeta/plan pago)
+## Deploy (Hugging Face Spaces — alternativa 24/7, sin tarjeta)
 
-Koyeb buildea el `Dockerfile` desde el repo de GitHub. No requiere tarjeta; el
-plan free incluye 1 servicio (instancia nano, se duerme tras inactividad).
+Para una URL estable que no dependa de tu PC. Gratis y sin tarjeta (CPU básico con
+buena RAM, ideal para OCR). El Space es **público** por defecto: no es problema, el
+micro igual valida el JWT de Supabase en cada request.
 
-Requisito: el branch con `services/ingesta` tiene que estar pusheado a GitHub.
-
-Por dashboard (app.koyeb.com → **Create Service**):
-1. **Source:** GitHub → este repo → branch correspondiente.
-2. **Builder:** Dockerfile. **Work directory:** `services/ingesta`
-   (Dockerfile path queda `services/ingesta/Dockerfile`).
-3. **Instance:** Free / Nano. **Region:** Washington (`was`) o Frankfurt (`fra`).
-4. **Ports / Exposing:** puerto `8000` (Koyeb inyecta `PORT=8000`, que el `CMD` lee).
-   Health check HTTP path `/v1/health`.
-5. **Env vars:** `WEB_ORIGIN=http://localhost:5173` (público) y, como **Secret**,
-   `SUPABASE_JWT_SECRET=<tu JWT secret de Supabase>` (o `SUPABASE_URL` para JWKS).
-6. **Deploy** → Koyeb da una URL `https://<servicio>-<org>.koyeb.app`.
-   Smoke test: `curl https://<servicio>-<org>.koyeb.app/v1/health`.
-
-Luego, en la web: `VITE_INGESTA_URL=https://<servicio>-<org>.koyeb.app`.
-
-## Deploy (Google Cloud Run — alternativa con tarjeta)
-
-El mismo `Dockerfile` sirve (el `CMD` escucha en `$PORT`, que Cloud Run inyecta).
-Se buildea en la nube con Cloud Build (no hace falta Docker local):
-
-```bash
-# 1. Setup (una vez)
-gcloud auth login
-gcloud config set project TU_PROJECT_ID
-gcloud services enable run.googleapis.com cloudbuild.googleapis.com secretmanager.googleapis.com
-
-# 2. Guardar el JWT secret de Supabase en Secret Manager (no en la config del servicio)
-printf '%s' 'TU_SUPABASE_JWT_SECRET' | gcloud secrets create supabase-jwt-secret --data-file=-
-
-# 3. Deploy desde services/ingesta/ (Cloud Build buildea el Dockerfile)
-gcloud run deploy cuentas-claras-ingesta \
-  --source . \
-  --region southamerica-east1 \
-  --allow-unauthenticated \
-  --memory 1Gi \
-  --max-instances 2 \
-  --set-env-vars WEB_ORIGIN=https://TU-WEB,http://localhost:5173 \
-  --set-secrets SUPABASE_JWT_SECRET=supabase-jwt-secret:latest
-
-# 4. Smoke test (la URL la imprime el deploy)
-curl https://cuentas-claras-ingesta-XXXX.a.run.app/v1/health
-```
-
-`--allow-unauthenticated` deja entrar requests del browser; la autorización real la
-hace el micro validando el JWT de Supabase (no es un endpoint abierto). Alternativa a
-HS256: `--set-env-vars SUPABASE_URL=https://TU-PROYECTO.supabase.co` (valida vía JWKS).
-
-> Koyeb, Cloud Run y `fly.toml` (Fly.io) quedan como alternativas de deploy; la vía
-> elegida para arrancar sin cuenta ni tarjeta es **local + Cloudflare Quick Tunnel**.
+1. En huggingface.co → **New Space** → SDK **Docker** → visibilidad Public.
+2. Subí el contenido de `services/ingesta/` al repo del Space (incluido el `Dockerfile`).
+   El Space necesita escuchar en el puerto `7860`: agregá `app_port: 7860` en el
+   frontmatter YAML del `README.md` del Space, o exponé ese puerto. El `CMD` ya lee
+   `$PORT`, así que con `app_port: 7860` (HF setea `PORT=7860`) levanta solo.
+3. En **Settings → Variables and secrets** del Space:
+   - Secret `SUPABASE_JWT_SECRET=<tu JWT secret de Supabase>` (o `SUPABASE_URL` para JWKS).
+   - Variable `WEB_ORIGIN=http://localhost:5173` (sumá el dominio de tu web cuando lo tengas).
+4. El Space buildea solo. Smoke test: `curl https://<user>-<space>.hf.space/v1/health`.
+5. En la web: `VITE_INGESTA_URL=https://<user>-<space>.hf.space`.
 
 ## Estado
 
