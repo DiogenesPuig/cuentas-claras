@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { transactionsKeys } from '@/features/transactions';
 import {
   confirmStatementImport,
+  findExistingHashes,
   parseStatementFile,
   type ImportRowInput,
   type StatementParse,
@@ -11,6 +12,13 @@ import {
 export function useParseStatement() {
   return useMutation<StatementParse, Error, { file: File; password?: string }>({
     mutationFn: ({ file, password }) => parseStatementFile(file, password),
+  });
+}
+
+/** Consulta qué `external_hash` ya existen, para marcar duplicados (FR-17). */
+export function useFindExistingHashes(workspaceId: string | undefined) {
+  return useMutation<Set<string>, Error, string[]>({
+    mutationFn: (hashes) => findExistingHashes(workspaceId as string, hashes),
   });
 }
 

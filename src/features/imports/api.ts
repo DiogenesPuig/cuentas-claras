@@ -32,6 +32,27 @@ export interface ImportRowInput {
   occurredOn: string;
   installmentN: number | null;
   installmentTotal: number | null;
+  /** Clave de dedupe (FR-17). */
+  externalHash: string;
+}
+
+/**
+ * De un conjunto de `external_hash`, devuelve los que YA existen en la DB del
+ * workspace (para marcar duplicados en el staging antes de confirmar — FR-17).
+ */
+export async function findExistingHashes(
+  workspaceId: string,
+  hashes: string[],
+): Promise<Set<string>> {
+  const unique = [...new Set(hashes)];
+  if (unique.length === 0) return new Set();
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('external_hash')
+    .eq('workspace_id', workspaceId)
+    .in('external_hash', unique);
+  if (error) throw error;
+  return new Set((data ?? []).map((r) => r.external_hash).filter((h): h is string => h !== null));
 }
 
 /**
@@ -50,6 +71,17 @@ export async function confirmStatementImport(
   } = await supabase.auth.getUser();
   if (!user) throw new Error('No hay sesión activa.');
   if (rows.length === 0) return 0;
+
+  // 0. Dedupe (FR-17): sacar los que ya existen en la DB y los repetidos del lote,
+  // por las dudas (la UI ya los destilda, pero el usuario pudo forzar/re-tildar).
+  const existing = await findExistingHashes(workspaceId, rows.map((r) => r.externalHash));
+  const seen = new Set<string>();
+  const fresh = rows.filter((r) => {
+    if (existing.has(r.externalHash) || seen.has(r.externalHash)) return false;
+    seen.add(r.externalHash);
+    return true;
+  });
+  if (fresh.length === 0) return 0;
 
   // 1. Guardar el resumen original (auditoría / FR-15).
   const path = `${workspaceId}/${crypto.randomUUID()}-${file.name}`;
@@ -70,8 +102,8 @@ export async function confirmStatementImport(
     .single();
   if (attachError) throw attachError;
 
-  // 2. Crear los movimientos en bloque.
-  const payload: TablesInsert<'transactions'>[] = rows.map((row) => ({
+  // 2. Crear los movimientos en bloque (con external_hash para futuras importaciones).
+  const payload: TablesInsert<'transactions'>[] = fresh.map((row) => ({
     workspace_id: workspaceId,
     created_by: user.id,
     source: 'statement_import',
@@ -86,6 +118,7 @@ export async function confirmStatementImport(
     installment_n: row.installmentN,
     installment_total: row.installmentTotal,
     attachment_id: attachment.id,
+    external_hash: row.externalHash,
   }));
 
   const { error: insertError } = await supabase.from('transactions').insert(payload);

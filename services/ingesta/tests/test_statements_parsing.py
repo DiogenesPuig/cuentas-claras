@@ -49,6 +49,7 @@ def test_rows_of_first_card() -> None:
     assert compra.currency == "ARS"
     assert compra.description == "COMERCIO UNO"
     assert compra.installment is None
+    assert compra.ref == "006532"  # nº de comprobante para dedupe (FR-17)
 
     assert cuota.installment is not None
     assert (cuota.installment.n, cuota.installment.total) == (2, 3)

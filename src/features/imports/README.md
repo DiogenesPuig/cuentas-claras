@@ -31,3 +31,10 @@ revisan/editan en memoria y se confirman **todas de una**, creando los `transact
 - `components/StagingRow.tsx` — fila editable (incluir, fecha, descripción, monto, categoría;
   muestra cuota y marca pago/devolución).
 - `index.ts` — barrel del feature.
+
+## Dedupe (FR-17, F2-4)
+
+Cada fila lleva un `external_hash` (`lib/dedupe`). Al cargar el staging se consulta cuáles ya
+existen en la DB (`findExistingHashes`) y se marcan como **"ya importado"** (destildados; el usuario
+puede re-tildar para forzar). Al confirmar se filtran de nuevo (los ya existentes y los repetidos del
+mismo lote) y se persiste `external_hash`, así reimportar el mismo resumen no duplica.

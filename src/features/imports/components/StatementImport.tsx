@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAccounts } from '@/features/accounts';
 import { useCategories } from '@/features/categories';
 import { IngestaError } from '@/lib/ingesta';
-import { useConfirmImport, useParseStatement } from '../hooks';
+import { useConfirmImport, useFindExistingHashes, useParseStatement } from '../hooks';
 import {
   buildStagingModel,
   countSelected,
@@ -32,6 +32,7 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
   const { data: accounts } = useAccounts(workspaceId);
   const { data: categories } = useCategories(workspaceId);
   const parseStatement = useParseStatement();
+  const findExistingHashes = useFindExistingHashes(workspaceId);
   const confirmImport = useConfirmImport(workspaceId);
 
   const [file, setFile] = useState<File | null>(null);
@@ -51,7 +52,11 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
     setDone(null);
     try {
       const result = await parseStatement.mutateAsync({ file, password: password || undefined });
-      setModel(buildStagingModel(result));
+      // Calcular hashes (1ra pasada) y marcar los que ya existen en la DB (FR-17).
+      const draft = buildStagingModel(result);
+      const hashes = draft.cards.flatMap((c) => c.rows.map((r) => r.externalHash));
+      const existing = await findExistingHashes.mutateAsync(hashes);
+      setModel(buildStagingModel(result, existing));
     } catch (err) {
       setError(parseErrorMessage(err));
     }
@@ -101,6 +106,9 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
   }
 
   const selected = model ? countSelected(model) : 0;
+  const dupCount = model
+    ? model.cards.reduce((acc, c) => acc + c.rows.filter((r) => r.duplicate).length, 0)
+    : 0;
 
   return (
     <div className="space-y-4">
@@ -140,12 +148,21 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
           <button
             type="button"
             onClick={handleParse}
-            disabled={parseStatement.isPending}
+            disabled={parseStatement.isPending || findExistingHashes.isPending}
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
-            {parseStatement.isPending ? 'Leyendo resumen…' : 'Cargar y revisar'}
+            {parseStatement.isPending || findExistingHashes.isPending
+              ? 'Leyendo resumen…'
+              : 'Cargar y revisar'}
           </button>
         </div>
+      )}
+
+      {model && dupCount > 0 && (
+        <p className="rounded-md bg-muted p-2 text-sm text-muted-foreground">
+          {dupCount} movimiento{dupCount === 1 ? '' : 's'} ya {dupCount === 1 ? 'estaba' : 'estaban'}{' '}
+          importado{dupCount === 1 ? '' : 's'}: {dupCount === 1 ? 'quedó destildado' : 'quedaron destildados'} (podés re-tildarlos para forzar el alta).
+        </p>
       )}
 
       {model &&

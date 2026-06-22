@@ -81,8 +81,10 @@ def _bank(text: str) -> str | None:
 def _parse_row(rest: str) -> StatementRow | None:
     """`rest` es la línea sin la fecha. Devuelve la fila o None si no parsea."""
     body = rest
+    ref: str | None = None
     comp = _COMPROBANTE.match(body)
     if comp:
+        ref = comp.group(1).rstrip("*K")  # nº de comprobante (sin el sufijo */K)
         body = comp.group(2)
 
     money = list(_MONEY.finditer(body))
@@ -121,6 +123,7 @@ def _parse_row(rest: str) -> StatementRow | None:
         currency="ARS",
         installment=installment,
         kind=kind,
+        ref=ref,
     )
 
 

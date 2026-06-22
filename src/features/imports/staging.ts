@@ -1,4 +1,5 @@
 import { displayToIsoDate, isoToDisplayDate } from '@/features/transactions';
+import { statementExternalHash } from '@/lib/dedupe';
 import type { ImportRowInput } from './api';
 import type { StatementAccountHint, StatementParse } from '@/lib/ingesta';
 
@@ -20,6 +21,10 @@ export interface EditableRow {
   installmentN: number | null;
   installmentTotal: number | null;
   kind: 'charge' | 'refund' | 'payment';
+  /** Clave de dedupe (FR-17). */
+  externalHash: string;
+  /** Ya existe en la DB o se repite en este mismo lote → se destilda y se marca. */
+  duplicate: boolean;
 }
 
 export interface EditableCard {
@@ -40,26 +45,49 @@ function newId(): string {
     : Math.random().toString(36).slice(2);
 }
 
-/** Parseo del micro → modelo editable. Pagos/devoluciones quedan destildados. */
-export function buildStagingModel(parse: StatementParse): StagingModel {
+/**
+ * Parseo del micro → modelo editable. Solo los pagos de tarjeta van destildados.
+ * Marca como `duplicate` (y destilda) las filas cuyo `external_hash` ya existe en
+ * la DB (`existingHashes`) o que se repiten dentro del mismo lote.
+ */
+export function buildStagingModel(
+  parse: StatementParse,
+  existingHashes: ReadonlySet<string> = new Set(),
+): StagingModel {
+  const seen = new Set<string>();
   return {
     statementCloseOn: parse.statement_close_on,
     cards: parse.cards.map((card) => ({
       accountHint: card.account_hint,
       accountId: '',
-      rows: card.rows.map((row) => ({
-        id: newId(),
-        // Consumos y reintegros se importan; solo los pagos de tarjeta van destildados.
-        include: row.kind !== 'payment',
-        description: row.description ?? '',
-        amount: row.amount != null ? String(row.amount) : '',
-        currency: row.currency ?? 'ARS',
-        occurredOn: isoToDisplayDate(row.occurred_on),
-        categoryId: '',
-        installmentN: row.installment?.n ?? null,
-        installmentTotal: row.installment?.total ?? null,
-        kind: row.kind,
-      })),
+      rows: card.rows.map((row) => {
+        const externalHash = statementExternalHash({
+          last4: card.account_hint.last4,
+          occurredOn: row.occurred_on,
+          amount: row.amount,
+          installmentN: row.installment?.n ?? null,
+          installmentTotal: row.installment?.total ?? null,
+          ref: row.ref,
+          description: row.description,
+        });
+        const duplicate = existingHashes.has(externalHash) || seen.has(externalHash);
+        seen.add(externalHash);
+        return {
+          id: newId(),
+          // Pagos de tarjeta y duplicados van destildados; el resto, tildado.
+          include: row.kind !== 'payment' && !duplicate,
+          description: row.description ?? '',
+          amount: row.amount != null ? String(row.amount) : '',
+          currency: row.currency ?? 'ARS',
+          occurredOn: isoToDisplayDate(row.occurred_on),
+          categoryId: '',
+          installmentN: row.installment?.n ?? null,
+          installmentTotal: row.installment?.total ?? null,
+          kind: row.kind,
+          externalHash,
+          duplicate,
+        };
+      }),
     })),
   };
 }
@@ -91,6 +119,7 @@ export function toImportRows(model: StagingModel): ImportRowInput[] {
         occurredOn: displayToIsoDate(row.occurredOn),
         installmentN: row.installmentN,
         installmentTotal: row.installmentTotal,
+        externalHash: row.externalHash,
       });
     }
   }

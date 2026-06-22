@@ -4,8 +4,8 @@
 > propios en esta carpeta. El plan de arquitectura y decisiones está en `PLAN.md`. La mayoría depende
 > del microservicio Python (`F2-1`); `F2-7` no necesita infra nueva y puede ir primero.
 >
-> **Estado (2026-06-22):** ✅ F2-0, F2-1, F2-2 (PR #18) y ✅ F2-3 (Patagonia tabular) implementados.
-> Pendientes: F2-3b (Nativa-Nación por coordenadas), F2-4, F2-5, F2-6, F2-7.
+> **Estado (2026-06-22):** ✅ F2-0, F2-1, F2-2 (PR #18); ✅ F2-3 (Patagonia tabular, + reintegros como
+> gasto negativo) y ✅ F2-4 (dedupe al importar). Pendientes: F2-3b (Nativa-Nación), F2-5, F2-6, F2-7.
 
 ## Archivos de esta carpeta
 

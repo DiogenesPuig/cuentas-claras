@@ -8,10 +8,10 @@ const PARSE: StatementParse = {
     {
       account_hint: { bank: 'Banco Patagonia', network: 'visa', last4: '1234', holder: 'JUAN PEREZ' },
       rows: [
-        { occurred_on: '2026-05-11', description: 'SU PAGO', amount: 100000, currency: 'ARS', installment: null, kind: 'payment' },
-        { occurred_on: '2026-05-15', description: 'COMERCIO UNO', amount: 6099, currency: 'ARS', installment: null, kind: 'charge' },
-        { occurred_on: '2026-03-30', description: 'COMERCIO CUOTAS', amount: 11566.66, currency: 'ARS', installment: { n: 2, total: 3 }, kind: 'charge' },
-        { occurred_on: '2026-05-20', description: 'COMERCIO DEVUELVE', amount: 500, currency: 'ARS', installment: null, kind: 'refund' },
+        { occurred_on: '2026-05-11', description: 'SU PAGO', amount: 100000, currency: 'ARS', installment: null, kind: 'payment', ref: null },
+        { occurred_on: '2026-05-15', description: 'COMERCIO UNO', amount: 6099, currency: 'ARS', installment: null, kind: 'charge', ref: '006532' },
+        { occurred_on: '2026-03-30', description: 'COMERCIO CUOTAS', amount: 11566.66, currency: 'ARS', installment: { n: 2, total: 3 }, kind: 'charge', ref: '007104' },
+        { occurred_on: '2026-05-20', description: 'COMERCIO DEVUELVE', amount: 500, currency: 'ARS', installment: null, kind: 'refund', ref: '139603' },
       ],
     },
   ],
@@ -57,5 +57,23 @@ describe('countSelected / toImportRows', () => {
     model.cards[0].rows[3].amount = '-5'; // magnitud inválida (Number<=0)
     expect(countSelected(model)).toBe(0);
     expect(toImportRows(model)).toEqual([]);
+  });
+});
+
+describe('dedupe (FR-17)', () => {
+  it('marca y destilda las filas cuyo hash ya existe en la DB', () => {
+    const draft = buildStagingModel(PARSE);
+    const existingHash = draft.cards[0].rows[1].externalHash; // COMERCIO UNO ya importado
+    const model = buildStagingModel(PARSE, new Set([existingHash]));
+    const comercioUno = model.cards[0].rows[1];
+    expect(comercioUno.duplicate).toBe(true);
+    expect(comercioUno.include).toBe(false);
+    expect(countSelected(model)).toBe(2); // quedan cuota + reintegro (no el duplicado ni el pago)
+  });
+
+  it('cada fila lleva su external_hash al exportar', () => {
+    const model = buildStagingModel(PARSE);
+    const rows = toImportRows(model);
+    expect(rows.every((r) => r.externalHash.startsWith('stmt|'))).toBe(true);
   });
 });

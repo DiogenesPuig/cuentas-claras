@@ -31,6 +31,8 @@ export interface StatementRow {
   installment: StatementInstallment | null;
   /** 'charge' = consumo; 'refund' = reintegro/devolución (resta); 'payment' = pago de tarjeta (se excluye). */
   kind: 'charge' | 'refund' | 'payment';
+  /** Nº de comprobante del resumen (si está): clave fuerte para dedupe (FR-17). */
+  ref: string | null;
 }
 
 export interface StatementAccountHint {
