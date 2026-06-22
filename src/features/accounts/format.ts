@@ -15,9 +15,9 @@ const NETWORK_LABELS: Record<string, string> = {
 };
 
 /**
- * Etiqueta de un medio para los combos de selección: muestra banco · red · últimos 4
- * además del nombre, para distinguir tarjetas (ej. al asignar el medio de un resumen).
- * Los campos ausentes se omiten.
+ * Etiqueta de un medio para los combos de selección: **banco · red · ••últimos4**, para
+ * distinguir tarjetas (ej. al asignar el medio de un resumen). Si no hay ninguno de esos
+ * datos (ej. efectivo/billetera), cae al nombre del medio.
  */
 export function accountLabel(account: AccountLike): string {
   const parts = [
@@ -25,5 +25,5 @@ export function accountLabel(account: AccountLike): string {
     account.network ? (NETWORK_LABELS[account.network] ?? account.network) : null,
     account.last4 ? `••${account.last4}` : null,
   ].filter(Boolean);
-  return parts.length ? `${account.name} — ${parts.join(' · ')}` : account.name;
+  return parts.length ? parts.join(' · ') : account.name;
 }
