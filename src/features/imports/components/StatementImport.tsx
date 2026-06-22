@@ -54,8 +54,19 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
   const [model, setModel] = useState<StagingModel | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<number | null>(null);
-  /** Índice de la tarjeta cuyo "crear medio" inline está abierto (FR-16b). */
-  const [creatingCard, setCreatingCard] = useState<number | null>(null);
+  /** Índices de tarjetas con el "crear medio" inline abierto (FR-16b). Las que no
+   * matchean con un medio existente arrancan abiertas para crearlo directamente. */
+  const [createOpen, setCreateOpen] = useState<ReadonlySet<number>>(new Set());
+
+  function toggleCreate(cardIdx: number, open?: boolean) {
+    setCreateOpen((prev) => {
+      const next = new Set(prev);
+      const shouldOpen = open ?? !next.has(cardIdx);
+      if (shouldOpen) next.add(cardIdx);
+      else next.delete(cardIdx);
+      return next;
+    });
+  }
 
   const expenseCategories = (categories ?? []).filter((c) => c.kind === 'expense');
 
@@ -76,11 +87,14 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
       const built = buildStagingModel(result, existing, expenseCategories);
       // Asociar cada tarjeta al medio que matchea (F2-5, FR-16b); si no hay, queda en ''.
       const matchable = toMatchable(accounts ?? []);
-      built.cards.forEach((card) => {
+      const open = new Set<number>();
+      built.cards.forEach((card, i) => {
         const { matched } = matchAccount(card.accountHint, matchable);
         if (matched) card.accountId = matched.id;
+        // Tarjeta sin medio existente → abrir el alta directamente con los datos del resumen.
+        else open.add(i);
       });
-      setCreatingCard(null);
+      setCreateOpen(open);
       setModel(built);
     } catch (err) {
       setError(parseErrorMessage(err));
@@ -90,7 +104,7 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
   /** Tras crear un medio inline, asociarlo a esa tarjeta y cerrar el form. */
   function handleAccountCreated(cardIdx: number, account: Account) {
     setCardAccount(cardIdx, account.id);
-    setCreatingCard(null);
+    toggleCreate(cardIdx, false);
   }
 
   function patchRow(cardIdx: number, rowId: string, patch: Partial<EditableRow>) {
@@ -111,6 +125,8 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
         ? { ...prev, cards: prev.cards.map((c, i) => (i === cardIdx ? { ...c, accountId } : c)) }
         : prev,
     );
+    // Si eligió un medio existente, cerramos el alta inline de esa tarjeta.
+    if (accountId) toggleCreate(cardIdx, false);
   }
 
   async function handleConfirm() {
@@ -226,25 +242,25 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
                 </select>
                 <button
                   type="button"
-                  onClick={() => setCreatingCard(creatingCard === cardIdx ? null : cardIdx)}
+                  onClick={() => toggleCreate(cardIdx)}
                   className="rounded-md border border-input px-2 py-1 text-sm font-medium hover:bg-accent"
                 >
-                  {creatingCard === cardIdx ? 'Cerrar' : '+ Crear medio'}
+                  {createOpen.has(cardIdx) ? 'Cerrar' : '+ Crear medio'}
                 </button>
               </div>
             </div>
-            {!card.accountId && creatingCard !== cardIdx && (
+            {!card.accountId && !createOpen.has(cardIdx) && (
               <p className="text-xs text-muted-foreground">
                 No encontramos un medio para esta tarjeta. Elegí uno o crealo con los datos del resumen.
               </p>
             )}
-            {creatingCard === cardIdx && (
+            {createOpen.has(cardIdx) && (
               <AccountQuickCreate
                 workspaceId={workspaceId}
                 hint={card.accountHint}
                 accounts={accounts ?? []}
                 onCreated={(account) => handleAccountCreated(cardIdx, account)}
-                onCancel={() => setCreatingCard(null)}
+                onCancel={() => toggleCreate(cardIdx, false)}
               />
             )}
             <div className="overflow-x-auto">
