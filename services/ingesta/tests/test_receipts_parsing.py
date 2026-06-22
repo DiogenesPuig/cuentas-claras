@@ -47,12 +47,37 @@ Concepto: Alquiler
         ("1234,56", 1234.56),
         ("1234.56", 1234.56),
         ("999", 999.0),
+        ("15.000", 15000.0),  # punto = miles (convención AR), no decimal
+        ("1.234.567", 1234567.0),
         ("0,00", None),
         ("abc", None),
     ],
 )
 def test_parse_amount(token: str, expected: float | None) -> None:
     assert parse_amount(token) == expected
+
+
+TRANSFER_CON_CBU = """Comprobante de transferencia
+Banco de la Nacion
+Fecha: 05/06/2026
+Nº de operación: 123456789012
+Origen CBU 0110599520000012345678
+Destino: Maria Lopez
+CBU destino: 0720000720000098765432
+Importe $ 15.000,00
+"""
+
+
+def test_transfer_no_confunde_cbu_con_monto() -> None:
+    # El CBU (22 dígitos) y el nº de operación NO deben ganar como monto.
+    res = extract_from_text(TRANSFER_CON_CBU)
+    assert res.amount == 15000.0
+
+
+def test_amount_ignora_identificadores_largos() -> None:
+    # Aunque no se reconozca la etiqueta, gana el monto con centavos, no el CBU.
+    text = "Destino CBU 0720000720000098765432\nTotal abonado: 2.500,00\n"
+    assert extract_amount(text, "transfer") == 2500.0
 
 
 def test_detect_subtype() -> None:

@@ -42,26 +42,36 @@ def detect_subtype(text: str) -> str:
 
 # --- Monto -----------------------------------------------------------------
 
-# Tokens de monto: formato AR (1.234,56), o simple (1234,56 / 1234.56 / 1234).
-_AMOUNT_RE = re.compile(r"\d{1,3}(?:\.\d{3})+,\d{2}|\d+,\d{2}|\d+\.\d{2}|\d+")
+# Cualquier corrida de dígitos con separadores `.`/`,`. Filtramos después: los
+# CBU/CVU/nº de operación (corridas largas sin decimales) NO son montos.
+_NUMERIC_TOKEN = re.compile(r"\d[\d.,]*\d|\d")
+# ¿Termina en separador + exactamente 2 dígitos? → tiene parte decimal (centavos).
+_HAS_CENTS = re.compile(r"[.,]\d{2}$")
+# Agrupación de miles válida con punto: 1.234 / 12.345.678 (sin decimales).
+_DOT_THOUSANDS = re.compile(r"^\d{1,3}(?:\.\d{3})+$")
 
 
 def parse_amount(token: str) -> float | None:
-    """Normaliza un token numérico AR/US a float. Devuelve None si no es válido."""
-    token = token.strip()
+    """Normaliza un token a float con convención AR (punto = miles, coma = decimal).
+
+    Casos: 1.234,56→1234.56 · 15.000→15000 · 1234,56→1234.56 · 1234.56→1234.56
+    (un punto con 2 decimales se respeta como decimal) · 999→999.
+    """
+    token = token.strip().strip(".,")
     if not token:
         return None
     has_dot = "." in token
     has_comma = "," in token
     try:
-        if has_dot and has_comma:
-            # 1.234,56 → punto miles, coma decimal.
+        if has_comma:
+            # La coma es el decimal; los puntos son miles.
             normalized = token.replace(".", "").replace(",", ".")
-        elif has_comma:
-            # 1234,56 → coma decimal.
-            normalized = token.replace(",", ".")
+        elif has_dot:
+            if _DOT_THOUSANDS.match(token):
+                normalized = token.replace(".", "")  # 15.000 → 15000
+            else:
+                normalized = token  # 1234.56 → decimal tal cual
         else:
-            # 1234.56 (decimal) o 1234 (entero). El punto se interpreta decimal.
             normalized = token
         value = float(normalized)
     except ValueError:
@@ -71,39 +81,66 @@ def parse_amount(token: str) -> float | None:
 
 _TOTAL_LINE = re.compile(r"\btotal(?:\s+a\s+pagar)?\b", re.IGNORECASE)
 _SUBTOTAL_LINE = re.compile(r"\bsubtotal\b", re.IGNORECASE)
-_IMPORTE_LINE = re.compile(r"\bimporte\b", re.IGNORECASE)
+# Monto de una transferencia: "Importe" o "Monto".
+_AMOUNT_LABEL = re.compile(r"\b(importe|monto)\b", re.IGNORECASE)
+# Líneas de identificadores (no llevan montos): CBU, CVU, alias, operación, cuenta…
+_IDENTIFIER_LINE = re.compile(
+    r"\b(cbu|cvu|alias|cu[ií]t|cu[ií]l|dni|n[º°ro]+\s*de\s*operac|operaci[oó]n|"
+    r"cuenta|tarjeta|comprobante\s*n)\b",
+    re.IGNORECASE,
+)
 
 
-def _amounts_in(line: str) -> list[float]:
-    out = []
-    for m in _AMOUNT_RE.findall(line):
-        v = parse_amount(m)
-        if v is not None:
-            out.append(v)
+def _money_tokens(line: str) -> list[tuple[float, bool]]:
+    """(valor, tiene_centavos) de los tokens de `line` que parecen plata.
+
+    Descarta identificadores: corridas largas de dígitos SIN parte decimal
+    (CBU de 22, nº de operación, etc.).
+    """
+    if _IDENTIFIER_LINE.search(line):
+        return []
+    out: list[tuple[float, bool]] = []
+    for tok in _NUMERIC_TOKEN.findall(line):
+        digits = re.sub(r"\D", "", tok)
+        has_cents = bool(_HAS_CENTS.search(tok))
+        # Sin decimales y con muchos dígitos → es un identificador, no un monto.
+        if not has_cents and len(digits) > 6:
+            continue
+        value = parse_amount(tok)
+        if value is not None:
+            out.append((value, has_cents))
     return out
 
 
 def extract_amount(text: str, subtype: str) -> float | None:
-    """Elige el monto más probable.
+    """Elige el monto más probable, priorizando montos con centavos.
 
-    - Transferencia: el que está en la línea de "Importe".
-    - Compra: el de la línea de "TOTAL" (no "SUBTOTAL"); si no hay, el mayor.
+    - Transferencia: el de la línea "Importe"/"Monto".
+    - Compra: el de la línea "TOTAL" (no "SUBTOTAL").
+    - Si no hay match por etiqueta, gana el mayor monto CON centavos; recién al
+      final se consideran los enteros sueltos.
     """
-    lines = text.splitlines()
-    keyword = _IMPORTE_LINE if subtype == "transfer" else _TOTAL_LINE
+    keyword = _AMOUNT_LABEL if subtype == "transfer" else _TOTAL_LINE
 
     keyed: list[float] = []
-    everything: list[float] = []
-    for line in lines:
-        amounts = _amounts_in(line)
-        everything.extend(amounts)
-        if keyword.search(line) and not _SUBTOTAL_LINE.search(line):
-            keyed.extend(amounts)
+    with_cents: list[float] = []
+    plain: list[float] = []
+    for line in text.splitlines():
+        tokens = _money_tokens(line)
+        if not tokens:
+            continue
+        labeled = keyword.search(line) and not _SUBTOTAL_LINE.search(line)
+        for value, has_cents in tokens:
+            (with_cents if has_cents else plain).append(value)
+            if labeled:
+                keyed.append(value)
 
     if keyed:
         return max(keyed)
-    if everything:
-        return max(everything)
+    if with_cents:
+        return max(with_cents)
+    if plain:
+        return max(plain)
     return None
 
 
