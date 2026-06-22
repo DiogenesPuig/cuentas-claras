@@ -1,26 +1,24 @@
 # Backlog — Fase 2 (Ingesta inteligente)
 
-> **Planificada (2026-06-22).** Fase 1 está cerrada; los tickets de abajo ya existen como archivos
-> propios en esta carpeta. El plan de arquitectura y decisiones está en `PLAN.md`. La mayoría depende
-> del microservicio Python (`F2-1`); `F2-7` no necesita infra nueva y puede ir primero.
+> **Planificada (2026-06-22).** Fase 1 está cerrada. El plan de arquitectura y decisiones está en
+> `PLAN.md`. La mayoría depende del microservicio Python (`F2-1`); `F2-7` no necesita infra nueva.
 >
-> **Estado (2026-06-22):** ✅ F2-0, F2-1, F2-2 (PR #18); ✅ F2-3 (Patagonia tabular, + reintegros como
-> gasto negativo) y ✅ F2-4 (dedupe al importar). Pendientes: F2-3b (Nativa-Nación), F2-5, F2-6, F2-7.
+> **Estado (2026-06-23):** ✅ F2-0, F2-1, F2-2 (PR #18); ✅ F2-3 (Patagonia tabular, + reintegros como
+> gasto negativo), ✅ F2-3b (Nativa-Nación) y ✅ F2-4 (dedupe al importar). **Pendientes: F2-5, F2-6, F2-7.**
+> Los tickets completados se movieron a `tasks/done/` (ver allí su estado/criterios).
 
 ## Archivos de esta carpeta
 
 - `PLAN.md` — plan de Fase 2: arquitectura, decisiones (resueltas y pendientes), desglose y orden.
-- `F2-0-modelar-cuotas.md` — migración: columnas `installment_n`/`installment_total` (previo a F2-3).
-- `F2-1-microservicio-python.md` — scaffold FastAPI + contrato + auth + deploy.
-- `F2-2-ocr-comprobantes.md` — OCR de comprobantes (Tesseract) → precarga el alta (FR-14).
-- `F2-3-parseo-resumenes-staging.md` — parseo de resúmenes (tabulares: Patagonia/Visa-Nación) → revisión + confirmación en bloque (FR-16). _Planificado: staging efímero en el front, contrato multi-tarjeta._
-- `F2-3b-nativa-nacion.md` — parser de Nativa-Nación (Mastercard) por coordenadas/tablas (diferido de F2-3).
-- `F2-4-dedupe-importacion.md` — detección de duplicados al importar (FR-17).
 - `F2-5-alta-medio-desde-resumen.md` — identificar/crear el medio desde el resumen (FR-16b).
 - `F2-6-sugerencia-categoria.md` — sugerencia automática de categoría (FR-19).
 - `F2-7-visor-comprobantes.md` — visor/descarga de adjuntos (FR-10/FR-13), sin infra nueva.
 
-**Orden recomendado:** F2-7 → F2-1 → F2-0 → F2-3 → {F2-4, F2-5, F2-6} → F2-2 (ver `PLAN.md` §4).
+Completados (en `tasks/done/`): `F2-0-modelar-cuotas`, `F2-1-microservicio-python`,
+`F2-2-ocr-comprobantes`, `F2-3-parseo-resumenes-staging`, `F2-3b-nativa-nacion`,
+`F2-4-dedupe-importacion`.
+
+**Orden recomendado restante:** {F2-5, F2-6} (dependen de F2-3, ya hecho) y F2-7 (independiente).
 
 ## Alcance (PRD §14 — Fase 2: semanas 7–11)
 
