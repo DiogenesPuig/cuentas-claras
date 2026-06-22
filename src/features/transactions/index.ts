@@ -5,11 +5,13 @@ export {
   deleteTransaction,
   uploadAttachment,
   getAttachmentUrl,
+  extractReceiptData,
   type Transaction,
   type TransactionType,
   type TransactionInput,
   type TransactionView,
   type Attachment,
+  type ReceiptExtraction,
 } from './api';
 export {
   useTransactions,
@@ -17,6 +19,7 @@ export {
   useUpdateTransaction,
   useDeleteTransaction,
   useUploadAttachment,
+  useExtractReceipt,
   transactionsKeys,
 } from './hooks';
 export {

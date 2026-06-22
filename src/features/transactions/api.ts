@@ -1,10 +1,13 @@
 import { supabase } from '@/lib/supabase';
 import type { Database, Tables, TablesInsert, TablesUpdate } from '@/lib/database.types';
+import { extractReceipt, type ReceiptExtraction } from '@/lib/ingesta';
 import { buildTransactionFilterArgs, type TransactionFilters } from './filters';
 
 export type Transaction = Tables<'transactions'>;
 export type TransactionType = Database['public']['Enums']['transaction_type'];
 export type Attachment = Tables<'attachments'>;
+
+export type TransactionSource = Database['public']['Enums']['transaction_source'];
 
 export interface TransactionInput {
   type: TransactionType;
@@ -16,6 +19,8 @@ export interface TransactionInput {
   occurredOn: string;
   chargedOn: string | null;
   attachmentId: string | null;
+  /** Origen del alta. Default `'manual'`; `'ocr'` si se precargó desde un comprobante (FR-14). */
+  source?: TransactionSource;
 }
 
 export interface TransactionView extends Transaction {
@@ -86,7 +91,7 @@ export async function createTransaction(
   const payload: TablesInsert<'transactions'> = {
     workspace_id: workspaceId,
     created_by: user.id,
-    source: 'manual',
+    source: input.source ?? 'manual',
     ...toRow(input),
   };
   const { data, error } = await supabase.from('transactions').insert(payload).select().single();
@@ -140,6 +145,23 @@ export async function uploadAttachment(workspaceId: string, file: File): Promise
   const { data, error } = await supabase.from('attachments').insert(payload).select().single();
   if (error) throw error;
   return data;
+}
+
+export type { ReceiptExtraction } from '@/lib/ingesta';
+
+/**
+ * OCR de un comprobante vía el microservicio de ingesta (FR-14). Esta función es
+ * la que toca Supabase (saca el access token de la sesión); el HTTP puro vive en
+ * `lib/ingesta`. Devuelve los campos detectados para precargar el form de alta.
+ */
+export async function extractReceiptData(file: File): Promise<ReceiptExtraction> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  return extractReceipt(file, {
+    baseUrl: import.meta.env.VITE_INGESTA_URL,
+    accessToken: session?.access_token,
+  });
 }
 
 /** Signed URL temporal para mostrar/descargar un comprobante del bucket privado. */

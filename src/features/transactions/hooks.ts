@@ -2,10 +2,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createTransaction,
   deleteTransaction,
+  extractReceiptData,
   listTransactions,
   updateTransaction,
   uploadAttachment,
   type Attachment,
+  type ReceiptExtraction,
   type Transaction,
   type TransactionInput,
   type TransactionView,
@@ -66,5 +68,12 @@ export function useDeleteTransaction(workspaceId: string | undefined) {
 export function useUploadAttachment(workspaceId: string | undefined) {
   return useMutation<Attachment, Error, File>({
     mutationFn: (file) => uploadAttachment(workspaceId as string, file),
+  });
+}
+
+/** OCR de un comprobante vía el micro de ingesta (FR-14). No escribe en la DB. */
+export function useExtractReceipt() {
+  return useMutation<ReceiptExtraction, Error, File>({
+    mutationFn: (file) => extractReceiptData(file),
   });
 }

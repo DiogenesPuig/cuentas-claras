@@ -358,6 +358,8 @@ export type Database = {
           fx_date: string | null
           fx_rate: number | null
           id: string
+          installment_n: number | null
+          installment_total: number | null
           is_shared: boolean
           occurred_on: string
           source: Database["public"]["Enums"]["transaction_source"]
@@ -380,6 +382,8 @@ export type Database = {
           fx_date?: string | null
           fx_rate?: number | null
           id?: string
+          installment_n?: number | null
+          installment_total?: number | null
           is_shared?: boolean
           occurred_on?: string
           source?: Database["public"]["Enums"]["transaction_source"]
@@ -402,6 +406,8 @@ export type Database = {
           fx_date?: string | null
           fx_rate?: number | null
           id?: string
+          installment_n?: number | null
+          installment_total?: number | null
           is_shared?: boolean
           occurred_on?: string
           source?: Database["public"]["Enums"]["transaction_source"]

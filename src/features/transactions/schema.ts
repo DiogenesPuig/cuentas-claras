@@ -1,10 +1,14 @@
 import { z } from 'zod';
+import { displayToIsoDate, isoToDisplayDate } from './format';
 
 export const TRANSACTION_TYPES = ['expense', 'income'] as const;
 
-function todayIsoDate(): string {
-  return new Date().toISOString().slice(0, 10);
+/** Fecha de hoy en formato de display DD/MM/YYYY. */
+function todayDisplayDate(): string {
+  return isoToDisplayDate(new Date().toISOString().slice(0, 10));
 }
+
+const DATE_MSG = 'Fecha inválida (DD/MM/AAAA)';
 
 export const transactionSchema = z.object({
   type: z.enum(TRANSACTION_TYPES),
@@ -16,14 +20,12 @@ export const transactionSchema = z.object({
   description: z.string().trim().max(140, 'Máximo 140 caracteres').optional().or(z.literal('')),
   categoryId: z.string().optional().or(z.literal('')),
   accountId: z.string().optional().or(z.literal('')),
-  occurredOn: z
-    .string()
-    .trim()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida'),
+  // Las fechas viven en el form como DD/MM/YYYY; se convierten a ISO al guardar.
+  occurredOn: z.string().trim().refine((v) => displayToIsoDate(v) !== '', DATE_MSG),
   chargedOn: z
     .string()
     .trim()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida')
+    .refine((v) => v === '' || displayToIsoDate(v) !== '', DATE_MSG)
     .optional()
     .or(z.literal('')),
   attachment: z
@@ -41,7 +43,7 @@ export function defaultTransactionValues(): TransactionFormInput {
     description: '',
     categoryId: '',
     accountId: '',
-    occurredOn: todayIsoDate(),
+    occurredOn: todayDisplayDate(),
     chargedOn: '',
   };
 }

@@ -12,6 +12,7 @@ import {
   TransactionList,
   useCreateTransaction,
   useDeleteTransaction,
+  useExtractReceipt,
   useTransactions,
   useUpdateTransaction,
   useUploadAttachment,
@@ -52,6 +53,7 @@ export function TransactionsPage() {
   const updateTransaction = useUpdateTransaction(workspaceId);
   const deleteTransaction = useDeleteTransaction(workspaceId);
   const uploadAttachment = useUploadAttachment(workspaceId);
+  const extractReceipt = useExtractReceipt();
 
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -125,6 +127,11 @@ export function TransactionsPage() {
               createTransaction.isPending ||
               updateTransaction.isPending ||
               uploadAttachment.isPending
+            }
+            onExtractReceipt={
+              import.meta.env.VITE_INGESTA_URL
+                ? (file) => extractReceipt.mutateAsync(file)
+                : undefined
             }
           />
         </div>

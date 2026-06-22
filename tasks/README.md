@@ -13,6 +13,7 @@ Un archivo por ticket. Cada uno es **autocontenido**: un subagente debería pode
 
 > Los tickets completados se mueven a `tasks/done/`. Los marcados ✅ abajo ya están mergeados en `main`.
 > El alcance de **Fase 2 (ingesta inteligente)** vive en `tasks/fase2/README.md` (parking lot, no se trabaja aún).
+> Las **mejoras no urgentes (post Fase 2)** se anotan en `tasks/MEJORAS.md`.
 
 **Sprint A — Cimientos**
 - ✅ `A1` Scaffolding del proyecto — _sin dependencias_

@@ -36,6 +36,8 @@ function makeTx(overrides: Partial<ReportTransactionView> = {}): ReportTransacti
     is_shared: false,
     attachment_id: null,
     external_hash: null,
+    installment_n: null,
+    installment_total: null,
     created_at: '2026-01-15T00:00:00Z',
     updated_at: '2026-01-15T00:00:00Z',
     account: null,

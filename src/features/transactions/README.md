@@ -14,9 +14,12 @@ texto, y **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado.
   en la query — mes como rango `occurred_on`, medio/categoría/moneda por igualdad, persona vía join
   `accounts!inner` filtrando `account.holder_name`, texto vía `ilike` sobre `description`; incluye
   `account.holder_name` y `account.bank` además de `account.name` para mostrar la persona/banco en
-  listas/resumen/export), `createTransaction` (`source = 'manual'`, `created_by = auth.uid()`),
+  listas/resumen/export), `createTransaction` (`source = input.source ?? 'manual'` — `'ocr'` si el
+  alta se precargó desde un comprobante; `created_by = auth.uid()`),
   `updateTransaction`, `deleteTransaction`, `uploadAttachment` (sube el archivo al bucket privado
-  `attachments` y crea su fila) y `getAttachmentUrl` (signed URL temporal para mostrarlo/descargarlo).
+  `attachments` y crea su fila), `getAttachmentUrl` (signed URL temporal para mostrarlo/descargarlo)
+  y `extractReceiptData` (F2-1/F2-2: saca el access token de la sesión y llama al micro de ingesta vía
+  `lib/ingesta` para precargar monto/fecha/comercio — es la capa que toca Supabase; el HTTP es puro).
   Sin React.
 - `filters.ts` — `TransactionFilters` (mes, medio, categoría, moneda, persona, texto) y
   `buildTransactionFilterArgs`: función pura que mapea esos filtros a los argumentos de la query
@@ -25,15 +28,20 @@ texto, y **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado.
   combinación con el resto de filtros, recorte/omisión de texto vacío.
 - `hooks.ts` — react-query: `useTransactions(workspaceId, filters?)` (la query key incluye
   `filters`, así que cada combinación cachea por separado), `useCreateTransaction`,
-  `useUpdateTransaction`, `useDeleteTransaction`, `useUploadAttachment`.
+  `useUpdateTransaction`, `useDeleteTransaction`, `useUploadAttachment`, `useExtractReceipt`
+  (OCR de un comprobante vía `extractReceiptData`/el micro de ingesta, no escribe en la DB — F2-2).
 - `schema.ts` — zod del form: `type`, `amount`, `currency`, `description`, `categoryId`,
-  `accountId`, `occurredOn` (default hoy), `chargedOn`, `attachment` (`FileList` opcional).
+  `accountId`, `occurredOn` (default hoy), `chargedOn`, `attachment` (`FileList` opcional). Las fechas se
+  editan/validan como **DD/MM/YYYY** y se convierten a ISO al guardar (`displayToIsoDate`).
 - `index.ts` — barrel del feature.
 - `components/TransactionForm.tsx` — alta/edición rápida: foco automático en el monto, categorías
   filtradas por tipo (gasto/ingreso) vía `useCategories`, medios vía `useAccounts`. La persona NO
   se elige: se deduce del `account_id` (su holder) en reportes/listas, no en este form. El archivo
   elegido se entrega al `onSubmit` (no se sube dentro del form, que no tiene lógica de datos); quien
-  lo use decide cuándo subirlo (ver `TransactionsPage`/`DashboardPage`).
+  lo use decide cuándo subirlo (ver `TransactionsPage`/`DashboardPage`). Si recibe `onExtractReceipt`,
+  muestra el botón "Extraer datos del comprobante" que llama al OCR y precarga monto/moneda/fecha/comercio
+  (editables), avisando si la confianza es baja o si no se pudo extraer; al guardar un alta así, marca
+  `source = 'ocr'` (FR-14). Sin la prop (o sin `VITE_INGESTA_URL`), el alta sigue 100% manual.
 - `components/TransactionForm.test.tsx` — smoke test: monto > 0, moneda de 3 letras, fecha de hoy
   por defecto.
 - `components/SummaryCard.tsx` — resumen del período (ingresos/gastos/balance) desglosado por
@@ -53,6 +61,11 @@ texto, y **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado.
   Editar/Eliminar si `canEdit` (extraído de `TransactionsPage` en B10 para reutilizar en la lista).
 - `format.ts` — `formatAmount(value, currency)`: formato de moneda (`Intl.NumberFormat`) compartido
   por `SummaryCard`, `RecentTransactions` y `TransactionRow`, sin conversión entre monedas (B9).
+  `formatInstallment(n, total)`: arma "Cuota N/M" para movimientos en cuotas, o `null` si no aplica (F2-0).
+  `isoToDisplayDate`/`displayToIsoDate`: convierten entre ISO (`YYYY-MM-DD`, lo que guarda la DB) y el
+  formato de display DD/MM/YYYY que usa el form; `''` si la entrada es inválida o la fecha no existe.
+- `format.test.ts` — tests de `formatInstallment` (cuota válida, campos null, datos incoherentes — F2-0)
+  y de `isoToDisplayDate`/`displayToIsoDate` (conversión, formato inválido, fecha inexistente, roundtrip).
 - `export.ts` — lógica pura de exportación (C14, FR-23), sin Supabase: `toExportRows` (mapea
   `TransactionView[]` ya filtrados a filas planas: fecha, se-cobra, tipo, monto, moneda, persona,
   medio, banco, categoría, descripción), `toCsv` (arma el CSV con encabezados en español, escapando
