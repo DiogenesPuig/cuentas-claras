@@ -12,10 +12,11 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from app.parsing import patagonia
+from app.parsing import nativa_nacion, patagonia
 from app.parsing.statements import UnsupportedStatementError, parse_statement_text
 
 FIXTURE = (Path(__file__).parent / "fixtures" / "patagonia_tabular.txt").read_text(encoding="utf-8")
+NATIVA = (Path(__file__).parent / "fixtures" / "nativa_nacion.txt").read_text(encoding="utf-8")
 
 
 def test_matches_patagonia() -> None:
@@ -71,6 +72,62 @@ def test_impuesto_sin_tarjeta() -> None:
 def test_unsupported_layout() -> None:
     with pytest.raises(UnsupportedStatementError):
         parse_statement_text("Resumen de otro banco sin el formato conocido")
+
+
+# --- Nativa-Nación (Mastercard, Banco Nación) — F2-3b ----------------------
+
+
+def test_matches_nativa_and_dispatch() -> None:
+    assert nativa_nacion.matches(NATIVA) is True
+    # No confunde un layout con el otro.
+    assert nativa_nacion.matches(FIXTURE) is False
+    assert patagonia.matches(NATIVA) is False
+
+
+def test_nativa_close_date_and_cards() -> None:
+    res = parse_statement_text(NATIVA)
+    assert res.statement_close_on == "2026-05-21"  # "Estado de cuenta al : 21-May-26"
+    # Una tarjeta por titular y por adicional (FR-6c); ignora el consolidado/SU PAGO.
+    assert len(res.cards) == 2
+    titular, adicional = res.cards
+    assert titular.account_hint.holder == "NOMBRE APELLIDO TITULAR"
+    assert adicional.account_hint.holder == "NOMBRE APELLIDO ADICIONAL"
+    for c in res.cards:
+        assert c.account_hint.bank == "Banco Nación"
+        assert c.account_hint.network == "mastercard"
+        assert c.account_hint.last4 is None  # el PAN no está en el texto (F2-5 matchea por titular)
+
+
+def test_nativa_rows_titular() -> None:
+    titular = parse_statement_text(NATIVA).cards[0]
+    assert len(titular.rows) == 3
+    debito, comision, compra = titular.rows
+
+    # La barra dentro de la descripción no se confunde con una cuota.
+    assert debito.description == "NAC SE11/0923093600201"
+    assert debito.installment is None
+    assert debito.amount == 1350.0
+    assert debito.ref == "05308"
+    assert debito.kind == "charge"
+
+    assert comision.installment is not None
+    assert (comision.installment.n, comision.installment.total) == (7, 12)
+    assert comision.amount == 24570.0  # sin separador de miles en el origen
+
+    assert compra.description == "TIENDA EJEMPLO SHOPPING"
+    assert (compra.installment.n, compra.installment.total) == (6, 6)
+    # Reconcilia con el TOTAL TITULAR del resumen.
+    assert round(sum(r.amount for r in titular.rows), 2) == 42486.50
+
+
+def test_nativa_rows_adicional_with_refund() -> None:
+    adicional = parse_statement_text(NATIVA).cards[1]
+    assert len(adicional.rows) == 4
+    devol = adicional.rows[-1]
+    assert devol.description == "DEVOLUCION COMERCIO"
+    assert devol.kind == "refund"  # importe negativo en el origen
+    assert devol.amount == 5000.0  # magnitud positiva; el signo lo aplica el front
+    assert devol.ref == "01122"
 
 
 # --- Route (mockeando la extracción del PDF) -------------------------------

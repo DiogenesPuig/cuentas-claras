@@ -31,7 +31,8 @@ app/
     receipts.py      extract_from_text(text) → ReceiptExtraction: monto/fecha/comercio (F2-2)
     statements.py    parse_statement_text(text) → StatementParse: dispatcher por plantilla (F2-3)
     patagonia.py     parser tabular Patagonia (Visa/Master/CR): filas por tarjeta, cuotas, pagos (F2-3)
-tests/               pytest: health, auth, contrato, límite, comprobantes (F2-2) y resúmenes (F2-3)
+    nativa_nacion.py parser Nativa-Nación (Mastercard, Banco Nación): grupos por titular/adicional (F2-3b)
+tests/               pytest: health, auth, contrato, límite, comprobantes (F2-2) y resúmenes (F2-3/F2-3b)
   fixtures/          textos ANONIMIZADOS de resúmenes para los tests (nunca PDFs reales)
 Dockerfile           Python 3.12 + Tesseract (es/en)
 run-local.sh         corre el micro local + Cloudflare Quick Tunnel (URL pública)
@@ -125,5 +126,10 @@ micro igual valida el JWT de Supabase en cada request.
 - **F2-3:** `POST /v1/statements:parse` implementado para el layout **tabular de
   Patagonia** (Visa/Master/CR): extrae texto del PDF (`pdf.py`, con password en
   memoria), agrupa filas por tarjeta (last4 + titular), detecta cuotas y
-  pagos/devoluciones, y devuelve `{ statement_close_on, cards[] }`. El layout
-  **Nativa-Nación** (Mastercard, por coordenadas) queda para **F2-3b**.
+  pagos/devoluciones, y devuelve `{ statement_close_on, cards[] }`.
+- **F2-3b:** `nativa_nacion.py` suma el layout **Nativa-Nación** (Mastercard, Banco
+  Nación) al dispatcher. La capa de texto del PDF sale legible, así que el parser
+  trabaja sobre texto (no por coordenadas, como se preveía): toma el cierre de
+  "Estado de cuenta al", agrupa el detalle por `TOTAL TITULAR`/`TOTAL ADICIONAL`
+  (una tarjeta por titular y adicional, FR-6c) e ignora el consolidado/SU PAGO.
+  El PAN no aparece en el texto → `last4` queda None (F2-5 matchea por titular).
