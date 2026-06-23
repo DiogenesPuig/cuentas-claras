@@ -5,19 +5,38 @@
 >
 > **Estado (2026-06-23):** ✅ F2-0, F2-1, F2-2 (PR #18); ✅ F2-3 (Patagonia tabular, + reintegros como
 > gasto negativo), ✅ F2-3b (Nativa-Nación), ✅ F2-4 (dedupe), ✅ F2-5 (medio desde el resumen) y
-> ✅ F2-6 (sugerencia de categoría). **Pendiente: F2-7 (visor de comprobantes).**
+> ✅ F2-6 (sugerencia de categoría). **Pendientes: F2-7 (visor), F2-8/F2-9/F2-10 (transferencias + dedup de persona).**
 > Los tickets completados se movieron a `tasks/done/` (ver allí su estado/criterios).
 
 ## Archivos de esta carpeta
 
 - `PLAN.md` — plan de Fase 2: arquitectura, decisiones (resueltas y pendientes), desglose y orden.
 - `F2-7-visor-comprobantes.md` — visor/descarga de adjuntos (FR-10/FR-13), sin infra nueva.
+- `F2-8-comprobante-origen-destino.md` — el micro extrae titular/banco de **origen y destino** de un
+  comprobante de transferencia (extiende `ReceiptExtraction`). Solo microservicio. _Depende de F2-2._
+- `F2-9-medio-transferencia-desde-comprobante.md` — front: crea/asocia el medio `bank_account` desde el
+  comprobante y atribuye la persona **según el tipo** (gasto→origen, ingreso→destino), preasignando el
+  miembro (editable) si el titular matchea. _Depende de F2-8, F2-2, B7, B8._
+- `F2-10-reportes-dedup-persona-por-miembro.md` — reportes: agrupar la dimensión "persona" por
+  `owner_member_id` (fallback a `holder_name` normalizado) para no contar a alguien dos veces cuando su
+  nombre viene escrito distinto en cada banco. _Depende de C13, B7._
 
 Completados (en `tasks/done/`): `F2-0-modelar-cuotas`, `F2-1-microservicio-python`,
 `F2-2-ocr-comprobantes`, `F2-3-parseo-resumenes-staging`, `F2-3b-nativa-nacion`,
 `F2-4-dedupe-importacion`, `F2-5-alta-medio-desde-resumen`, `F2-6-sugerencia-categoria`.
 
-**Pendiente:** F2-7 (independiente, no necesita el microservicio).
+**Pendientes:** F2-7 (independiente). **F2-8 → F2-9** (transferencias, en ese orden) y **F2-10**
+(dedup de persona en reportes, independiente del micro — se puede tomar primero por ser barato).
+
+### Decisiones de la charla (2026-06-23) que fijan estos tickets
+
+- **Transferencias:** no traen datos de tarjeta → el medio es `type='bank_account'` (sin red/last4).
+  La persona se atribuye **según el tipo**: gasto → cuenta de **origen** (quien envía), ingreso →
+  cuenta de **destino** (quien recibe).
+- **Auto-asignar:** si el titular del lado dueño coincide con un miembro, se **preasigna `owner_member_id`**
+  (editable), no solo candidato.
+- **Dedup de persona:** reportes agrupan por **`owner_member_id`**; el nombre escrito distinto por cada
+  banco deja de duplicar. El match por nombre ya es **order-independent** (token-set en `account-match`).
 
 ## Alcance (PRD §14 — Fase 2: semanas 7–11)
 

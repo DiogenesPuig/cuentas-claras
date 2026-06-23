@@ -3,6 +3,8 @@ import {
   createTransaction,
   deleteTransaction,
   extractReceiptData,
+  getAttachment,
+  getAttachmentUrl,
   listTransactions,
   updateTransaction,
   uploadAttachment,
@@ -75,5 +77,30 @@ export function useUploadAttachment(workspaceId: string | undefined) {
 export function useExtractReceipt() {
   return useMutation<ReceiptExtraction, Error, File>({
     mutationFn: (file) => extractReceiptData(file),
+  });
+}
+
+export interface AttachmentUrlResult {
+  url: string;
+  fileType: string;
+}
+
+/**
+ * Signed URL (+ `file_type`) de un comprobante, pedida on-demand (F2-7): solo corre cuando
+ * `enabled` es true (al abrir el visor, no al render de la lista). React Query la cachea por
+ * `attachmentId` hasta que la signed URL vence (5 min en el bucket); `staleTime` queda algo por
+ * debajo para no servir una URL ya vencida desde caché.
+ */
+export function useAttachmentUrl(attachmentId: string | null, enabled: boolean) {
+  return useQuery<AttachmentUrlResult, Error>({
+    queryKey: ['attachment-url', attachmentId],
+    queryFn: async () => {
+      const attachment = await getAttachment(attachmentId as string);
+      const url = await getAttachmentUrl(attachment.file_url);
+      return { url, fileType: attachment.file_type };
+    },
+    enabled: enabled && attachmentId !== null,
+    staleTime: 4 * 60 * 1000,
+    retry: false,
   });
 }

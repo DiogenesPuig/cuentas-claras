@@ -164,6 +164,13 @@ export async function extractReceiptData(file: File): Promise<ReceiptExtraction>
   });
 }
 
+/** Resuelve `file_url`/`file_type` de un comprobante a partir de su `attachment_id`. */
+export async function getAttachment(id: string): Promise<Attachment> {
+  const { data, error } = await supabase.from('attachments').select('*').eq('id', id).single();
+  if (error) throw error;
+  return data;
+}
+
 /** Signed URL temporal para mostrar/descargar un comprobante del bucket privado. */
 export async function getAttachmentUrl(path: string): Promise<string> {
   const { data, error } = await supabase.storage
