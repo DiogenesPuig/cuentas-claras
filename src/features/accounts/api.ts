@@ -96,3 +96,47 @@ export async function updateAccount(id: string, input: AccountInput): Promise<Ac
   if (error) throw error;
   return data;
 }
+
+export interface TransferAccountHolder {
+  /** Si el titular matchea a un miembro, su `workspace_members.id`. */
+  ownerMemberId: string | null;
+  holderName: string;
+}
+
+/**
+ * Busca el medio `'transfer'` de una persona y, si no existe, lo crea (F2-11): un
+ * único medio "Transferencia" por persona (titular o miembro), sin banco —el banco
+ * del comprobante va a `transactions.bank`. Lazy: no se pre-crean medios vacíos.
+ */
+export async function getOrCreateTransferAccount(
+  workspaceId: string,
+  holder: TransferAccountHolder,
+): Promise<Account> {
+  let query = supabase
+    .from('accounts')
+    .select('*')
+    .eq('workspace_id', workspaceId)
+    .eq('type', 'transfer');
+  query = holder.ownerMemberId
+    ? query.eq('owner_member_id', holder.ownerMemberId)
+    : query.is('owner_member_id', null).eq('holder_name', holder.holderName);
+
+  const { data: existing, error: selectError } = await query.limit(1);
+  if (selectError) throw selectError;
+  if (existing && existing[0]) return existing[0];
+
+  const payload: TablesInsert<'accounts'> = {
+    workspace_id: workspaceId,
+    name: 'Transferencia',
+    type: 'transfer',
+    owner_member_id: holder.ownerMemberId,
+    holder_name: holder.holderName,
+  };
+  const { data: created, error: insertError } = await supabase
+    .from('accounts')
+    .insert(payload)
+    .select()
+    .single();
+  if (insertError) throw insertError;
+  return created;
+}

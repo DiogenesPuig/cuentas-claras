@@ -1,6 +1,13 @@
 import { z } from 'zod';
 
-export const ACCOUNT_TYPES = ['credit', 'debit', 'cash', 'wallet', 'bank_account'] as const;
+export const ACCOUNT_TYPES = [
+  'credit',
+  'debit',
+  'cash',
+  'wallet',
+  'bank_account',
+  'transfer',
+] as const;
 export const CARD_NETWORKS = ['visa', 'mastercard', 'amex', 'cabal', 'other'] as const;
 export const HOLDER_KINDS = ['member', 'name'] as const;
 

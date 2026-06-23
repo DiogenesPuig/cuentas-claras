@@ -16,7 +16,8 @@ texto, **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado, y *
   `accounts!inner` filtrando `account.holder_name`, texto vía `ilike` sobre `description`; incluye
   `account.holder_name` y `account.bank` además de `account.name` para mostrar la persona/banco en
   listas/resumen/export), `createTransaction` (`source = input.source ?? 'manual'` — `'ocr'` si el
-  alta se precargó desde un comprobante; `created_by = auth.uid()`),
+  alta se precargó desde un comprobante; `created_by = auth.uid()`; `TransactionInput` incluye
+  `bank` —F2-11, banco del movimiento, hoy solo lo llena el flujo de transferencias—),
   `updateTransaction`, `deleteTransaction`, `uploadAttachment` (sube el archivo al bucket privado
   `attachments` y crea su fila), `getAttachment` (resuelve `file_url`/`file_type` desde un
   `attachment_id`, F2-7), `getAttachmentUrl` (signed URL temporal para mostrarlo/descargarlo)
@@ -37,8 +38,9 @@ texto, **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado, y *
   debajo de los 5 min de la signed URL para no servir desde caché una URL ya vencida; `retry: false`
   porque el reintento ante una URL vencida lo dispara el usuario desde `AttachmentViewer`).
 - `schema.ts` — zod del form: `type`, `amount`, `currency`, `description`, `categoryId`,
-  `accountId`, `occurredOn` (default hoy), `chargedOn`, `attachment` (`FileList` opcional). Las fechas se
-  editan/validan como **DD/MM/YYYY** y se convierten a ISO al guardar (`displayToIsoDate`).
+  `accountId`, `bank` (F2-11, opcional), `occurredOn` (default hoy), `chargedOn`, `attachment`
+  (`FileList` opcional). Las fechas se editan/validan como **DD/MM/YYYY** y se convierten a ISO al
+  guardar (`displayToIsoDate`).
 - `index.ts` — barrel del feature.
 - `components/TransactionForm.tsx` — alta/edición rápida: foco automático en el monto, categorías
   filtradas por tipo (gasto/ingreso) vía `useCategories`, medios vía `useAccounts`. La persona NO
@@ -53,11 +55,13 @@ texto, **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado, y *
   banco · red · ••últimos4 · (dueño) (`accounts/format.accountLabel`) para distinguir tarjetas.
   Si el comprobante extraído es de una **transferencia** (`origin_holder/bank`, `dest_holder/bank`
   del OCR, F2-8), atribuye el medio/persona **según el tipo** (F2-9, decisión 2026-06-23): gasto →
-  origen (quien envía), ingreso → destino (quien recibe) (`lib/transfer-account`). Si el titular del
-  lado dueño matchea un medio existente (`lib/account-match`), lo asocia solo; si no, ofrece crearlo
-  inline reusando `AccountQuickCreate` de `features/imports` (medio `bank_account`, sin red/last4),
-  preasignando el miembro si el nombre matchea (`lib/member-match`) — siempre editable por el usuario.
-  Requiere `workspaceId`/`members` (opcionales; sin ellos, el alta inline de medio no se ofrece).
+  origen (quien envía), ingreso → destino (quien recibe) (`lib/transfer-account`). El banco del lado
+  dueño se precarga en el campo "Banco" del movimiento (editable). Un único medio `'transfer'` por
+  persona (F2-11): si el titular matchea a un miembro (`lib/member-match`), busca/crea (lazy, sin
+  pedirle al usuario que lo cree a mano) **su** medio `'transfer'` vía
+  `useGetOrCreateTransferAccount` (`features/accounts`); si no matchea a nadie, lo busca/crea por
+  `holder_name`. El medio recién creado se selecciona solo apenas la mutación resuelve.
+  Requiere `workspaceId`/`members` (opcionales; sin ellos, no se ofrece la atribución automática).
 - `components/TransactionForm.test.tsx` — smoke test: monto > 0, moneda de 3 letras, fecha de hoy
   por defecto, precarga de OCR.
 - `components/SummaryCard.tsx` — resumen del período (ingresos/gastos/balance) desglosado por

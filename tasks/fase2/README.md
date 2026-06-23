@@ -8,27 +8,35 @@
 > ✅ F2-6 (sugerencia de categoría), ✅ F2-7 (visor), ✅ F2-8 (origen/destino en el micro),
 > ✅ F2-9 (medio de transferencia + atribución por persona en el front) y
 > ✅ F2-10 (dedup de persona en reportes por `owner_member_id`).
-> **Pendientes: F2-11 (transferencia por persona) y F2-12 (parser universal de comprobantes).**
+> **Pendientes: F2-12 (parser universal de comprobantes) y F2-13 (aviso de duplicado al dar de alta
+> un movimiento).**
+> ✅ F2-11 (transferencia por persona): un único medio `'transfer'` por persona (lazy), banco del
+> movimiento en `transactions.bank`. **Follow-up pendiente (coordinación con F2-10, ya mergeado):**
+> la dimensión "banco" de reportes (`features/reports/aggregate.ts`) y la columna "Banco" de
+> exportar CSV (`features/transactions/export.ts`) leen `account.bank`, que ahora es `null` para
+> transferencias (el banco vive en `transactions.bank`); hay que sumar `tx.bank ?? account?.bank`
+> para que esos movimientos no queden con banco vacío en reportes/export.
 > Los tickets completados se movieron a `tasks/done/` (ver allí su estado/criterios).
 
 ## Archivos de esta carpeta
 
 - `PLAN.md` — plan de Fase 2: arquitectura, decisiones (resueltas y pendientes), desglose y orden.
-- `F2-11-transferencia-por-persona.md` — un único medio `'transfer'` por persona (auto-seleccionado/creado
-  lazy por la precarga) en vez de uno por persona+banco; el banco pasa a `transactions.bank` (columna nueva).
-  Cambio de esquema (enum + columna). _Depende de F2-9, B7; coordina con F2-10._
 - `F2-12-parser-transferencias-universal.md` — parsing de comprobantes universal entre bancos/billeteras
   (regex por proveedor + fallback LLM/visión), con principio "mejor no cargar que cargar mal" (arregla el
   bug de MP que cargaba el año como monto). _Depende de F2-2, F2-8._
+- `F2-13-aviso-duplicado-alta.md` — aviso suave (no bloqueo) al dar de alta un movimiento si ya existe
+  uno igual/parecido: hash exacto del comprobante + heurística monto+fecha(±2d)+medio/descr. Suma columna
+  `attachments.content_hash`. _Depende de F2-2, B8; distinto de F2-4 (resúmenes, bloqueo duro)._
 
 Completados (en `tasks/done/`): `F2-0-modelar-cuotas`, `F2-1-microservicio-python`,
 `F2-2-ocr-comprobantes`, `F2-3-parseo-resumenes-staging`, `F2-3b-nativa-nacion`,
 `F2-4-dedupe-importacion`, `F2-5-alta-medio-desde-resumen`, `F2-6-sugerencia-categoria`,
 `F2-7-visor-comprobantes`, `F2-8-comprobante-origen-destino`,
-`F2-9-medio-transferencia-desde-comprobante`, `F2-10-reportes-dedup-persona-por-miembro`.
+`F2-9-medio-transferencia-desde-comprobante`, `F2-10-reportes-dedup-persona-por-miembro`,
+`F2-11-transferencia-por-persona`.
 
-**Pendientes:** **F2-11** (transferencia por persona, cambio de esquema) y **F2-12** (parser
-universal de comprobantes).
+**Pendientes:** **F2-12** (parser universal de comprobantes) y **F2-13** (aviso de duplicado al
+dar de alta).
 
 ### Decisiones de la charla (2026-06-23) que fijan estos tickets
 

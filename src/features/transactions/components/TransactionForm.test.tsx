@@ -6,6 +6,19 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Account } from '@/features/accounts';
 import { TransactionForm } from './TransactionForm';
 
+const getOrCreateTransferAccountMock = vi.fn();
+
+// Mockeamos solo el hook de F2-11 (busca/crea el medio `'transfer'` lazy); el resto del
+// barrel queda real para no duplicar sus tipos/exports en el test.
+vi.mock('@/features/accounts', async () => {
+  const actual =
+    await vi.importActual<typeof import('@/features/accounts')>('@/features/accounts');
+  return {
+    ...actual,
+    useGetOrCreateTransferAccount: () => ({ mutateAsync: getOrCreateTransferAccountMock }),
+  };
+});
+
 function makeAccount(overrides: Partial<Account>): Account {
   return {
     id: 'acc-1',
@@ -154,10 +167,11 @@ describe('TransactionForm', () => {
     expect(screen.getByLabelText('Monto')).toHaveValue(null);
   });
 
-  it('en una transferencia, autoasocia el medio del origen si ya existe (gasto)', async () => {
+  it('en una transferencia, autoasocia el medio `transfer` del origen si ya existe (gasto), y precarga el banco', async () => {
     const account = makeAccount({
       id: 'acc-juan',
-      bank: 'Banco Patagonia',
+      type: 'transfer',
+      bank: null,
       holder_name: 'Juan Pérez',
     });
     const onExtractReceipt = vi.fn().mockResolvedValue({
@@ -171,7 +185,7 @@ describe('TransactionForm', () => {
       dest_holder: 'María Gómez',
       dest_bank: 'Banco Galicia',
     });
-    render(
+    renderWithQueryClient(
       <TransactionForm
         categories={[]}
         accounts={[account]}
@@ -188,9 +202,18 @@ describe('TransactionForm', () => {
       expect(screen.getByLabelText('Medio (opcional)')).toHaveValue('acc-juan');
     });
     expect(screen.getByText(/Transferencia con Juan Pérez/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Banco (opcional)')).toHaveValue('Banco Patagonia');
+    expect(getOrCreateTransferAccountMock).not.toHaveBeenCalled();
   });
 
-  it('en una transferencia, ofrece crear el medio del destino si no existe (ingreso)', async () => {
+  it('en una transferencia, crea (lazy) el medio `transfer` del destino si no existe (ingreso), matcheando al miembro', async () => {
+    const createdAccount = makeAccount({
+      id: 'acc-maria',
+      type: 'transfer',
+      holder_name: 'María Gómez',
+      owner_member_id: 'member-maria',
+    });
+    getOrCreateTransferAccountMock.mockResolvedValueOnce(createdAccount);
     const onExtractReceipt = vi.fn().mockResolvedValue({
       amount: 1000,
       currency: 'ARS',
@@ -209,7 +232,7 @@ describe('TransactionForm', () => {
         onSubmit={vi.fn()}
         onExtractReceipt={onExtractReceipt}
         workspaceId="ws-1"
-        members={[]}
+        members={[{ id: 'member-maria', name: 'María Gómez' }]}
       />,
     );
 
@@ -218,13 +241,14 @@ describe('TransactionForm', () => {
     await userEvent.upload(screen.getByLabelText('Comprobante (opcional)'), file);
     await userEvent.click(screen.getByRole('button', { name: 'Extraer datos del comprobante' }));
 
+    // El medio recién creado no está en `accounts` (props estáticas del test); en la
+    // app real, la invalidación de la query lo trae y se selecciona solo. Acá lo que
+    // importa es que se dispare la creación lazy con los datos correctos del miembro.
     await waitFor(() => {
-      expect(screen.getByText(/Transferencia con María Gómez/)).toBeInTheDocument();
-    });
-    await userEvent.click(screen.getByRole('button', { name: 'Crear medio' }));
-
-    await waitFor(() => {
-      expect(screen.getByText('Crear medio para María Gómez')).toBeInTheDocument();
+      expect(getOrCreateTransferAccountMock).toHaveBeenCalledWith({
+        ownerMemberId: 'member-maria',
+        holderName: 'María Gómez',
+      });
     });
   });
 });

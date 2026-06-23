@@ -348,6 +348,7 @@ export type Database = {
           amount: number
           amount_base: number | null
           attachment_id: string | null
+          bank: string | null
           category_id: string | null
           charged_on: string | null
           created_at: string
@@ -372,6 +373,7 @@ export type Database = {
           amount: number
           amount_base?: number | null
           attachment_id?: string | null
+          bank?: string | null
           category_id?: string | null
           charged_on?: string | null
           created_at?: string
@@ -396,6 +398,7 @@ export type Database = {
           amount?: number
           amount_base?: number | null
           attachment_id?: string | null
+          bank?: string | null
           category_id?: string | null
           charged_on?: string | null
           created_at?: string
@@ -598,7 +601,13 @@ export type Database = {
       is_member: { Args: { ws: string }; Returns: boolean }
     }
     Enums: {
-      account_type: "credit" | "debit" | "cash" | "wallet" | "bank_account"
+      account_type:
+        | "credit"
+        | "debit"
+        | "cash"
+        | "wallet"
+        | "bank_account"
+        | "transfer"
       attachment_kind: "receipt" | "statement"
       attachment_status: "uploaded" | "processed" | "failed"
       card_network: "visa" | "mastercard" | "amex" | "cabal" | "other"
@@ -737,7 +746,14 @@ export const Constants = {
   },
   public: {
     Enums: {
-      account_type: ["credit", "debit", "cash", "wallet", "bank_account"],
+      account_type: [
+        "credit",
+        "debit",
+        "cash",
+        "wallet",
+        "bank_account",
+        "transfer",
+      ],
       attachment_kind: ["receipt", "statement"],
       attachment_status: ["uploaded", "processed", "failed"],
       card_network: ["visa", "mastercard", "amex", "cabal", "other"],

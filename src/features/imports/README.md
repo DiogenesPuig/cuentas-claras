@@ -33,11 +33,11 @@ revisan/editan en memoria y se confirman **todas de una**, creando los `transact
   que matchea (`lib/account-match`); si no hay, ofrece crearlo. Mapea errores del micro (401/422/sin URL).
 - `components/StagingRow.tsx` — fila editable (incluir, fecha, descripción, monto, categoría;
   muestra cuota y marca pago/devolución).
-- `components/AccountQuickCreate.tsx` — alta inline de un medio (F2-5, FR-16b; reusado por F2-9 para
-  el medio de una transferencia): reusa el `AccountForm` de B7 precargado con los `defaults` que le
-  pasa quien llama (no conoce su origen: resumen de tarjeta o comprobante de transferencia); soporta
-  crear extensiones ligadas a su titular. Exportado en el barrel para que otras features lo reusen
-  (ver `features/transactions`).
+- `components/AccountQuickCreate.tsx` — alta inline de un medio (F2-5, FR-16b): reusa el
+  `AccountForm` de B7 precargado con los `defaults` que le pasa quien llama; soporta crear
+  extensiones ligadas a su titular. Exportado en el barrel para que otras features lo reusen.
+  (El medio `'transfer'` de una transferencia ya no pasa por acá: desde F2-11 se busca/crea lazy
+  vía `getOrCreateTransferAccount`, `features/accounts`.)
 - `index.ts` — barrel del feature.
 
 ## Dedupe (FR-17, F2-4)
