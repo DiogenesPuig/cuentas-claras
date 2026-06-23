@@ -15,6 +15,7 @@ function makeAccount(overrides: Partial<ReportAccount> = {}): ReportAccount {
     network: 'visa',
     type: 'credit',
     holder_name: 'Juan',
+    owner_member_id: null,
     is_extension: false,
     parent_account_id: null,
     billing_close_day: 10,
@@ -81,8 +82,8 @@ describe('aggregateByDimension', () => {
 
     const groups = aggregateByDimension(transactions, 'persona', 'ARS', noRate);
 
-    expect(groups.find((g) => g.key === 'Pepito')?.consolidated.expense).toBe(100);
-    expect(groups.find((g) => g.key === 'Juan')?.consolidated.expense).toBe(50);
+    expect(groups.find((g) => g.label === 'Pepito')?.consolidated.expense).toBe(100);
+    expect(groups.find((g) => g.label === 'Juan')?.consolidated.expense).toBe(50);
   });
 
   it('movimientos sin medio caen en "Sin medio" para banco/red/medio', () => {
@@ -91,9 +92,52 @@ describe('aggregateByDimension', () => {
     for (const dimension of ['banco', 'red', 'medio'] as const) {
       const groups = aggregateByDimension(transactions, dimension, 'ARS', noRate);
       expect(groups).toEqual([
-        { key: 'Sin medio', consolidated: { income: 0, expense: 40, balance: -40, byCurrency: { ARS: { income: 0, expense: 40, balance: -40 } }, missingRates: [] } },
+        { key: 'Sin medio', label: 'Sin medio', consolidated: { income: 0, expense: 40, balance: -40, byCurrency: { ARS: { income: 0, expense: 40, balance: -40 } }, missingRates: [] } },
       ]);
     }
+  });
+
+  it('F2-10: dos medios del mismo owner_member_id se fusionan en una sola persona (nombre vivo del miembro)', () => {
+    const memberNameById = new Map([['member-1', 'Juan Pérez']]);
+    const transactions = [
+      makeTx({
+        amount: 100,
+        account: makeAccount({ holder_name: 'PEREZ JUAN', owner_member_id: 'member-1' }),
+      }),
+      makeTx({
+        amount: 50,
+        account: makeAccount({ holder_name: 'Juan Perez', owner_member_id: 'member-1' }),
+      }),
+    ];
+
+    const groups = aggregateByDimension(transactions, 'persona', 'ARS', noRate, memberNameById);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].label).toBe('Juan Pérez');
+    expect(groups[0].consolidated.expense).toBe(150);
+  });
+
+  it('F2-10: sin owner_member_id, dos holder_name con orden/tildes distintos se fusionan por nombre normalizado', () => {
+    const transactions = [
+      makeTx({ amount: 100, account: makeAccount({ holder_name: 'Pérez Juan', owner_member_id: null }) }),
+      makeTx({ amount: 30, account: makeAccount({ holder_name: 'Juan Perez', owner_member_id: null }) }),
+    ];
+
+    const groups = aggregateByDimension(transactions, 'persona', 'ARS', noRate);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].consolidated.expense).toBe(130);
+  });
+
+  it('F2-10: dos personas realmente distintas (sin miembro) no se fusionan', () => {
+    const transactions = [
+      makeTx({ amount: 100, account: makeAccount({ holder_name: 'Ana Gómez', owner_member_id: null }) }),
+      makeTx({ amount: 30, account: makeAccount({ holder_name: 'Beto López', owner_member_id: null }) }),
+    ];
+
+    const groups = aggregateByDimension(transactions, 'persona', 'ARS', noRate);
+
+    expect(groups).toHaveLength(2);
   });
 
   it('usa la cotización histórica de cada movimiento (cierre de tarjeta de crédito) para el consolidado', () => {
@@ -180,6 +224,29 @@ describe('personaSpending', () => {
     expect(result).toHaveLength(1);
     expect(result[0].expense).toBe(40);
   });
+
+  it('F2-10: dos medios del mismo miembro con holder_name distinto cuentan como una sola persona', () => {
+    const memberNameById = new Map([['member-1', 'Juan Pérez']]);
+    const txs = [
+      makeTx({
+        amount: 60,
+        category: { name: 'Super' },
+        account: makeAccount({ holder_name: 'PEREZ JUAN', owner_member_id: 'member-1' }),
+      }),
+      makeTx({
+        amount: 40,
+        category: { name: 'Super' },
+        account: makeAccount({ holder_name: 'Juan Perez', owner_member_id: 'member-1' }),
+      }),
+    ];
+
+    const result = personaSpending(txs, 'ARS', noRate, memberNameById);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].holder).toBe('Juan Pérez');
+    expect(result[0].expense).toBe(100);
+    expect(result[0].share).toBe(1);
+  });
 });
 
 describe('monthlySeries', () => {
@@ -199,11 +266,19 @@ describe('monthlySeries', () => {
 describe('personaAccounts', () => {
   it('marca las extensiones con el holder de la tarjeta titular', () => {
     const accounts = [
-      { id: 'acc-juan', name: 'Visa Juan', holder_name: 'Juan', is_extension: false, parent_account_id: null },
+      {
+        id: 'acc-juan',
+        name: 'Visa Juan',
+        holder_name: 'Juan',
+        owner_member_id: null,
+        is_extension: false,
+        parent_account_id: null,
+      },
       {
         id: 'acc-pepito',
         name: 'Visa Pepito (ext.)',
         holder_name: 'Pepito',
+        owner_member_id: null,
         is_extension: true,
         parent_account_id: 'acc-juan',
       },
@@ -217,5 +292,32 @@ describe('personaAccounts', () => {
     expect(result.get('Juan')).toEqual([
       { accountName: 'Visa Juan', isExtension: false, titularHolderName: null },
     ]);
+  });
+
+  it('F2-10: agrupa por nombre vivo del miembro cuando hay owner_member_id, aunque el holder_name difiera', () => {
+    const memberNameById = new Map([['member-1', 'Juan Pérez']]);
+    const accounts = [
+      {
+        id: 'acc-1',
+        name: 'Visa Nación',
+        holder_name: 'PEREZ JUAN',
+        owner_member_id: 'member-1',
+        is_extension: false,
+        parent_account_id: null,
+      },
+      {
+        id: 'acc-2',
+        name: 'Cuenta Galicia',
+        holder_name: 'Juan Perez',
+        owner_member_id: 'member-1',
+        is_extension: false,
+        parent_account_id: null,
+      },
+    ];
+
+    const result = personaAccounts(accounts, memberNameById);
+
+    expect(Array.from(result.keys())).toEqual(['Juan Pérez']);
+    expect(result.get('Juan Pérez')).toHaveLength(2);
   });
 });

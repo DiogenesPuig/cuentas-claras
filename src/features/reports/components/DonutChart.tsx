@@ -14,7 +14,7 @@ interface DonutChartProps {
 export function DonutChart({ groups, baseCurrency, showLegend = true }: DonutChartProps) {
   const data = groups
     .filter((g) => g.consolidated.expense > 0)
-    .map((g) => ({ name: g.key, value: g.consolidated.expense }));
+    .map((g) => ({ name: g.label, value: g.consolidated.expense }));
 
   if (data.length === 0) {
     return (

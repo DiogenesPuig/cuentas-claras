@@ -30,3 +30,12 @@ export function nameTokenOverlap(
   const tokensA = new Set(nameTokens(a));
   return nameTokens(b).filter((t) => tokensA.has(t)).length;
 }
+
+/**
+ * Clave de nombre insensible a tildes y al orden de las palabras ("Pérez Juan" y "Juan Perez"
+ * dan la misma clave). Pensada para deduplicar personas que no tienen `owner_member_id`
+ * (F2-10): mismo dueño, escrito distinto en cada banco.
+ */
+export function normalizeNameKey(value: string | null | undefined): string {
+  return [...nameTokens(value)].sort().join(' ');
+}

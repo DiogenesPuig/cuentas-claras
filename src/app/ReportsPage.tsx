@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useAccounts } from '@/features/accounts';
+import { useAccounts, useMembersForHolder } from '@/features/accounts';
 import {
   BarChart,
   ConsolidatedTotals,
@@ -10,6 +10,7 @@ import {
   ReportTabs,
   aggregateByDimension,
   consolidateTransactions,
+  dimensionLabelFor,
   filterReportTransactions,
   monthlySeries,
   personaAccounts,
@@ -66,6 +67,13 @@ export function ReportsPage() {
   const { data: fxSettings } = useWorkspaceFxSettings(workspaceId);
   const { data: transactions, isLoading } = useReportTransactions(workspaceId, range);
   const { data: accounts } = useAccounts(workspaceId);
+  const { data: members } = useMembersForHolder(workspaceId);
+
+  // Nombre vivo del miembro por `owner_member_id` (F2-10): dedup de persona en los reportes.
+  const memberNameById = useMemo(
+    () => new Map((members ?? []).map((m) => [m.id, m.name])),
+    [members],
+  );
 
   const currencies = useMemo(() => {
     if (!transactions || !fxSettings) return [];
@@ -87,17 +95,20 @@ export function ReportsPage() {
   const monthTransactions = allTransactions.filter((tx) => tx.occurred_on.startsWith(activeMonth));
 
   // Vista GENERAL (todo el grupo, sin filtrar): totales, desglose por dimensión y mes a mes.
-  const groups = aggregateByDimension(monthTransactions, dimension, base, rateFor);
+  const groups = aggregateByDimension(monthTransactions, dimension, base, rateFor, memberNameById);
   const totals = consolidateTransactions(monthTransactions, base, rateFor);
   const series = monthlySeries(allTransactions, months, base, rateFor);
-  const personaInfo = personaAccounts(accounts ?? []);
-  const personas = personaSpending(monthTransactions, base, rateFor);
+  const personaInfo = personaAccounts(accounts ?? [], memberNameById);
+  const personas = personaSpending(monthTransactions, base, rateFor, memberNameById);
 
   // Opciones del filtro de detalle, a partir de lo que hay en el mes (FR-22).
   const distinct = (values: (string | null | undefined)[], fallback: string) =>
     Array.from(new Set(values.map((v) => v ?? fallback))).sort((a, b) => a.localeCompare(b, 'es'));
   const filterOptions: ReportFilterOptions = {
-    persona: distinct(monthTransactions.map((tx) => tx.account?.holder_name), 'Sin medio'),
+    persona: distinct(
+      monthTransactions.map((tx) => dimensionLabelFor('persona', tx, memberNameById)),
+      'Sin medio',
+    ),
     banco: distinct(monthTransactions.map((tx) => tx.account?.bank), 'Sin medio'),
     medio: distinct(monthTransactions.map((tx) => tx.account?.name), 'Sin medio'),
     categoria: distinct(monthTransactions.map((tx) => tx.category?.name), 'Sin categoría'),
@@ -112,8 +123,8 @@ export function ReportsPage() {
     ...(filters.categoria ?? []),
   ];
   const hasFilter = activeFilterValues.length > 0;
-  const detailTxs = filterReportTransactions(monthTransactions, filters);
-  const detailGroups = aggregateByDimension(detailTxs, detailDimension, base, rateFor);
+  const detailTxs = filterReportTransactions(monthTransactions, filters, memberNameById);
+  const detailGroups = aggregateByDimension(detailTxs, detailDimension, base, rateFor, memberNameById);
   const detailTotal = consolidateTransactions(detailTxs, base, rateFor).expense;
   const detailLabel = activeFilterValues.join(' · ') || 'Filtrado';
 

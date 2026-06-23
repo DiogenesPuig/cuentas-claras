@@ -28,11 +28,11 @@ Que una misma persona **no aparezca dos veces** en los reportes cuando su nombre
 4. Verificar que dos medios del mismo miembro (con `holder_name` distintos) caen en **un** grupo con el nombre del miembro.
 
 ## Criterios de aceptación
-- [ ] Dos medios del **mismo miembro** con `holder_name` escritos distinto aparecen como **una sola persona** en el donut/desglose y en `personaSpending`.
-- [ ] La etiqueta mostrada es el **nombre vivo** del miembro (no el `holder_name` denormalizado) cuando hay `owner_member_id`.
-- [ ] Medios **sin miembro** caen a `holder_name` **normalizado** (tildes/orden), sin fusionar personas realmente distintas.
-- [ ] Los totales por persona siguen sumando el total del período (no se pierden ni duplican movimientos).
-- [ ] `typecheck`/`lint`/`test` ok.
+- [x] Dos medios del **mismo miembro** con `holder_name` escritos distinto aparecen como **una sola persona** en el donut/desglose y en `personaSpending`.
+- [x] La etiqueta mostrada es el **nombre vivo** del miembro (no el `holder_name` denormalizado) cuando hay `owner_member_id`.
+- [x] Medios **sin miembro** caen a `holder_name` **normalizado** (tildes/orden), sin fusionar personas realmente distintas.
+- [x] Los totales por persona siguen sumando el total del período (no se pierden ni duplican movimientos).
+- [x] `typecheck`/`lint`/`test` ok.
 
 ## Fuera de alcance
 - Crear/atribuir medios desde comprobantes (F2-8/F2-9).
