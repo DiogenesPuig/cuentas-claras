@@ -18,6 +18,12 @@ class ReceiptExtraction(BaseModel):
     date: str | None = Field(default=None, description="Fecha en ISO YYYY-MM-DD")
     merchant: str | None = Field(default=None, description="Comercio detectado")
     confidence: float = Field(default=0.0, ge=0.0, le=1.0, description="Confianza 0..1")
+    # Solo poblados en subtipo 'transfer' (FR-14 / F2-8): insumo de F2-9 para
+    # crear/asignar el medio y atribuir la persona según origen/destino.
+    origin_holder: str | None = Field(default=None, description="Titular de origen (transfers)")
+    origin_bank: str | None = Field(default=None, description="Banco de origen (transfers)")
+    dest_holder: str | None = Field(default=None, description="Titular de destino (transfers)")
+    dest_bank: str | None = Field(default=None, description="Banco de destino (transfers)")
 
 
 class StatementInstallment(BaseModel):

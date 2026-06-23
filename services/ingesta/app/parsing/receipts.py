@@ -194,6 +194,94 @@ _NON_MERCHANT = re.compile(
 _DESTINO_RE = re.compile(r"(?:destino|para|titular|beneficiari[oa])\s*:?\s*(.+)", re.IGNORECASE)
 
 
+_ORIGIN_LABEL = re.compile(
+    r"^(?:origen|de|ordenante|titular\s+origen)\b\s*:?\s*(.*)$", re.IGNORECASE
+)
+_DEST_LABEL = re.compile(r"^(?:destino|para|beneficiari[oa])\b\s*:?\s*(.*)$", re.IGNORECASE)
+_BANK_LABEL = re.compile(
+    r"^banco(?:\s*(origen|destino|emisor|receptor))?\s*:?\s*(.*)$", re.IGNORECASE
+)
+# Lo que sigue al nombre en la misma línea (cuenta/CBU/identificadores), no es el titular.
+_HOLDER_STOP = re.compile(r"\b(cbu|cvu|alias|cuit|cuil|dni|cuenta|ca\s*\$)\b", re.IGNORECASE)
+
+
+def _extract_party(text: str, label_re: re.Pattern[str]) -> str | None:
+    """Titular de un lado (origen/destino) de una transferencia.
+
+    Soporta el formato clave:valor en una sola línea ("Origen: Juan Perez")
+    y el formato de comprobante con la etiqueta sola y el nombre en la línea
+    siguiente (lo más común en comprobantes de banco reales).
+    """
+    lines = text.splitlines()
+    for i, line in enumerate(lines):
+        m = label_re.match(line.strip())
+        if not m:
+            continue
+        inline = m.group(1).strip()
+        if inline:
+            cut = _HOLDER_STOP.search(inline)
+            name = inline[: cut.start()].strip(" -") if cut else inline
+            if name:
+                return name
+            continue
+        for j in range(i + 1, min(i + 4, len(lines))):
+            candidate = lines[j].strip()
+            if candidate:
+                return candidate
+        return None
+    return None
+
+
+def extract_origin(text: str) -> str | None:
+    """Titular de origen de una transferencia (ej. "Origen"/"Ordenante")."""
+    return _extract_party(text, _ORIGIN_LABEL)
+
+
+def extract_dest(text: str) -> str | None:
+    """Titular de destino de una transferencia (ej. "Destino"/"Beneficiario")."""
+    return _extract_party(text, _DEST_LABEL)
+
+
+def extract_bank(text: str, side: str) -> str | None:
+    """Banco de `side` ('origin'/'dest') de una transferencia, si está en el texto.
+
+    Prioriza una etiqueta explícita ("Banco origen"/"Banco destino"); si no hay,
+    cae a una línea "Banco <entidad>" sin calificar dentro del bloque del lado
+    pedido (delimitado por las etiquetas Origen/Destino/Importe).
+    """
+    lines = text.splitlines()
+    origin_idx = next((i for i, ln in enumerate(lines) if _ORIGIN_LABEL.match(ln.strip())), None)
+    dest_idx = next((i for i, ln in enumerate(lines) if _DEST_LABEL.match(ln.strip())), None)
+    amount_idx = next((i for i, ln in enumerate(lines) if _AMOUNT_LABEL.search(ln)), None)
+
+    if side == "origin":
+        lo = origin_idx if origin_idx is not None else 0
+        hi = dest_idx if dest_idx is not None else len(lines)
+        qualifier_wanted = "origen"
+    else:
+        lo = dest_idx if dest_idx is not None else 0
+        hi = len(lines)
+        if amount_idx is not None and dest_idx is not None and amount_idx > dest_idx:
+            hi = amount_idx
+        qualifier_wanted = "destino"
+
+    fallback: str | None = None
+    for line in lines[lo:hi]:
+        m = _BANK_LABEL.match(line.strip())
+        if not m:
+            continue
+        qualifier = (m.group(1) or "").lower()
+        candidate = m.group(2).strip()
+        if not candidate:
+            continue
+        if qualifier:
+            if qualifier == qualifier_wanted:
+                return candidate
+            continue
+        fallback = fallback or candidate
+    return fallback
+
+
 def extract_merchant(text: str, subtype: str) -> str | None:
     """Comercio (compra) o contraparte (transferencia)."""
     if subtype == "transfer":
@@ -232,6 +320,13 @@ def extract_from_text(text: str) -> ReceiptExtraction:
     occurred = extract_date(text)
     merchant = extract_merchant(text, subtype)
 
+    origin_holder = origin_bank = dest_holder = dest_bank = None
+    if subtype == "transfer":
+        origin_holder = extract_origin(text)
+        origin_bank = extract_bank(text, "origin")
+        dest_holder = extract_dest(text)
+        dest_bank = extract_bank(text, "dest")
+
     confidence = 0.0
     if amount is not None:
         confidence += 0.5
@@ -239,6 +334,9 @@ def extract_from_text(text: str) -> ReceiptExtraction:
         confidence += 0.3
     if merchant:
         confidence += 0.2
+    # Criterio conservador: solo sube si se reconoció origen junto con el monto.
+    if origin_holder and amount is not None:
+        confidence = min(1.0, confidence + 0.1)
 
     return ReceiptExtraction(
         amount=amount,
@@ -246,4 +344,8 @@ def extract_from_text(text: str) -> ReceiptExtraction:
         date=occurred,
         merchant=merchant,
         confidence=round(confidence, 2),
+        origin_holder=origin_holder,
+        origin_bank=origin_bank,
+        dest_holder=dest_holder,
+        dest_bank=dest_bank,
     )

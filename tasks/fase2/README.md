@@ -4,16 +4,14 @@
 > `PLAN.md`. La mayoría depende del microservicio Python (`F2-1`); `F2-7` no necesita infra nueva.
 >
 > **Estado (2026-06-23):** ✅ F2-0, F2-1, F2-2 (PR #18); ✅ F2-3 (Patagonia tabular, + reintegros como
-> gasto negativo), ✅ F2-3b (Nativa-Nación), ✅ F2-4 (dedupe), ✅ F2-5 (medio desde el resumen) y
-> ✅ F2-6 (sugerencia de categoría). **Pendientes: F2-7 (visor), F2-8/F2-9/F2-10 (transferencias + dedup de persona).**
+> gasto negativo), ✅ F2-3b (Nativa-Nación), ✅ F2-4 (dedupe), ✅ F2-5 (medio desde el resumen),
+> ✅ F2-6 (sugerencia de categoría), ✅ F2-7 (visor) y ✅ F2-8 (origen/destino en el micro).
+> **Pendientes: F2-9/F2-10 (transferencias en el front + dedup de persona).**
 > Los tickets completados se movieron a `tasks/done/` (ver allí su estado/criterios).
 
 ## Archivos de esta carpeta
 
 - `PLAN.md` — plan de Fase 2: arquitectura, decisiones (resueltas y pendientes), desglose y orden.
-- `F2-7-visor-comprobantes.md` — visor/descarga de adjuntos (FR-10/FR-13), sin infra nueva.
-- `F2-8-comprobante-origen-destino.md` — el micro extrae titular/banco de **origen y destino** de un
-  comprobante de transferencia (extiende `ReceiptExtraction`). Solo microservicio. _Depende de F2-2._
 - `F2-9-medio-transferencia-desde-comprobante.md` — front: crea/asocia el medio `bank_account` desde el
   comprobante y atribuye la persona **según el tipo** (gasto→origen, ingreso→destino), preasignando el
   miembro (editable) si el titular matchea. _Depende de F2-8, F2-2, B7, B8._
@@ -23,9 +21,10 @@
 
 Completados (en `tasks/done/`): `F2-0-modelar-cuotas`, `F2-1-microservicio-python`,
 `F2-2-ocr-comprobantes`, `F2-3-parseo-resumenes-staging`, `F2-3b-nativa-nacion`,
-`F2-4-dedupe-importacion`, `F2-5-alta-medio-desde-resumen`, `F2-6-sugerencia-categoria`.
+`F2-4-dedupe-importacion`, `F2-5-alta-medio-desde-resumen`, `F2-6-sugerencia-categoria`,
+`F2-7-visor-comprobantes`, `F2-8-comprobante-origen-destino`.
 
-**Pendientes:** F2-7 (independiente). **F2-8 → F2-9** (transferencias, en ese orden) y **F2-10**
+**Pendientes:** **F2-9** (transferencias en el front, depende de F2-8 ya cerrado) y **F2-10**
 (dedup de persona en reportes, independiente del micro — se puede tomar primero por ser barato).
 
 ### Decisiones de la charla (2026-06-23) que fijan estos tickets

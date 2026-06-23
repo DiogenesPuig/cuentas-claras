@@ -25,11 +25,11 @@ Que el microservicio de ingesta, al procesar un **comprobante de transferencia**
 4. Subir la confianza solo si se reconoció al menos origen+monto (criterio conservador).
 
 ## Criterios de aceptación
-- [ ] Para un comprobante de transferencia, la respuesta trae `origin_holder`/`origin_bank` y `dest_holder`/`dest_bank` cuando están en el texto.
-- [ ] Para una compra (`purchase`), esos campos van `None` y `merchant` sigue como hoy.
-- [ ] El cambio es **retrocompatible**: clientes viejos que solo leen `amount/currency/date/merchant` no se rompen.
-- [ ] Tests con fixture anonimizado cubren: orden de nombre invertido, comprobante sin banco, y compra (campos nulos).
-- [ ] `pytest` y `ruff` ok; ningún PDF/dato personal commiteado.
+- [x] Para un comprobante de transferencia, la respuesta trae `origin_holder`/`origin_bank` y `dest_holder`/`dest_bank` cuando están en el texto.
+- [x] Para una compra (`purchase`), esos campos van `None` y `merchant` sigue como hoy.
+- [x] El cambio es **retrocompatible**: clientes viejos que solo leen `amount/currency/date/merchant` no se rompen.
+- [x] Tests con fixture anonimizado cubren: orden de nombre invertido, comprobante sin banco, y compra (campos nulos).
+- [x] `pytest` y `ruff` ok; ningún PDF/dato personal commiteado.
 
 ## Fuera de alcance
 - Crear/asignar el medio o atribuir la persona en el front (eso es **F2-9**).
