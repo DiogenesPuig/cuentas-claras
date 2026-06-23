@@ -51,8 +51,15 @@ texto, **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado, y *
   Si el gasto no tiene categoría, muestra una **sugerencia** por descripción (`lib/category-suggest`,
   F2-6) con un botón "Usar" (nunca se aplica sola). El combo de medios muestra
   banco · red · ••últimos4 · (dueño) (`accounts/format.accountLabel`) para distinguir tarjetas.
+  Si el comprobante extraído es de una **transferencia** (`origin_holder/bank`, `dest_holder/bank`
+  del OCR, F2-8), atribuye el medio/persona **según el tipo** (F2-9, decisión 2026-06-23): gasto →
+  origen (quien envía), ingreso → destino (quien recibe) (`lib/transfer-account`). Si el titular del
+  lado dueño matchea un medio existente (`lib/account-match`), lo asocia solo; si no, ofrece crearlo
+  inline reusando `AccountQuickCreate` de `features/imports` (medio `bank_account`, sin red/last4),
+  preasignando el miembro si el nombre matchea (`lib/member-match`) — siempre editable por el usuario.
+  Requiere `workspaceId`/`members` (opcionales; sin ellos, el alta inline de medio no se ofrece).
 - `components/TransactionForm.test.tsx` — smoke test: monto > 0, moneda de 3 letras, fecha de hoy
-  por defecto.
+  por defecto, precarga de OCR.
 - `components/SummaryCard.tsx` — resumen del período (ingresos/gastos/balance) desglosado por
   moneda (B9). Si hay más de una moneda, aclara que el consolidado en la moneda base del workspace
   llega con la conversión FX (C11/C12); por ahora `DashboardPage` solo filtra por mes (en la query,

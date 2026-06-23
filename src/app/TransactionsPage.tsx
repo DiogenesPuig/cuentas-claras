@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/features/auth';
 import { useCategories } from '@/features/categories';
-import { useAccounts } from '@/features/accounts';
+import { useAccounts, useMembersForHolder } from '@/features/accounts';
 import { useMyRole, type MemberRole } from '@/features/workspaces';
 import {
   EMPTY_FIELD_FILTERS,
@@ -33,6 +33,7 @@ export function TransactionsPage() {
   const { data: role } = useMyRole(workspaceId);
   const { data: categories } = useCategories(workspaceId);
   const { data: accounts } = useAccounts(workspaceId);
+  const { data: members } = useMembersForHolder(workspaceId);
 
   const [fieldFilters, setFieldFilters] = useState(EMPTY_FIELD_FILTERS);
   const [searchInput, setSearchInput] = useState('');
@@ -121,6 +122,8 @@ export function TransactionsPage() {
             transaction={editing ?? undefined}
             categories={categories ?? []}
             accounts={accounts ?? []}
+            workspaceId={workspaceId}
+            members={members ?? []}
             onSubmit={handleSubmit}
             onCancel={closeForm}
             isSubmitting={

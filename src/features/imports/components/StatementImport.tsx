@@ -1,8 +1,14 @@
 import { useState } from 'react';
-import { accountLabel, useAccounts, type Account } from '@/features/accounts';
+import {
+  accountLabel,
+  CARD_NETWORKS,
+  useAccounts,
+  type Account,
+  type AccountFormInput,
+} from '@/features/accounts';
 import { useCategories } from '@/features/categories';
-import { matchAccount } from '@/lib/account-match';
-import { IngestaError } from '@/lib/ingesta';
+import { accountDefaultsFromHint, matchAccount } from '@/lib/account-match';
+import { IngestaError, type StatementAccountHint } from '@/lib/ingesta';
 import { useConfirmImport, useFindExistingHashes, useParseStatement } from '../hooks';
 import {
   buildStagingModel,
@@ -24,6 +30,21 @@ function toMatchable(accounts: Account[]) {
     holderName: a.holder_name,
     isExtension: a.is_extension,
   }));
+}
+
+/** Mapea las pistas del resumen a los valores iniciales del alta de medios (B7). */
+function defaultsFromHint(hint: StatementAccountHint): Partial<AccountFormInput> {
+  const base = accountDefaultsFromHint(hint);
+  const network = (CARD_NETWORKS as readonly string[]).includes(base.network) ? base.network : '';
+  return {
+    name: base.name,
+    bank: base.bank,
+    network: network as AccountFormInput['network'],
+    last4: base.last4,
+    holderName: base.holderName,
+    holderKind: 'name', // del resumen sale un nombre, no un miembro de la app
+    type: 'credit', // los resúmenes son de tarjetas de crédito
+  };
 }
 
 interface StatementImportProps {
@@ -257,7 +278,8 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
             {createOpen.has(cardIdx) && (
               <AccountQuickCreate
                 workspaceId={workspaceId}
-                hint={card.accountHint}
+                title="Crear medio detectado en el resumen"
+                defaults={defaultsFromHint(card.accountHint)}
                 accounts={accounts ?? []}
                 onCreated={(account) => handleAccountCreated(cardIdx, account)}
                 onCancel={() => toggleCreate(cardIdx, false)}

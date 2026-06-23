@@ -16,6 +16,12 @@ export interface ReceiptExtraction {
   merchant: string | null;
   /** Confianza 0..1 de la extracción. */
   confidence: number;
+  // Solo poblados en comprobantes de transferencia (F2-8): insumo de F2-9 para
+  // crear/asignar el medio y atribuir la persona según origen/destino.
+  origin_holder: string | null;
+  origin_bank: string | null;
+  dest_holder: string | null;
+  dest_bank: string | null;
 }
 
 export interface StatementInstallment {

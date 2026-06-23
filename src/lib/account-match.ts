@@ -14,6 +14,8 @@
  * 3. Coincidencias parciales → `candidates` para que el usuario elija; nada → crear.
  */
 
+import { nameTokenOverlap, normalizeName } from './name-match';
+
 export interface AccountHint {
   bank: string | null;
   network: string | null;
@@ -38,38 +40,19 @@ export interface AccountMatchResult<T> {
   candidates: T[];
 }
 
-function norm(value: string | null | undefined): string {
-  return (value ?? '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toUpperCase()
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-/** Tokens significativos del nombre (ignora iniciales tipo "D" para no inflar el overlap). */
-function nameTokens(value: string | null | undefined): string[] {
-  return norm(value)
-    .split(' ')
-    .filter((t) => t.length >= 3);
-}
-
 /** Cuántos tokens de nombre comparten dos titulares (apellido/nombre), sin importar el orden. */
-function holderOverlap(a: string | null | undefined, b: string | null | undefined): number {
-  const tokensA = new Set(nameTokens(a));
-  return nameTokens(b).filter((t) => tokensA.has(t)).length;
-}
+const holderOverlap = nameTokenOverlap;
 
 /** Compatibles si coinciden o si falta el dato de algún lado (no descarta por ausencia). */
 function networkCompatible(a: string | null, b: string | null): boolean {
   if (!a || !b) return true;
-  return norm(a) === norm(b);
+  return normalizeName(a) === normalizeName(b);
 }
 
 function bankCompatible(a: string | null, b: string | null): boolean {
   if (!a || !b) return true;
-  const na = norm(a);
-  const nb = norm(b);
+  const na = normalizeName(a);
+  const nb = normalizeName(b);
   return na === nb || na.includes(nb) || nb.includes(na);
 }
 

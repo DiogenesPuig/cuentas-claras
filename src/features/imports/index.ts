@@ -17,3 +17,4 @@ export {
   type EditableRow,
 } from './staging';
 export { StatementImport } from './components/StatementImport';
+export { AccountQuickCreate } from './components/AccountQuickCreate';

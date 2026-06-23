@@ -33,9 +33,11 @@ revisan/editan en memoria y se confirman **todas de una**, creando los `transact
   que matchea (`lib/account-match`); si no hay, ofrece crearlo. Mapea errores del micro (401/422/sin URL).
 - `components/StagingRow.tsx` — fila editable (incluir, fecha, descripción, monto, categoría;
   muestra cuota y marca pago/devolución).
-- `components/AccountQuickCreate.tsx` — alta inline de un medio desde el staging (F2-5, FR-16b):
-  reusa el `AccountForm` de B7 precargado con lo detectado en el resumen (banco/red/last4/titular,
-  tipo crédito); soporta crear extensiones ligadas a su titular.
+- `components/AccountQuickCreate.tsx` — alta inline de un medio (F2-5, FR-16b; reusado por F2-9 para
+  el medio de una transferencia): reusa el `AccountForm` de B7 precargado con los `defaults` que le
+  pasa quien llama (no conoce su origen: resumen de tarjeta o comprobante de transferencia); soporta
+  crear extensiones ligadas a su titular. Exportado en el barrel para que otras features lo reusen
+  (ver `features/transactions`).
 - `index.ts` — barrel del feature.
 
 ## Dedupe (FR-17, F2-4)
@@ -50,7 +52,8 @@ mismo lote) y se persiste `external_hash`, así reimportar el mismo resumen no d
 Al cargar el staging, cada tarjeta del resumen se matchea contra los medios del workspace con
 `lib/account-match` (`matchAccount`): fuerte por `last4` + red, o por titular + banco cuando el
 resumen no trae `last4` (ej. Nativa). Si hay match, el medio queda asociado; si no, el usuario lo
-elige del combo o lo crea inline (`AccountQuickCreate`, precargado con `accountDefaultsFromHint`).
+elige del combo o lo crea inline (`AccountQuickCreate`, precargado por este feature con
+`accountDefaultsFromHint` antes de pasarle los `defaults`).
 Si una tarjeta no matchea, el alta inline se **abre sola** precargada. El combo de medios muestra
 banco · red · ••últimos4 · (dueño) (`accounts/format.accountLabel`).
 
