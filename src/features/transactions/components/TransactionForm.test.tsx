@@ -8,16 +8,13 @@ import { TransactionForm } from './TransactionForm';
 
 const getOrCreateTransferAccountMock = vi.fn();
 
-// Mockeamos solo el hook de F2-11 (busca/crea el medio `'transfer'` lazy); el resto del
-// barrel queda real para no duplicar sus tipos/exports en el test.
-vi.mock('@/features/accounts', async () => {
-  const actual =
-    await vi.importActual<typeof import('@/features/accounts')>('@/features/accounts');
-  return {
-    ...actual,
-    useGetOrCreateTransferAccount: () => ({ mutateAsync: getOrCreateTransferAccountMock }),
-  };
-});
+// Mockeamos el barrel completo (no `vi.importActual`: el barrel re-exporta `api.ts`, que
+// importa `lib/supabase` y rompe en CI sin las env vars — ver memoria del barrel). El único
+// valor que `TransactionForm.tsx` importa de acá es el hook de F2-11; el resto son tipos
+// (se borran en compilación, no hace falta mockearlos).
+vi.mock('@/features/accounts', () => ({
+  useGetOrCreateTransferAccount: () => ({ mutateAsync: getOrCreateTransferAccountMock }),
+}));
 
 function makeAccount(overrides: Partial<Account>): Account {
   return {
