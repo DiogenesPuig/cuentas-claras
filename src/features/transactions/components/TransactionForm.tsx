@@ -154,9 +154,14 @@ export function TransactionForm({
     holderName: a.holder_name,
     isExtension: a.is_extension,
   }));
+  // Transferencia (F2-9): auto-asocia por titular aunque falte el banco (común en
+  // comprobantes/medios de transferencia), siempre que el match sea inequívoco.
   const transferMatch = ownerHolder
-    ? matchAccount({ bank: ownerBank, network: null, last4: null, holder: ownerHolder }, matchableAccounts)
-        .matched
+    ? matchAccount(
+        { bank: ownerBank, network: null, last4: null, holder: ownerHolder },
+        matchableAccounts,
+        { allowHolderOnlyMatch: true },
+      ).matched
     : null;
 
   // Si el medio de la transferencia ya existe, se asocia solo (el usuario sigue pudiendo cambiarlo).
@@ -376,6 +381,7 @@ export function TransactionForm({
               {workspaceId ? (
                 <AccountQuickCreate
                   workspaceId={workspaceId}
+                  nested
                   title={`Crear medio para ${ownerHolder}`}
                   defaults={accountDefaultsForTransfer(ownerHolder, ownerBank, members ?? [])}
                   accounts={accounts}

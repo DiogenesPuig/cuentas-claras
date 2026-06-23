@@ -84,6 +84,42 @@ describe('matchAccount', () => {
   });
 });
 
+describe('matchAccount con allowHolderOnlyMatch (transferencias F2-9)', () => {
+  const TRANSFER_ACCOUNTS: MatchableAccount[] = [
+    { id: 'tr-lucas', bank: null, network: null, last4: null, holderName: 'Lucas Puig' },
+  ];
+
+  it('auto-asocia por titular aunque falte el banco (medio ya creado)', () => {
+    const hint: AccountHint = { bank: null, network: null, last4: null, holder: 'PUIG LUCAS MIGUEL' };
+    const res = matchAccount(hint, TRANSFER_ACCOUNTS, { allowHolderOnlyMatch: true });
+    expect(res.matched?.id).toBe('tr-lucas');
+  });
+
+  it('sin la opción, el mismo caso queda como candidato (no recrea, pero no auto)', () => {
+    const hint: AccountHint = { bank: null, network: null, last4: null, holder: 'PUIG LUCAS MIGUEL' };
+    expect(matchAccount(hint, TRANSFER_ACCOUNTS).matched).toBeNull();
+  });
+
+  it('dos medios del mismo titular → no auto-asocia (ambiguo)', () => {
+    const accounts: MatchableAccount[] = [
+      { id: 'a', bank: null, network: null, last4: null, holderName: 'Lucas Puig' },
+      { id: 'b', bank: 'Galicia', network: null, last4: null, holderName: 'Lucas Puig' },
+    ];
+    const hint: AccountHint = { bank: null, network: null, last4: null, holder: 'LUCAS PUIG' };
+    const res = matchAccount(hint, accounts, { allowHolderOnlyMatch: true });
+    expect(res.matched).toBeNull();
+    expect(res.candidates.map((c) => c.id)).toEqual(['a', 'b']);
+  });
+
+  it('no cruza bancos en conflicto ni siquiera en modo transferencia', () => {
+    const accounts: MatchableAccount[] = [
+      { id: 'pat', bank: 'Banco Patagonia', network: null, last4: null, holderName: 'Lucas Puig' },
+    ];
+    const hint: AccountHint = { bank: 'Banco Nación', network: null, last4: null, holder: 'LUCAS PUIG' };
+    expect(matchAccount(hint, accounts, { allowHolderOnlyMatch: true }).matched).toBeNull();
+  });
+});
+
 describe('accountDefaultsFromHint', () => {
   it('arma valores precargados para el alta inline', () => {
     const hint: AccountHint = { bank: 'Banco Patagonia', network: 'visa', last4: '1234', holder: 'JUAN PEREZ' };

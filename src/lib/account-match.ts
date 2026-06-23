@@ -67,9 +67,21 @@ function bankPositivelyCompatible(a: string | null, b: string | null): boolean {
   return !!a && !!b && bankCompatible(a, b);
 }
 
+export interface MatchAccountOptions {
+  /**
+   * Auto-asocia por titular aunque el banco no coincida positivamente en ambos lados,
+   * siempre que NO entre en conflicto (banco desconocido de algún lado → permitido).
+   * Pensado para transferencias (F2-9): el comprobante y el medio creado suelen no
+   * traer banco, así que exigir banco-positivo nunca encontraría el medio existente.
+   * NO usar para resúmenes de tarjeta (cruzaría bancos por mero parecido de nombre).
+   */
+  allowHolderOnlyMatch?: boolean;
+}
+
 export function matchAccount<T extends MatchableAccount>(
   hint: AccountHint,
   accounts: readonly T[],
+  options: MatchAccountOptions = {},
 ): AccountMatchResult<T> {
   // 1. Match fuerte por last4 (+ red compatible, sin conflicto de banco).
   if (hint.last4) {
@@ -95,10 +107,16 @@ export function matchAccount<T extends MatchableAccount>(
   //    resumen de Banco Nación nunca se asocia solo a una tarjeta de otro banco (ni a una
   //    sin banco) por mero parecido de nombre. Sin esa certeza, queda como candidato.
   if (hint.holder) {
+    // En modo `allowHolderOnlyMatch` (transferencias) alcanza con que el banco no
+    // entre en conflicto; sin ese modo (resúmenes) se exige banco-positivo en ambos.
+    const bankOkForStrong = (a: T) =>
+      options.allowHolderOnlyMatch
+        ? !bankConflicts(a.bank, hint.bank)
+        : bankPositivelyCompatible(a.bank, hint.bank);
     const strong = accounts.filter(
       (a) =>
         holderOverlap(a.holderName, hint.holder) >= 2 &&
-        bankPositivelyCompatible(a.bank, hint.bank) &&
+        bankOkForStrong(a) &&
         networkCompatible(a.network, hint.network),
     );
     if (strong.length === 1) return { matched: strong[0], candidates: [] };

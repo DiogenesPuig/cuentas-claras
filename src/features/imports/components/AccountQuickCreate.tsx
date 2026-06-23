@@ -17,6 +17,8 @@ interface AccountQuickCreateProps {
   onCancel: () => void;
   /** Copy del bloque; cada llamador lo contextualiza (resumen vs. transferencia). */
   title?: string;
+  /** El alta se usa dentro de otro `<form>` (ej. movimientos en F2-9): evita anidar forms. */
+  nested?: boolean;
 }
 
 /**
@@ -31,6 +33,7 @@ export function AccountQuickCreate({
   onCreated,
   onCancel,
   title = 'Crear medio',
+  nested = false,
 }: AccountQuickCreateProps) {
   const { data: members } = useMembersForHolder(workspaceId);
   const createAccount = useCreateAccount(workspaceId);
@@ -43,6 +46,7 @@ export function AccountQuickCreate({
         defaults={defaults}
         members={members ?? []}
         parentOptions={parentOptions}
+        nested={nested}
         isSubmitting={createAccount.isPending}
         onCancel={onCancel}
         onSubmit={async (input) => {
