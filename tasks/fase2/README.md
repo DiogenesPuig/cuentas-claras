@@ -7,7 +7,8 @@
 > gasto negativo), ✅ F2-3b (Nativa-Nación), ✅ F2-4 (dedupe), ✅ F2-5 (medio desde el resumen),
 > ✅ F2-6 (sugerencia de categoría), ✅ F2-7 (visor), ✅ F2-8 (origen/destino en el micro) y
 > ✅ F2-9 (medio de transferencia + atribución por persona en el front).
-> **Pendiente: F2-10 (dedup de persona en reportes).**
+> **Pendientes: F2-10 (dedup de persona en reportes), F2-11 (transferencia por persona) y
+> F2-12 (parser universal de comprobantes).**
 > Los tickets completados se movieron a `tasks/done/` (ver allí su estado/criterios).
 
 ## Archivos de esta carpeta
@@ -16,6 +17,12 @@
 - `F2-10-reportes-dedup-persona-por-miembro.md` — reportes: agrupar la dimensión "persona" por
   `owner_member_id` (fallback a `holder_name` normalizado) para no contar a alguien dos veces cuando su
   nombre viene escrito distinto en cada banco. _Depende de C13, B7._
+- `F2-11-transferencia-por-persona.md` — un único medio `'transfer'` por persona (auto-seleccionado/creado
+  lazy por la precarga) en vez de uno por persona+banco; el banco pasa a `transactions.bank` (columna nueva).
+  Cambio de esquema (enum + columna). _Depende de F2-9, B7; coordina con F2-10._
+- `F2-12-parser-transferencias-universal.md` — parsing de comprobantes universal entre bancos/billeteras
+  (regex por proveedor + fallback LLM/visión), con principio "mejor no cargar que cargar mal" (arregla el
+  bug de MP que cargaba el año como monto). _Depende de F2-2, F2-8._
 
 Completados (en `tasks/done/`): `F2-0-modelar-cuotas`, `F2-1-microservicio-python`,
 `F2-2-ocr-comprobantes`, `F2-3-parseo-resumenes-staging`, `F2-3b-nativa-nacion`,
@@ -23,7 +30,8 @@ Completados (en `tasks/done/`): `F2-0-modelar-cuotas`, `F2-1-microservicio-pytho
 `F2-7-visor-comprobantes`, `F2-8-comprobante-origen-destino`,
 `F2-9-medio-transferencia-desde-comprobante`.
 
-**Pendiente:** **F2-10** (dedup de persona en reportes, independiente del micro).
+**Pendientes:** **F2-10** (dedup de persona en reportes, independiente del micro), **F2-11**
+(transferencia por persona, cambio de esquema) y **F2-12** (parser universal de comprobantes).
 
 ### Decisiones de la charla (2026-06-23) que fijan estos tickets
 
@@ -34,6 +42,20 @@ Completados (en `tasks/done/`): `F2-0-modelar-cuotas`, `F2-1-microservicio-pytho
   (editable), no solo candidato.
 - **Dedup de persona:** reportes agrupan por **`owner_member_id`**; el nombre escrito distinto por cada
   banco deja de duplicar. El match por nombre ya es **order-independent** (token-set en `account-match`).
+
+### Decisiones de la 2ª charla (2026-06-23) — revisan el modelo de F2-9
+
+- **Un medio `'transfer'` por persona** (no por persona+banco): la precarga detecta el titular del lado
+  dueño, lo matchea a un miembro y selecciona/crea (lazy) **su** medio "Transferencia". Esto **revisa** la
+  decisión de arriba (`type='bank_account'` por persona+banco) → ver **F2-11**. El `account_type` suma el
+  valor `'transfer'` para que se catalogue como tal.
+- **Banco en el movimiento, no en el medio:** como una persona transfiere desde varios bancos, el banco va
+  a una columna nueva `transactions.bank` (opcional, precargada del OCR) → **F2-11**.
+- **Parser universal, "mejor no cargar que cargar mal":** ante la duda, vacío y carga manual; nunca un
+  valor inventado. Estrategia **híbrida** regex-por-proveedor + fallback **LLM/visión** (el LLM suma dep/
+  costo/key → decisión de Opus, corre en el micro) → **F2-12**.
+- Los **dos bugs de F2-9** (forms anidados que recargaban y perdían el comprobante; medio existente no
+  auto-detectado en transferencias sin banco) se arreglaron en el PR de F2-9 (#24).
 
 ## Alcance (PRD §14 — Fase 2: semanas 7–11)
 
