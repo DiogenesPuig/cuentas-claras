@@ -15,7 +15,17 @@ def test_receipts_extract_shape(client: TestClient, auth_header: dict[str, str])
     )
     assert res.status_code == 200
     body = res.json()
-    assert set(body) == {"amount", "currency", "date", "merchant", "confidence"}
+    assert set(body) == {
+        "amount",
+        "currency",
+        "date",
+        "merchant",
+        "confidence",
+        "origin_holder",
+        "origin_bank",
+        "dest_holder",
+        "dest_bank",
+    }
     assert body["confidence"] == 0.0
 
 

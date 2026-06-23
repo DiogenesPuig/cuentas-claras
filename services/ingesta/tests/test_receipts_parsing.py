@@ -11,7 +11,10 @@ import pytest
 from app.parsing.receipts import (
     detect_subtype,
     extract_amount,
+    extract_bank,
+    extract_dest,
     extract_from_text,
+    extract_origin,
     parse_amount,
 )
 
@@ -120,3 +123,87 @@ def test_usd_currency() -> None:
     res = extract_from_text("TIENDA\nFecha 01/01/2026\nTOTAL U$S 50,00\n")
     assert res.currency == "USD"
     assert res.amount == 50.0
+
+
+# --- F2-8: origen/destino/banco de transferencias --------------------------
+
+# Formato "clave: valor en la misma línea" (TRANSFER ya cubre orden directo).
+TRANSFER_ORDEN_INVERTIDO = """Comprobante de transferencia
+Banco Ejemplo
+Fecha y hora: 10/06/2026 09:00
+Nº de operacion: 555000111
+Ordenante: Lopez, Ana
+Banco origen: Banco Ejemplo
+Beneficiario: Perez Juan
+Banco destino: Banco Otro
+Importe: $ 5.000,00
+"""
+
+# Formato real de comprobante bancario: etiqueta sola, nombre/cuenta en líneas
+# siguientes (imita BANCOPATAGONIA transferencia, con datos inventados).
+TRANSFER_MULTILINEA = """Banco Ejemplo
+Transferencia
+Fecha y Hora
+10/06/2026 09:30:00
+Nº de transacción
+1234567890
+Origen
+Gomez Carlos, Roberto
+CA $ 100-100001111-000
+Destino
+Fernandez Maria Laura
+CUIT / CUIL / DNI: 20111222333
+CBU / CVU: 0070000000000000000000
+Banco Otro
+Importe
+$ 7.500,00
+Concepto
+Varios
+"""
+
+TRANSFER_SIN_BANCO = """Comprobante de transferencia
+Fecha: 11/06/2026
+Origen: Diaz Pedro
+Destino: Romero Sofia
+Importe: $ 1.000,00
+"""
+
+
+def test_transfer_origen_destino_orden_invertido() -> None:
+    assert extract_origin(TRANSFER_ORDEN_INVERTIDO) == "Lopez, Ana"
+    assert extract_dest(TRANSFER_ORDEN_INVERTIDO) == "Perez Juan"
+    assert extract_bank(TRANSFER_ORDEN_INVERTIDO, "origin") == "Banco Ejemplo"
+    assert extract_bank(TRANSFER_ORDEN_INVERTIDO, "dest") == "Banco Otro"
+
+
+def test_transfer_multilinea_estilo_comprobante_bancario() -> None:
+    assert extract_origin(TRANSFER_MULTILINEA) == "Gomez Carlos, Roberto"
+    assert extract_dest(TRANSFER_MULTILINEA) == "Fernandez Maria Laura"
+    # El "Banco Otro" sin calificar, dentro del bloque Destino, es el banco destino.
+    assert extract_bank(TRANSFER_MULTILINEA, "dest") == "Otro"
+    # Sin etiqueta de banco en el bloque Origen: no hay dato (no se infiere del header).
+    assert extract_bank(TRANSFER_MULTILINEA, "origin") is None
+
+
+def test_transfer_sin_banco_da_none() -> None:
+    res = extract_from_text(TRANSFER_SIN_BANCO)
+    assert res.origin_holder == "Diaz Pedro"
+    assert res.dest_holder == "Romero Sofia"
+    assert res.origin_bank is None
+    assert res.dest_bank is None
+
+
+def test_purchase_no_pobla_campos_de_transferencia() -> None:
+    res = extract_from_text(TICKET)
+    assert res.origin_holder is None
+    assert res.origin_bank is None
+    assert res.dest_holder is None
+    assert res.dest_bank is None
+    assert res.merchant == "SUPERMERCADO LA ECONOMIA"  # retrocompatible
+
+
+def test_transfer_extraction_pobla_origen_y_destino() -> None:
+    res = extract_from_text(TRANSFER)
+    assert res.origin_holder == "Juan Perez"
+    assert res.dest_holder == "Maria Lopez"
+    assert res.confidence == 1.0  # ya estaba en el tope; el boost no lo pasa de 1.0

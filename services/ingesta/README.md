@@ -41,7 +41,9 @@ pyproject.toml       deps + ruff + pytest
 
 ## Contrato (`/v1/`, versionado en el path)
 
-- `POST /v1/receipts:extract` (multipart: `file`) → `{ amount, currency, date, merchant, confidence }`
+- `POST /v1/receipts:extract` (multipart: `file`) →
+  `{ amount, currency, date, merchant, confidence, origin_holder?, origin_bank?, dest_holder?, dest_bank? }`
+  (los últimos cuatro solo se completan en comprobantes de transferencia; F2-8)
 - `POST /v1/statements:parse` (multipart: `file`, `password?`) →
   `{ statement_close_on, cards: [{ account_hint: { bank, network, last4, holder }, rows: [{ occurred_on, description, amount, currency, installment?, kind }] }] }`
   (`kind`: `"charge"` | `"payment"`)
