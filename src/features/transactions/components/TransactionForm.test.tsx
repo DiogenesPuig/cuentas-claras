@@ -1,7 +1,37 @@
+import type { ReactElement } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import type { Account } from '@/features/accounts';
 import { TransactionForm } from './TransactionForm';
+
+function makeAccount(overrides: Partial<Account>): Account {
+  return {
+    id: 'acc-1',
+    workspace_id: 'ws-1',
+    name: 'Cuenta',
+    bank: null,
+    network: null,
+    type: 'bank_account',
+    currency: 'ARS',
+    last4: null,
+    holder_name: 'Titular',
+    owner_member_id: null,
+    is_extension: false,
+    is_archived: false,
+    parent_account_id: null,
+    billing_close_day: null,
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
+    ...overrides,
+  };
+}
+
+function renderWithQueryClient(ui: ReactElement) {
+  const client = new QueryClient();
+  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+}
 
 describe('TransactionForm', () => {
   it('exige un monto mayor a 0 antes de enviar', async () => {
@@ -122,5 +152,79 @@ describe('TransactionForm', () => {
       expect(screen.getByText(/No se pudieron extraer datos/i)).toBeInTheDocument();
     });
     expect(screen.getByLabelText('Monto')).toHaveValue(null);
+  });
+
+  it('en una transferencia, autoasocia el medio del origen si ya existe (gasto)', async () => {
+    const account = makeAccount({
+      id: 'acc-juan',
+      bank: 'Banco Patagonia',
+      holder_name: 'Juan Pérez',
+    });
+    const onExtractReceipt = vi.fn().mockResolvedValue({
+      amount: 1000,
+      currency: 'ARS',
+      date: '2026-05-21',
+      merchant: null,
+      confidence: 0.9,
+      origin_holder: 'Juan Pérez',
+      origin_bank: 'Banco Patagonia',
+      dest_holder: 'María Gómez',
+      dest_bank: 'Banco Galicia',
+    });
+    render(
+      <TransactionForm
+        categories={[]}
+        accounts={[account]}
+        onSubmit={vi.fn()}
+        onExtractReceipt={onExtractReceipt}
+      />,
+    );
+
+    const file = new File(['x'], 'transferencia.jpg', { type: 'image/jpeg' });
+    await userEvent.upload(screen.getByLabelText('Comprobante (opcional)'), file);
+    await userEvent.click(screen.getByRole('button', { name: 'Extraer datos del comprobante' }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Medio (opcional)')).toHaveValue('acc-juan');
+    });
+    expect(screen.getByText(/Transferencia con Juan Pérez/)).toBeInTheDocument();
+  });
+
+  it('en una transferencia, ofrece crear el medio del destino si no existe (ingreso)', async () => {
+    const onExtractReceipt = vi.fn().mockResolvedValue({
+      amount: 1000,
+      currency: 'ARS',
+      date: '2026-05-21',
+      merchant: null,
+      confidence: 0.9,
+      origin_holder: 'Juan Pérez',
+      origin_bank: 'Banco Patagonia',
+      dest_holder: 'María Gómez',
+      dest_bank: 'Banco Galicia',
+    });
+    renderWithQueryClient(
+      <TransactionForm
+        categories={[]}
+        accounts={[]}
+        onSubmit={vi.fn()}
+        onExtractReceipt={onExtractReceipt}
+        workspaceId="ws-1"
+        members={[]}
+      />,
+    );
+
+    await userEvent.click(screen.getByLabelText('Ingreso'));
+    const file = new File(['x'], 'transferencia.jpg', { type: 'image/jpeg' });
+    await userEvent.upload(screen.getByLabelText('Comprobante (opcional)'), file);
+    await userEvent.click(screen.getByRole('button', { name: 'Extraer datos del comprobante' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Transferencia con María Gómez/)).toBeInTheDocument();
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Crear medio' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Crear medio para María Gómez')).toBeInTheDocument();
+    });
   });
 });

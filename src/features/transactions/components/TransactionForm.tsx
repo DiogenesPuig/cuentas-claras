@@ -2,9 +2,22 @@ import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { Category } from '@/features/categories';
-import type { Account } from '@/features/accounts';
+import type { Account, AccountFormInput, MemberOption } from '@/features/accounts';
 // Valor (no barrel) para no arrastrar Supabase al test del form (ver memoria del barrel).
 import { accountLabel } from '@/features/accounts/format';
+// Reusa el alta inline de medios de F2-5 (se mantiene físicamente en `imports` pero ya
+// es genérica): evita duplicar el flujo de "crear medio" para el caso de transferencias.
+import { AccountQuickCreate } from '@/features/imports';
+import { matchAccount, type MatchableAccount } from '@/lib/account-match';
+import { matchMember } from '@/lib/member-match';
+import {
+  bankFor,
+  counterpartyFor,
+  holderFor,
+  ownerSideFor,
+  transferAccountDefaults,
+  type TransferPartyInfo,
+} from '@/lib/transfer-account';
 import {
   defaultTransactionValues,
   transactionSchema,
@@ -37,6 +50,24 @@ function defaultValuesFor(transaction?: Transaction): TransactionFormInput {
   };
 }
 
+/** Valores para precargar el alta inline del medio `bank_account` de una transferencia (F2-9). */
+function accountDefaultsForTransfer(
+  holder: string,
+  bank: string | null,
+  members: MemberOption[],
+): Partial<AccountFormInput> {
+  const base = transferAccountDefaults(holder, bank);
+  const member = matchMember(holder, members);
+  return {
+    name: base.name,
+    bank: base.bank,
+    type: 'bank_account',
+    holderKind: member ? 'member' : 'name',
+    ownerMemberId: member?.id ?? '',
+    holderName: member ? '' : base.holderName,
+  };
+}
+
 interface TransactionFormProps {
   /** Si se pasa, el form edita este movimiento; si no, crea uno nuevo. */
   transaction?: Transaction;
@@ -51,6 +82,10 @@ interface TransactionFormProps {
    * precargar monto/fecha/comercio. Si falla o no se configuró, el alta sigue manual.
    */
   onExtractReceipt?: (file: File) => Promise<ReceiptExtraction>;
+  /** Workspace activo: requerido para ofrecer crear el medio de una transferencia (F2-9). */
+  workspaceId?: string;
+  /** Miembros del workspace, para preasignar el dueño del medio de una transferencia. */
+  members?: MemberOption[];
 }
 
 /** Alta/edición rápida de un movimiento (ingreso/gasto) del workspace. */
@@ -62,11 +97,16 @@ export function TransactionForm({
   onCancel,
   isSubmitting,
   onExtractReceipt,
+  workspaceId,
+  members,
 }: TransactionFormProps) {
   const amountRef = useRef<HTMLInputElement | null>(null);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrMessage, setOcrMessage] = useState<string | null>(null);
   const [ocrApplied, setOcrApplied] = useState(false);
+  // Origen/destino detectados en un comprobante de transferencia (F2-8/F2-9).
+  const [transferInfo, setTransferInfo] = useState<TransferPartyInfo | null>(null);
+  const [showCreateAccount, setShowCreateAccount] = useState(false);
   const {
     register,
     handleSubmit,
@@ -83,6 +123,8 @@ export function TransactionForm({
     reset(defaultValuesFor(transaction));
     setOcrApplied(false);
     setOcrMessage(null);
+    setTransferInfo(null);
+    setShowCreateAccount(false);
   }, [transaction, reset]);
 
   useEffect(() => {
@@ -92,9 +134,41 @@ export function TransactionForm({
   const type = watch('type');
   const description = watch('description');
   const categoryId = watch('categoryId');
+  const accountId = watch('accountId');
   const selectedFile = watch('attachment')?.[0] ?? null;
   const categoryOptions = categories.filter((c) => c.kind === type);
   const amountField = register('amount');
+
+  // Atribución del medio/persona en una transferencia (F2-9, decisión 2026-06-23):
+  // gasto → origen (quien envía), ingreso → destino (quien recibe).
+  const ownerSide = transferInfo ? ownerSideFor(type) : null;
+  const ownerHolder = transferInfo && ownerSide ? holderFor(transferInfo, ownerSide) : null;
+  const ownerBank = transferInfo && ownerSide ? bankFor(transferInfo, ownerSide) : null;
+  const counterparty = transferInfo && ownerSide ? counterpartyFor(transferInfo, ownerSide) : null;
+
+  const matchableAccounts: MatchableAccount[] = accounts.map((a) => ({
+    id: a.id,
+    bank: a.bank,
+    network: a.network,
+    last4: a.last4,
+    holderName: a.holder_name,
+    isExtension: a.is_extension,
+  }));
+  // Transferencia (F2-9): auto-asocia por titular aunque falte el banco (común en
+  // comprobantes/medios de transferencia), siempre que el match sea inequívoco.
+  const transferMatch = ownerHolder
+    ? matchAccount(
+        { bank: ownerBank, network: null, last4: null, holder: ownerHolder },
+        matchableAccounts,
+        { allowHolderOnlyMatch: true },
+      ).matched
+    : null;
+
+  // Si el medio de la transferencia ya existe, se asocia solo (el usuario sigue pudiendo cambiarlo).
+  useEffect(() => {
+    if (transferMatch && !accountId) setValue('accountId', transferMatch.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transferMatch?.id]);
 
   // Sugerencia de categoría por descripción (F2-6, FR-19): solo si no hay una elegida.
   // Nunca se aplica sola; el usuario decide con el botón "Usar".
@@ -107,8 +181,18 @@ export function TransactionForm({
     setOcrMessage(null);
     try {
       const result = await onExtractReceipt(selectedFile);
+      const transfer: TransferPartyInfo = {
+        originHolder: result.origin_holder,
+        originBank: result.origin_bank,
+        destHolder: result.dest_holder,
+        destBank: result.dest_bank,
+      };
+      const hasTransferInfo = Object.values(transfer).some((v) => v);
       const found =
-        result.amount != null || result.date != null || (result.merchant?.trim().length ?? 0) > 0;
+        result.amount != null ||
+        result.date != null ||
+        (result.merchant?.trim().length ?? 0) > 0 ||
+        hasTransferInfo;
       if (!found) {
         setOcrMessage('No se pudieron extraer datos del comprobante. Completá manualmente.');
         return;
@@ -117,6 +201,14 @@ export function TransactionForm({
       if (result.currency) setValue('currency', result.currency.toUpperCase());
       if (result.date) setValue('occurredOn', isoToDisplayDate(result.date));
       if (result.merchant?.trim()) setValue('description', result.merchant.trim().slice(0, 140));
+      // Sin comercio (transferencia), sugerimos la contraparte como descripción.
+      if (!result.merchant?.trim() && hasTransferInfo) {
+        const side = ownerSideFor(type);
+        const suggestion = counterpartyFor(transfer, side);
+        if (suggestion) setValue('description', suggestion.slice(0, 140));
+      }
+      setTransferInfo(hasTransferInfo ? transfer : null);
+      setShowCreateAccount(false);
       setOcrApplied(true);
       setOcrMessage(
         result.confidence < LOW_CONFIDENCE
@@ -264,6 +356,48 @@ export function TransactionForm({
               </option>
             ))}
           </select>
+          {ownerHolder && (
+            <p className="text-xs text-muted-foreground">
+              Transferencia con {ownerHolder}
+              {counterparty ? ` (de/para ${counterparty})` : ''}.
+              {!transferMatch && !accountId && (
+                <>
+                  {' '}
+                  {!showCreateAccount ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateAccount(true)}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      Crear medio
+                    </button>
+                  ) : null}
+                </>
+              )}
+            </p>
+          )}
+          {showCreateAccount && ownerHolder && !transferMatch && !accountId && (
+            <div className="mt-2">
+              {workspaceId ? (
+                <AccountQuickCreate
+                  workspaceId={workspaceId}
+                  nested
+                  title={`Crear medio para ${ownerHolder}`}
+                  defaults={accountDefaultsForTransfer(ownerHolder, ownerBank, members ?? [])}
+                  accounts={accounts}
+                  onCreated={(account) => {
+                    setValue('accountId', account.id);
+                    setShowCreateAccount(false);
+                  }}
+                  onCancel={() => setShowCreateAccount(false)}
+                />
+              ) : (
+                <p className="text-xs text-destructive">
+                  Falta el workspace activo para crear el medio.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

@@ -29,12 +29,12 @@ Al cargar un **comprobante de transferencia** (OCR de F2-2), detectar/crear el *
 5. Sugerir la contraparte como descripción del movimiento.
 
 ## Criterios de aceptación
-- [ ] Un comprobante de transferencia como **gasto** crea/asocia el medio del **origen** y atribuye a esa persona; como **ingreso**, usa el **destino**.
-- [ ] Si el titular del lado dueño coincide con un miembro, el medio queda ligado a `owner_member_id` (preseleccionado, **editable**); si no, usa `holder_name`.
-- [ ] El medio es `type='bank_account'` con `network`/`last4` nulos; sin migración de esquema.
-- [ ] No se crea un medio duplicado si ya existe uno del mismo banco+titular (reusa `matchAccount`).
-- [ ] `matchMember` es puro y tolera nombre en orden invertido; con ambigüedad no preasigna.
-- [ ] `typecheck`/`lint`/`test` ok.
+- [x] Un comprobante de transferencia como **gasto** crea/asocia el medio del **origen** y atribuye a esa persona; como **ingreso**, usa el **destino**.
+- [x] Si el titular del lado dueño coincide con un miembro, el medio queda ligado a `owner_member_id` (preseleccionado, **editable**); si no, usa `holder_name`.
+- [x] El medio es `type='bank_account'` con `network`/`last4` nulos; sin migración de esquema.
+- [x] No se crea un medio duplicado si ya existe uno del mismo banco+titular (reusa `matchAccount`).
+- [x] `matchMember` es puro y tolera nombre en orden invertido; con ambigüedad no preasigna.
+- [x] `typecheck`/`lint`/`test` ok.
 
 ## Fuera de alcance
 - Extracción de origen/destino en el micro (F2-8).

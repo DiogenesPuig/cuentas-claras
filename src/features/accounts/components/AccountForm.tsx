@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -55,6 +55,13 @@ interface AccountFormProps {
   onSubmit: (input: AccountInput) => Promise<void>;
   onCancel?: () => void;
   isSubmitting?: boolean;
+  /**
+   * Si el form se usa anidado dentro de otro `<form>` (ej. alta inline de un medio
+   * desde el form de movimientos en F2-9), renderiza un `<div>` en vez de `<form>` y
+   * dispara el submit por `onClick`. Anidar `<form>` es HTML inválido: el navegador
+   * descarta el interno y el botón terminaría enviando el form externo (recarga).
+   */
+  nested?: boolean;
 }
 
 /** Alta/edición de un medio de pago/tarjeta del workspace. */
@@ -66,6 +73,7 @@ export function AccountForm({
   onSubmit,
   onCancel,
   isSubmitting,
+  nested = false,
 }: AccountFormProps) {
   // En modo alta, los `defaults` (ej. del resumen) pisan los valores vacíos; en
   // edición mandan los del medio. `account` siempre tiene prioridad si está.
@@ -112,8 +120,22 @@ export function AccountForm({
     });
   }
 
+  // Anidado: contenedor `<div>` (sin `onSubmit`), el envío va por el `onClick` del botón.
+  // Además frenamos Enter en los inputs para que no submitee el `<form>` externo.
+  const Wrapper = nested ? 'div' : 'form';
+  const wrapperProps = nested
+    ? {
+        className: 'space-y-4',
+        onKeyDown: (e: ReactKeyboardEvent) => {
+          if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') {
+            e.preventDefault();
+          }
+        },
+      }
+    : { className: 'space-y-4', noValidate: true, onSubmit: handleSubmit(handleFormSubmit) };
+
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4" noValidate>
+    <Wrapper {...wrapperProps}>
       <div className="space-y-1">
         <label htmlFor="account-name" className="text-sm font-medium">
           Nombre
@@ -309,7 +331,8 @@ export function AccountForm({
 
       <div className="flex gap-2">
         <button
-          type="submit"
+          type={nested ? 'button' : 'submit'}
+          onClick={nested ? handleSubmit(handleFormSubmit) : undefined}
           disabled={isSubmitting}
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
@@ -325,6 +348,6 @@ export function AccountForm({
           </button>
         )}
       </div>
-    </form>
+    </Wrapper>
   );
 }
