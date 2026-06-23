@@ -3,6 +3,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { Category } from '@/features/categories';
 import type { Account } from '@/features/accounts';
+// Valor (no barrel) para no arrastrar Supabase al test del form (ver memoria del barrel).
+import { accountLabel } from '@/features/accounts/format';
 import {
   defaultTransactionValues,
   transactionSchema,
@@ -258,7 +260,7 @@ export function TransactionForm({
             <option value="">Sin medio</option>
             {accounts.map((account) => (
               <option key={account.id} value={account.id}>
-                {account.name}
+                {accountLabel({ ...account, holderName: account.holder_name })}
               </option>
             ))}
           </select>

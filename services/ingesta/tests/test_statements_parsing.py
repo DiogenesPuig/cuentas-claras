@@ -84,6 +84,15 @@ def test_matches_nativa_and_dispatch() -> None:
     assert patagonia.matches(NATIVA) is False
 
 
+def test_nativa_bank_detected_by_header_markers() -> None:
+    # El banco debe quedar seteado aunque el texto no diga "nación" literal (lo identifica
+    # por el producto "NATIVA" o el CUIT). Así el front nunca asocia el resumen a otra tarjeta.
+    assert nativa_nacion._bank("RESUMEN NATIVA INTERNACIONAL MASTERCARD") == "Banco Nación"
+    assert nativa_nacion._bank("CUIT Entidad: 30-50001091-2") == "Banco Nación"
+    assert nativa_nacion._bank("BANCO DE LA NACION ARGENTINA") == "Banco Nación"
+    assert nativa_nacion._bank("un resumen de otro banco") is None
+
+
 def test_nativa_close_date_and_cards() -> None:
     res = parse_statement_text(NATIVA)
     assert res.statement_close_on == "2026-05-21"  # "Estado de cuenta al : 21-May-26"

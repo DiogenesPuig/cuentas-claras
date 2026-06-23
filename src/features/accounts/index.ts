@@ -23,5 +23,6 @@ export {
   HOLDER_KINDS,
   type AccountFormInput,
 } from './schema';
+export { accountLabel } from './format';
 export { AccountList } from './components/AccountList';
 export { AccountForm } from './components/AccountForm';

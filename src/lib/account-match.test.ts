@@ -62,6 +62,26 @@ describe('matchAccount', () => {
     const hint: AccountHint = { bank: 'Banco Patagonia', network: 'mastercard', last4: '1234', holder: 'JUAN PEREZ' };
     expect(matchAccount(hint, ACCOUNTS).matched).toBeNull();
   });
+
+  it('NO asocia un resumen a una tarjeta de OTRO banco aunque coincida el titular', () => {
+    const accounts: MatchableAccount[] = [
+      { id: 'pat-lucas', bank: 'Banco Patagonia', network: 'mastercard', last4: null, holderName: 'Lucas Puig' },
+    ];
+    const hint: AccountHint = { bank: 'Banco Nación', network: 'mastercard', last4: null, holder: 'PUIG LUCAS MIGUEL' };
+    const res = matchAccount(hint, accounts);
+    expect(res.matched).toBeNull(); // banco en conflicto: Nación ≠ Patagonia
+    expect(res.candidates).toHaveLength(0);
+  });
+
+  it('si el resumen no trae banco, el titular solo deja candidatos (no auto-match cruzado)', () => {
+    const accounts: MatchableAccount[] = [
+      { id: 'pat-lucas', bank: 'Banco Patagonia', network: 'mastercard', last4: null, holderName: 'Lucas Puig' },
+    ];
+    const hint: AccountHint = { bank: null, network: 'mastercard', last4: null, holder: 'PUIG LUCAS MIGUEL' };
+    const res = matchAccount(hint, accounts);
+    expect(res.matched).toBeNull();
+    expect(res.candidates.map((c) => c.id)).toEqual(['pat-lucas']);
+  });
 });
 
 describe('accountDefaultsFromHint', () => {

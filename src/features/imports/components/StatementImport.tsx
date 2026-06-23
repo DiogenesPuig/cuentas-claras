@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAccounts, type Account } from '@/features/accounts';
+import { accountLabel, useAccounts, type Account } from '@/features/accounts';
 import { useCategories } from '@/features/categories';
 import { matchAccount } from '@/lib/account-match';
 import { IngestaError } from '@/lib/ingesta';
@@ -236,7 +236,7 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
                   <option value="">Sin medio</option>
                   {(accounts ?? []).map((a) => (
                     <option key={a.id} value={a.id}>
-                      {a.name}
+                      {accountLabel({ ...a, holderName: a.holder_name })}
                     </option>
                   ))}
                 </select>

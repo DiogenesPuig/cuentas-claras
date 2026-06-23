@@ -96,13 +96,17 @@ export function aggregateByDimension(
   );
 }
 
-/** Filtros combinables del reporte (AND). `null`/ausente = sin filtrar esa dimensión. */
+/**
+ * Filtros combinables del reporte. Cada dimensión acepta VARIOS valores: dentro de una
+ * dimensión se combinan con OR (ej. categoría = Transporte o Salud), y entre dimensiones con
+ * AND (ej. esa categoría Y tal persona). Array vacío/ausente = sin filtrar esa dimensión.
+ */
 export interface ReportFilters {
-  persona?: string | null;
-  categoria?: string | null;
-  medio?: string | null;
-  banco?: string | null;
-  red?: string | null;
+  persona?: string[];
+  categoria?: string[];
+  medio?: string[];
+  banco?: string[];
+  red?: string[];
 }
 
 /** Subconjunto de movimientos que cumple todos los filtros activos (FR-22). */
@@ -110,12 +114,12 @@ export function filterReportTransactions(
   transactions: ReportTransactionView[],
   filters: ReportFilters,
 ): ReportTransactionView[] {
-  const active = (Object.entries(filters) as [ReportDimension, string | null | undefined][]).filter(
-    ([, value]) => value,
+  const active = (Object.entries(filters) as [ReportDimension, string[] | undefined][]).filter(
+    ([, values]) => values && values.length > 0,
   );
   if (active.length === 0) return transactions;
   return transactions.filter((tx) =>
-    active.every(([dimension, value]) => dimensionKeyFor(dimension, tx) === value),
+    active.every(([dimension, values]) => values!.includes(dimensionKeyFor(dimension, tx))),
   );
 }
 

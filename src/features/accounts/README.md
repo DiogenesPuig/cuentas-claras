@@ -16,6 +16,9 @@ tipo, moneda, últimos 4 dígitos, holder (miembro o nombre) y, si es extensión
   (`member` | `name`) + `ownerMemberId`/`holderName` según corresponda, `isExtension` +
   `parentAccountId` si aplica, `billingCloseDay`.
 - `index.ts` — barrel del feature.
+- `format.ts` / `format.test.ts` — `accountLabel(account)`: etiqueta para los combos de medios
+  (banco · red · ••últimos4 · (primeras 5 letras del dueño); cae al nombre si no hay datos de
+  tarjeta, ej. efectivo), para distinguir tarjetas y titular/extensión. Pura.
 - `components/AccountList.tsx` — lista plana de medios (extensiones como fila propia, marcadas);
   muestra el form de alta/edición solo si el usuario es owner/admin (`useMyRole`).
 - `components/AccountForm.tsx` — alta/edición de un medio: resuelve `owner_member_id` (si el

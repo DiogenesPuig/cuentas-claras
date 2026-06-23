@@ -121,17 +121,22 @@ describe('filterReportTransactions', () => {
 
   it('sin filtros devuelve todo', () => {
     expect(filterReportTransactions(txs, {})).toHaveLength(3);
-    expect(filterReportTransactions(txs, { persona: null })).toHaveLength(3);
+    expect(filterReportTransactions(txs, { persona: [] })).toHaveLength(3);
   });
 
   it('filtra por persona', () => {
-    const out = filterReportTransactions(txs, { persona: 'Ana' });
+    const out = filterReportTransactions(txs, { persona: ['Ana'] });
     expect(out).toHaveLength(2);
   });
 
   it('combina filtros (AND): persona + categoría', () => {
-    const out = filterReportTransactions(txs, { persona: 'Ana', categoria: 'Super' });
+    const out = filterReportTransactions(txs, { persona: ['Ana'], categoria: ['Super'] });
     expect(out.map((t) => t.amount)).toEqual([100]);
+  });
+
+  it('varios valores en una dimensión se combinan con OR (Super o Transporte)', () => {
+    const out = filterReportTransactions(txs, { categoria: ['Super', 'Transporte'] });
+    expect(out.map((t) => t.amount)).toEqual([100, 50, 200]);
   });
 });
 

@@ -82,8 +82,12 @@ def _network(text: str) -> str | None:
 
 
 def _bank(text: str) -> str | None:
+    # Identificamos el banco por marcas del encabezado (lo que el usuario ve arriba del
+    # resumen): el producto "Nativa", el nombre del banco o el CUIT de la entidad. Que el
+    # banco quede SIEMPRE seteado evita que el front asocie el resumen a otra tarjeta.
     low = text.lower()
-    if "nación" in low or "nacion" in low or "30-50001091-2" in text:
+    markers = ("nativa", "nación", "nacion", "banco de la nacion", "30-50001091-2")
+    if any(m in low for m in markers):
         return "Banco Nación"
     return None
 

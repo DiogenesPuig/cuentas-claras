@@ -22,11 +22,12 @@ Composición de la aplicación: rutas, providers y layout.
   el cliente.
 - `ImportPage.tsx` — pantalla `/importar`: subir un resumen de tarjeta (PDF), revisar los
   movimientos detectados y confirmarlos en bloque (`features/imports`, FR-16/F2-3).
-- `ReportsPage.tsx` — pantalla `/reportes`: filtros combinables (`ReportFilterBar`), gasto por
-  persona con % del total y categoría dominante (`PersonaBreakdown` + donut), desglose por dimensión
-  (`ReportTabs` + `DonutChart`), totales consolidados (`ConsolidatedTotals`) y comparativa mes a mes
-  (`BarChart`) (C13). Trae los movimientos de una ventana de 6 meses en una sola query y
-  agrega/consolida/filtra todo en el cliente con `features/reports` (sin lógica de datos propia).
+- `ReportsPage.tsx` — pantalla `/reportes` (C13): bloque **general** (todo el grupo, tabs de
+  dimensión; gráfico izq. / info der.), **detalle por filtro** (filtros apilables persona/banco/
+  medio/categoría → subconjunto con "ver por"; info izq. / gráfico der.; vacío hasta filtrar),
+  **mes a mes** (`BarChart`) y **anual** (acumulado del año). Usa `PersonaBreakdown`/`GroupBreakdown`
+  para la info. Trae los movimientos del año/ventana en una sola query y agrega/consolida/filtra en
+  el cliente con `features/reports` (sin lógica de datos propia).
 - `GroupPage.tsx` — pantalla `/grupo`: miembros (`MemberList`), invitar por email/link
   (`InviteSection`) y configuración del workspace activo (`WorkspaceSettings`) (C15).
 - `InviteAcceptPage.tsx` — pantalla `/invite/:token`: muestra a qué grupo/rol invita el token
