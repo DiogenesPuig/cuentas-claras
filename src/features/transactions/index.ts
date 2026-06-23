@@ -4,6 +4,7 @@ export {
   updateTransaction,
   deleteTransaction,
   uploadAttachment,
+  getAttachment,
   getAttachmentUrl,
   extractReceiptData,
   type Transaction,
@@ -20,8 +21,12 @@ export {
   useDeleteTransaction,
   useUploadAttachment,
   useExtractReceipt,
+  useAttachmentUrl,
   transactionsKeys,
+  type AttachmentUrlResult,
 } from './hooks';
+export { attachmentViewerMode, type AttachmentViewerMode } from './attachment';
+export { AttachmentViewer } from './components/AttachmentViewer';
 export {
   transactionSchema,
   defaultTransactionValues,

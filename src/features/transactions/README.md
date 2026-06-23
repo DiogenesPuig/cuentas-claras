@@ -6,7 +6,8 @@ Implementa **FR-7, FR-7b, FR-8, FR-9, FR-10** (PRD §5.3): alta manual con tipo,
 motivo, categoría, medio, fecha y fecha de cobro opcional, sin selector de persona, y comprobante
 adjunto opcional. También **FR-20, FR-21** (PRD §5.6): resumen mensual y últimos movimientos,
 **FR-11** (PRD §5.3): filtrar/buscar movimientos por mes, persona, tarjeta, categoría, moneda y
-texto, y **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado.
+texto, **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado, y **FR-10/FR-13**
+(PRD §5.4/§5.6): ver el comprobante adjunto de un movimiento (F2-7).
 
 ## Archivos
 
@@ -17,7 +18,8 @@ texto, y **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado.
   listas/resumen/export), `createTransaction` (`source = input.source ?? 'manual'` — `'ocr'` si el
   alta se precargó desde un comprobante; `created_by = auth.uid()`),
   `updateTransaction`, `deleteTransaction`, `uploadAttachment` (sube el archivo al bucket privado
-  `attachments` y crea su fila), `getAttachmentUrl` (signed URL temporal para mostrarlo/descargarlo)
+  `attachments` y crea su fila), `getAttachment` (resuelve `file_url`/`file_type` desde un
+  `attachment_id`, F2-7), `getAttachmentUrl` (signed URL temporal para mostrarlo/descargarlo)
   y `extractReceiptData` (F2-1/F2-2: saca el access token de la sesión y llama al micro de ingesta vía
   `lib/ingesta` para precargar monto/fecha/comercio — es la capa que toca Supabase; el HTTP es puro).
   Sin React.
@@ -29,7 +31,11 @@ texto, y **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado.
 - `hooks.ts` — react-query: `useTransactions(workspaceId, filters?)` (la query key incluye
   `filters`, así que cada combinación cachea por separado), `useCreateTransaction`,
   `useUpdateTransaction`, `useDeleteTransaction`, `useUploadAttachment`, `useExtractReceipt`
-  (OCR de un comprobante vía `extractReceiptData`/el micro de ingesta, no escribe en la DB — F2-2).
+  (OCR de un comprobante vía `extractReceiptData`/el micro de ingesta, no escribe en la DB — F2-2),
+  `useAttachmentUrl(attachmentId, enabled)` (F2-7: pide `getAttachment` + `getAttachmentUrl` solo
+  cuando `enabled` es true —al abrir el visor, no al render de la lista—; `staleTime` algo por
+  debajo de los 5 min de la signed URL para no servir desde caché una URL ya vencida; `retry: false`
+  porque el reintento ante una URL vencida lo dispara el usuario desde `AttachmentViewer`).
 - `schema.ts` — zod del form: `type`, `amount`, `currency`, `description`, `categoryId`,
   `accountId`, `occurredOn` (default hoy), `chargedOn`, `attachment` (`FileList` opcional). Las fechas se
   editan/validan como **DD/MM/YYYY** y se convierten a ISO al guardar (`displayToIsoDate`).
@@ -62,6 +68,18 @@ texto, y **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado.
   estado vacío ("Sin movimientos para estos filtros") (B10).
 - `components/TransactionRow.tsx` — fila de un movimiento: motivo/monto, persona·medio·fecha, y
   Editar/Eliminar si `canEdit` (extraído de `TransactionsPage` en B10 para reutilizar en la lista).
+  Si el movimiento tiene `attachment_id`, muestra debajo el `AttachmentViewer` (F2-7).
+- `attachment.ts` — lógica pura (F2-7): `attachmentViewerMode(fileType)` mapea `file_type`
+  (`'image'` | `'pdf'` | cualquier otro valor inesperado, que cae a `'pdf'`) al modo de render del
+  visor, sin tocar Supabase.
+- `attachment.test.ts` — tests de `attachmentViewerMode`: imagen, pdf y valor inesperado.
+- `components/AttachmentViewer.tsx` — visor de un comprobante (F2-7, FR-10/FR-13): botón
+  "Ver comprobante" que recién al abrirse pide la signed URL (`useAttachmentUrl`, on-demand, no al
+  render de la lista); imagen → `<img>` inline con `alt`; PDF → link "Ver/Descargar PDF" que abre en
+  pestaña nueva. Si la signed URL venció, muestra error y un botón "Reintentar" (`refetch`). No se
+  renderiza si el movimiento no tiene `attachment_id` (lo decide `TransactionRow`).
+- `components/AttachmentViewer.test.tsx` — tests con `../hooks` mockeado: no pide la URL hasta
+  abrir el visor, imagen inline, link de PDF, reintentar tras error.
 - `format.ts` — `formatAmount(value, currency)`: formato de moneda (`Intl.NumberFormat`) compartido
   por `SummaryCard`, `RecentTransactions` y `TransactionRow`, sin conversión entre monedas (B9).
   `formatInstallment(n, total)`: arma "Cuota N/M" para movimientos en cuotas, o `null` si no aplica (F2-0).
