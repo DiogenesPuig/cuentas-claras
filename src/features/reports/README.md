@@ -6,23 +6,31 @@ mes a mes, con consolidado multi-moneda. Implementa **FR-20, FR-21, FR-22, FR-24
 ## Archivos
 
 - `api.ts` — Supabase: `listReportTransactions` (movimientos del workspace en un rango de fechas,
-  con `account` —incluye banco/red/tipo/holder/extensión/cierre— y `category` joineados),
-  `getWorkspaceFxSettings` (moneda base + `fx_source`/`fx_quote` del workspace, C12),
+  con `account` —incluye banco/red/tipo/holder/`owner_member_id`/extensión/cierre— y `category`
+  joineados), `getWorkspaceFxSettings` (moneda base + `fx_source`/`fx_quote` del workspace, C12),
   `listFxRates` (historial de `fx_rates` de las monedas pedidas hasta una fecha). Sin React.
 - `aggregate.ts` / `aggregate.test.ts` — lógica pura de agregación:
   - `aggregateByDimension`: agrupa movimientos por dimensión (FR-22) y consolida cada grupo;
     los grupos suman, entre todos, el total del período (con "Sin categoría"/"Sin medio" de
-    fallback). "Persona" agrupa por `holder_name` del medio usado (no por titular).
+    fallback). Cada grupo trae `key` (clave interna) y `label` (lo que se muestra). "Persona"
+    agrupa por `owner_member_id` del medio (F2-10: dedup cuando el mismo dueño tiene el nombre
+    escrito distinto en cada banco) y cae a `holder_name` normalizado —tildes/orden, ver
+    `lib/name-match.normalizeNameKey`— cuando el medio no está ligado a un miembro; recibe
+    `memberNameById` (`workspace_members.id` → nombre vivo) para resolver la etiqueta.
+  - `dimensionLabelFor`: etiqueta legible de un movimiento para una dimensión (igual a la clave
+    salvo "persona", donde puede ser el nombre vivo del miembro). La usan los filtros y las
+    opciones de filtro de `ReportsPage` para no mostrar la clave interna `member:<id>`.
   - `monthlySeries`: comparativa mes a mes (FR-24), un consolidado por mes.
   - `consolidateTransactions`: consolida un lote de movimientos resolviendo el FX de cada uno
     (usa `lib/fx.resolveFxDate` + `lib/money.consolidateHistorical`).
-  - `personaAccounts`: para la vista "por persona", mapea cada holder a sus medios marcando
-    cuáles son extensiones y de qué titular (FR-22: "se listan sus extensiones y las tarjetas
-    titulares de las que cuelgan").
-  - `filterReportTransactions`: subconjunto que cumple filtros combinables. Cada dimensión
+  - `personaAccounts`: para la vista "por persona", mapea cada persona (mismo criterio que
+    `aggregateByDimension`) a sus medios marcando cuáles son extensiones y de qué titular (FR-22:
+    "se listan sus extensiones y las tarjetas titulares de las que cuelgan").
+  - `filterReportTransactions`: subconjunto que cumple filtros combinables (los valores de
+    filtro son **etiquetas** legibles, no la clave interna). Cada dimensión
     (persona/categoría/medio/banco/red) acepta **varios valores**: dentro de una dimensión se
     combinan con **OR** (ej. categoría = Transporte o Salud) y entre dimensiones con **AND**.
-  - `personaSpending`: gasto por persona — cuánto aporta cada holder, su `share` (% del gasto
+  - `personaSpending`: gasto por persona — cuánto aporta cada persona, su `share` (% del gasto
     total) y su categoría dominante (o "Varios" si ninguna supera el 40%). Para "p1 = 50%
     (mayormente en super)".
 - `hooks.ts` — react-query: `useWorkspaceFxSettings`, `useReportTransactions(workspaceId, range)`,

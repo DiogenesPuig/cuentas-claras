@@ -10,6 +10,7 @@ export interface ReportAccount {
   network: string | null;
   type: string;
   holder_name: string;
+  owner_member_id: string | null;
   is_extension: boolean;
   parent_account_id: string | null;
   billing_close_day: number | null;
@@ -28,7 +29,7 @@ export interface DateRange {
 }
 
 const REPORT_TRANSACTION_SELECT =
-  '*, account:accounts(name,bank,network,type,holder_name,is_extension,parent_account_id,billing_close_day), category:categories(name)';
+  '*, account:accounts(name,bank,network,type,holder_name,owner_member_id,is_extension,parent_account_id,billing_close_day), category:categories(name)';
 
 /** Movimientos del workspace en `range` (por `occurred_on`), con lo necesario para agregar por dimensión y resolver FX. */
 export async function listReportTransactions(

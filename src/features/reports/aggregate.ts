@@ -1,6 +1,11 @@
 import { consolidateHistorical, type ConsolidationResult, type RateLookup } from '@/lib/money';
 import { resolveFxDate } from '@/lib/fx';
+import { normalizeNameKey } from '@/lib/name-match';
 import type { ReportTransactionView } from './api';
+
+/** Mapa `workspace_members.id` → nombre vivo del miembro (de `member_directory`). */
+export type MemberNameById = ReadonlyMap<string, string>;
+const NO_MEMBERS: MemberNameById = new Map();
 
 export const REPORT_DIMENSIONS = ['categoria', 'persona', 'banco', 'red', 'medio'] as const;
 export type ReportDimension = (typeof REPORT_DIMENSIONS)[number];
@@ -16,13 +21,43 @@ export const REPORT_DIMENSION_LABELS: Record<ReportDimension, string> = {
 const NO_CATEGORY = 'Sin categoría';
 const NO_ACCOUNT = 'Sin medio';
 
+interface PersonaIdentity {
+  /** Clave de agrupación: `member:<owner_member_id>` o `name:<holder_name normalizado>`. */
+  key: string;
+  /** Nombre legible: el vivo del miembro, o el `holder_name` tal cual está en el medio. */
+  label: string;
+}
+
+/**
+ * Identidad de "persona" de un movimiento (F2-10): agrupa por `owner_member_id` (id estable
+ * del miembro) cuando el medio está ligado a uno, así dos `holder_name` distintos del mismo
+ * dueño (apellido+nombre vs nombre+apellido, con/sin tildes en cada banco) caen en un solo
+ * grupo. Si el medio no tiene miembro, cae a `holder_name` normalizado (tildes/orden) para no
+ * duplicar a la misma persona sin fusionar personas realmente distintas.
+ */
+function personaIdentity(tx: ReportTransactionView, memberNameById: MemberNameById): PersonaIdentity {
+  const account = tx.account;
+  if (!account) return { key: NO_ACCOUNT, label: NO_ACCOUNT };
+  if (account.owner_member_id) {
+    return {
+      key: `member:${account.owner_member_id}`,
+      label: memberNameById.get(account.owner_member_id) ?? account.holder_name,
+    };
+  }
+  return { key: `name:${normalizeNameKey(account.holder_name)}`, label: account.holder_name };
+}
+
 /** Clave de agrupación (FR-22) según la dimensión elegida. */
-function dimensionKeyFor(dimension: ReportDimension, tx: ReportTransactionView): string {
+function dimensionKeyFor(
+  dimension: ReportDimension,
+  tx: ReportTransactionView,
+  memberNameById: MemberNameById = NO_MEMBERS,
+): string {
   switch (dimension) {
     case 'categoria':
       return tx.category?.name ?? NO_CATEGORY;
     case 'persona':
-      return tx.account?.holder_name ?? NO_ACCOUNT;
+      return personaIdentity(tx, memberNameById).key;
     case 'banco':
       return tx.account?.bank ?? NO_ACCOUNT;
     case 'red':
@@ -30,6 +65,16 @@ function dimensionKeyFor(dimension: ReportDimension, tx: ReportTransactionView):
     case 'medio':
       return tx.account?.name ?? NO_ACCOUNT;
   }
+}
+
+/** Etiqueta legible (FR-22) según la dimensión elegida: igual a la clave salvo para "persona". */
+export function dimensionLabelFor(
+  dimension: ReportDimension,
+  tx: ReportTransactionView,
+  memberNameById: MemberNameById = NO_MEMBERS,
+): string {
+  if (dimension === 'persona') return personaIdentity(tx, memberNameById).label;
+  return dimensionKeyFor(dimension, tx, memberNameById);
 }
 
 /** Fecha de FX de un movimiento del reporte (ver `lib/fx.resolveFxDate`). */
@@ -61,7 +106,10 @@ export function consolidateTransactions(
 }
 
 export interface DimensionGroup {
+  /** Clave de agrupación (interna; para "persona" es `member:<id>` o `name:<normalizado>`). */
   key: string;
+  /** Etiqueta legible para mostrar (nombre vivo del miembro u otra dimensión literal). */
+  label: string;
   consolidated: ConsolidationResult;
 }
 
@@ -69,6 +117,8 @@ export interface DimensionGroup {
  * Agrupa los movimientos por `dimension` y consolida cada grupo (FR-22), usando el FX
  * histórico de cada movimiento. Los grupos suman, entre todos, el total del período:
  * todo movimiento cae en exactamente un grupo (con "Sin categoría"/"Sin medio" de fallback).
+ * `memberNameById` resuelve la etiqueta de "persona" cuando el medio tiene `owner_member_id`
+ * (F2-10); para las demás dimensiones no hace falta.
  * Orden: por volumen total (ingreso + gasto) consolidado, de mayor a menor.
  */
 export function aggregateByDimension(
@@ -76,17 +126,19 @@ export function aggregateByDimension(
   dimension: ReportDimension,
   base: string,
   rateFor: RateLookup,
+  memberNameById: MemberNameById = NO_MEMBERS,
 ): DimensionGroup[] {
-  const byKey = new Map<string, ReportTransactionView[]>();
+  const byKey = new Map<string, { txs: ReportTransactionView[]; label: string }>();
   for (const tx of transactions) {
-    const key = dimensionKeyFor(dimension, tx);
-    const group = byKey.get(key) ?? [];
-    group.push(tx);
-    byKey.set(key, group);
+    const key = dimensionKeyFor(dimension, tx, memberNameById);
+    const entry = byKey.get(key) ?? { txs: [], label: dimensionLabelFor(dimension, tx, memberNameById) };
+    entry.txs.push(tx);
+    byKey.set(key, entry);
   }
 
-  const groups: DimensionGroup[] = Array.from(byKey.entries()).map(([key, txs]) => ({
+  const groups: DimensionGroup[] = Array.from(byKey.entries()).map(([key, { txs, label }]) => ({
     key,
+    label,
     consolidated: consolidateTransactions(txs, base, rateFor),
   }));
 
@@ -109,17 +161,21 @@ export interface ReportFilters {
   red?: string[];
 }
 
-/** Subconjunto de movimientos que cumple todos los filtros activos (FR-22). */
+/**
+ * Subconjunto de movimientos que cumple todos los filtros activos (FR-22). Los valores de
+ * filtro son etiquetas legibles (las que ve el usuario), no la clave interna de agrupación.
+ */
 export function filterReportTransactions(
   transactions: ReportTransactionView[],
   filters: ReportFilters,
+  memberNameById: MemberNameById = NO_MEMBERS,
 ): ReportTransactionView[] {
   const active = (Object.entries(filters) as [ReportDimension, string[] | undefined][]).filter(
     ([, values]) => values && values.length > 0,
   );
   if (active.length === 0) return transactions;
   return transactions.filter((tx) =>
-    active.every(([dimension, values]) => values!.includes(dimensionKeyFor(dimension, tx))),
+    active.every(([dimension, values]) => values!.includes(dimensionLabelFor(dimension, tx, memberNameById))),
   );
 }
 
@@ -128,7 +184,7 @@ const DOMINANT_THRESHOLD = 0.4;
 const MIXED_LABEL = 'Varios';
 
 export interface PersonaSpending {
-  /** Persona (holder del medio usado). */
+  /** Persona: nombre vivo del miembro (si el medio tiene `owner_member_id`) o `holder_name`. */
   holder: string;
   /** Gasto consolidado de la persona, en la moneda base. */
   expense: number;
@@ -149,21 +205,24 @@ export function personaSpending(
   transactions: ReportTransactionView[],
   base: string,
   rateFor: RateLookup,
+  memberNameById: MemberNameById = NO_MEMBERS,
 ): PersonaSpending[] {
   const expenses = transactions.filter((tx) => tx.type === 'expense');
-  const byHolder = aggregateByDimension(expenses, 'persona', base, rateFor);
+  const byHolder = aggregateByDimension(expenses, 'persona', base, rateFor, memberNameById);
   const totalExpense = byHolder.reduce((sum, group) => sum + group.consolidated.expense, 0);
 
   return byHolder
     .filter((group) => group.consolidated.expense > 0)
     .map((group) => {
-      const holderTxs = expenses.filter((tx) => dimensionKeyFor('persona', tx) === group.key);
+      const holderTxs = expenses.filter(
+        (tx) => dimensionKeyFor('persona', tx, memberNameById) === group.key,
+      );
       const byCategory = aggregateByDimension(holderTxs, 'categoria', base, rateFor);
       const top = byCategory.find((c) => c.consolidated.expense > 0) ?? null;
       const holderExpense = group.consolidated.expense;
       const topShare = top ? top.consolidated.expense / holderExpense : 0;
       return {
-        holder: group.key,
+        holder: group.label,
         expense: holderExpense,
         share: totalExpense > 0 ? holderExpense / totalExpense : 0,
         mainCategory: top?.key ?? null,
@@ -202,16 +261,26 @@ interface AccountForPersona {
   id: string;
   name: string;
   holder_name: string;
+  owner_member_id: string | null;
   is_extension: boolean;
   parent_account_id: string | null;
 }
 
+function personaLabelForAccount(account: AccountForPersona, memberNameById: MemberNameById): string {
+  if (account.owner_member_id) return memberNameById.get(account.owner_member_id) ?? account.holder_name;
+  return account.holder_name;
+}
+
 /**
- * Para la vista "por persona" (FR-22): por cada holder, sus medios, marcando cuáles son
- * extensiones y de qué titular (holder de la cuenta padre). Pura: recibe la lista completa
- * de medios del workspace (no solo los que aparecen en movimientos del período).
+ * Para la vista "por persona" (FR-22): por cada persona (mismo criterio que `personaSpending`,
+ * F2-10), sus medios, marcando cuáles son extensiones y de qué titular (holder de la cuenta
+ * padre). Pura: recibe la lista completa de medios del workspace (no solo los que aparecen en
+ * movimientos del período).
  */
-export function personaAccounts(accounts: AccountForPersona[]): Map<string, PersonaAccountInfo[]> {
+export function personaAccounts(
+  accounts: AccountForPersona[],
+  memberNameById: MemberNameById = NO_MEMBERS,
+): Map<string, PersonaAccountInfo[]> {
   const byId = new Map(accounts.map((a) => [a.id, a]));
   const result = new Map<string, PersonaAccountInfo[]>();
 
@@ -220,13 +289,14 @@ export function personaAccounts(accounts: AccountForPersona[]): Map<string, Pers
       ? byId.get(account.parent_account_id) ?? null
       : null;
 
-    const list = result.get(account.holder_name) ?? [];
+    const label = personaLabelForAccount(account, memberNameById);
+    const list = result.get(label) ?? [];
     list.push({
       accountName: account.name,
       isExtension: account.is_extension,
-      titularHolderName: titular?.holder_name ?? null,
+      titularHolderName: titular ? personaLabelForAccount(titular, memberNameById) : null,
     });
-    result.set(account.holder_name, list);
+    result.set(label, list);
   }
 
   return result;

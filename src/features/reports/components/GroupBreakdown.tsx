@@ -30,7 +30,7 @@ export function GroupBreakdown({ groups, baseCurrency }: GroupBreakdownProps) {
               style={{ backgroundColor: chartColor(index) }}
               aria-hidden
             />
-            {group.key}
+            {group.label}
             <span className="text-muted-foreground">
               {total > 0 ? `· ${Math.round((group.consolidated.expense / total) * 100)}%` : ''}
             </span>
