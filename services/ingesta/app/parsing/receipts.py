@@ -13,6 +13,7 @@ Maneja dos subtipos vistos en las muestras:
 from __future__ import annotations
 
 import re
+import unicodedata
 from datetime import date
 
 from app.schemas import ReceiptExtraction
@@ -81,8 +82,9 @@ def parse_amount(token: str) -> float | None:
 
 _TOTAL_LINE = re.compile(r"\btotal(?:\s+a\s+pagar)?\b", re.IGNORECASE)
 _SUBTOTAL_LINE = re.compile(r"\bsubtotal\b", re.IGNORECASE)
-# Monto de una transferencia: "Importe" o "Monto".
-_AMOUNT_LABEL = re.compile(r"\b(importe|monto)\b", re.IGNORECASE)
+# Monto de una transferencia: "Importe"/"Monto" (Patagonia, BNA, Ualá) y los verbos
+# de las billeteras (Naranja X: "Enviaste"; otros: "Recibiste"/"Transferiste").
+_AMOUNT_LABEL = re.compile(r"\b(importe|monto|enviaste|recibiste|transferiste)\b", re.IGNORECASE)
 # Líneas de identificadores (no llevan montos): CBU, CVU, alias, operación, cuenta…
 _IDENTIFIER_LINE = re.compile(
     r"\b(cbu|cvu|alias|cu[ií]t|cu[ií]l|dni|n[º°ro]+\s*de\s*operac|operaci[oó]n|"
@@ -91,16 +93,33 @@ _IDENTIFIER_LINE = re.compile(
 )
 
 
+def _date_spans(line: str) -> list[tuple[int, int]]:
+    """Rangos de caracteres ocupados por fechas (DMY/ISO) en `line`.
+
+    Los dígitos de una fecha (ej. el `2026` de `05/06/2026`) NO son un monto. Excluirlos
+    evita el bug del año-como-monto en líneas etiquetadas (ver `_money_tokens`).
+    """
+    spans: list[tuple[int, int]] = []
+    for rx in (_DATE_ISO, _DATE_DMY):
+        spans.extend(m.span() for m in rx.finditer(line))
+    return spans
+
+
 def _money_tokens(line: str) -> list[tuple[float, bool]]:
     """(valor, tiene_centavos) de los tokens de `line` que parecen plata.
 
     Descarta identificadores: corridas largas de dígitos SIN parte decimal
-    (CBU de 22, nº de operación, etc.).
+    (CBU de 22, nº de operación, etc.) y los dígitos que son parte de una fecha.
     """
     if _IDENTIFIER_LINE.search(line):
         return []
+    date_spans = _date_spans(line)
     out: list[tuple[float, bool]] = []
-    for tok in _NUMERIC_TOKEN.findall(line):
+    for m in _NUMERIC_TOKEN.finditer(line):
+        tok = m.group()
+        # Token contenido en una fecha (ej. el año de 05/06/2026): no es un monto.
+        if any(lo <= m.start() and m.end() <= hi for lo, hi in date_spans):
+            continue
         digits = re.sub(r"\D", "", tok)
         has_cents = bool(_HAS_CENTS.search(tok))
         # Sin decimales y con muchos dígitos → es un identificador, no un monto.
@@ -115,23 +134,42 @@ def _money_tokens(line: str) -> list[tuple[float, bool]]:
 def extract_amount(text: str, subtype: str) -> float | None:
     """Elige el monto más probable, priorizando montos con centavos.
 
-    - Transferencia: el de la línea "Importe"/"Monto".
+    - Transferencia: el de la línea "Importe"/"Monto"/"Enviaste"/… (la etiqueta puede
+      estar sola y el monto en la línea siguiente, como en los recibos de billetera).
     - Compra: el de la línea "TOTAL" (no "SUBTOTAL").
-    - Si no hay match por etiqueta, gana el mayor monto CON centavos; recién al
-      final se consideran los enteros sueltos.
+    - Si no hay match por etiqueta, gana el mayor monto CON centavos.
+    - A.1 (F2-12): si no hay etiqueta NI parte decimal, NO se cae a enteros sueltos
+      → vacío. Sin esa señal no hay candidato confiable y preferimos no cargar a
+      cargar mal (ej. el año 2026 de un comprobante de billetera de 1 peso). Un monto
+      ETIQUETADO sin centavos sí se respeta: la etiqueta es señal suficiente.
     """
     keyword = _AMOUNT_LABEL if subtype == "transfer" else _TOTAL_LINE
+    lines = text.splitlines()
 
     keyed: list[float] = []
     with_cents: list[float] = []
-    plain: list[float] = []
-    for line in text.splitlines():
+    for i, line in enumerate(lines):
+        labeled = bool(keyword.search(line)) and not _SUBTOTAL_LINE.search(line)
         tokens = _money_tokens(line)
-        if not tokens:
+        if labeled and not tokens:
+            # Recibos mobile (Naranja X, BNA…): la etiqueta va sola y el monto en la
+            # línea siguiente. Tomamos el primer monto dentro de las próximas 2 líneas
+            # no vacías como monto etiquetado.
+            seen = 0
+            for nxt in lines[i + 1 :]:
+                if not nxt.strip():
+                    continue
+                ahead = _money_tokens(nxt)
+                if ahead:
+                    keyed.extend(value for value, _ in ahead)
+                    break
+                seen += 1
+                if seen >= 2:
+                    break
             continue
-        labeled = keyword.search(line) and not _SUBTOTAL_LINE.search(line)
         for value, has_cents in tokens:
-            (with_cents if has_cents else plain).append(value)
+            if has_cents:
+                with_cents.append(value)
             if labeled:
                 keyed.append(value)
 
@@ -139,8 +177,6 @@ def extract_amount(text: str, subtype: str) -> float | None:
         return max(keyed)
     if with_cents:
         return max(with_cents)
-    if plain:
-        return max(plain)
     return None
 
 
@@ -160,10 +196,37 @@ def extract_currency(text: str) -> str | None:
 
 _DATE_DMY = re.compile(r"\b(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})\b")
 _DATE_ISO = re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b")
+# Fechas con el mes en palabra, comunes en billeteras: "22/JUN/2026", "22-jun-26"
+# (mes abreviado) y "23 de junio de 2026" (textual).
+_DATE_MONTH_SLASH = re.compile(r"\b(\d{1,2})[/\- ]([A-Za-zÁÉÍÓÚáéíóú]{3,})[/\- ](\d{2,4})\b")
+_DATE_MONTH_DE = re.compile(
+    r"\b(\d{1,2})\s+de\s+([A-Za-zÁÉÍÓÚáéíóú]+)\s+de\s+(\d{4})\b", re.IGNORECASE
+)
+_MONTHS: dict[str, int] = {
+    "enero": 1, "febrero": 2, "marzo": 3, "abril": 4, "mayo": 5, "junio": 6,
+    "julio": 7, "agosto": 8, "septiembre": 9, "setiembre": 9, "octubre": 10,
+    "noviembre": 11, "diciembre": 12,
+    "ene": 1, "feb": 2, "mar": 3, "abr": 4, "may": 5, "jun": 6, "jul": 7,
+    "ago": 8, "sep": 9, "set": 9, "oct": 10, "nov": 11, "dic": 12,
+}
+
+
+def _month_number(name: str) -> int | None:
+    """Mes (1-12) a partir del nombre en español (completo o abreviado), sin acentos."""
+    key = "".join(
+        c
+        for c in unicodedata.normalize("NFKD", name.strip().lower())
+        if not unicodedata.combining(c)
+    )
+    return _MONTHS.get(key) or _MONTHS.get(key[:3])
 
 
 def extract_date(text: str) -> str | None:
-    """Primera fecha válida del texto, en ISO YYYY-MM-DD."""
+    """Primera fecha válida del texto, en ISO YYYY-MM-DD.
+
+    Reconoce ISO y DMY numérica, y como fallback los formatos con el mes en palabra
+    (es) de las billeteras ("22/JUN/2026", "23 de junio de 2026").
+    """
     for m in _DATE_ISO.finditer(text):
         iso = _safe_date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
         if iso:
@@ -175,6 +238,17 @@ def extract_date(text: str) -> str | None:
         iso = _safe_date(year, month, day)
         if iso:
             return iso
+    for rx in (_DATE_MONTH_SLASH, _DATE_MONTH_DE):
+        for m in rx.finditer(text):
+            month = _month_number(m.group(2))
+            if month is None:
+                continue
+            day, year = int(m.group(1)), int(m.group(3))
+            if year < 100:
+                year += 2000
+            iso = _safe_date(year, month, day)
+            if iso:
+                return iso
     return None
 
 
@@ -194,15 +268,32 @@ _NON_MERCHANT = re.compile(
 _DESTINO_RE = re.compile(r"(?:destino|para|titular|beneficiari[oa])\s*:?\s*(.+)", re.IGNORECASE)
 
 
+# El OCR de los recibos mobile suele anteponer un bullet a la etiqueta y lo lee como
+# "o "/símbolo (ej. MP: "o De" / "o Para"). Lo toleramos como prefijo opcional.
+_BULLET = r"(?:[•◦·∙*\-•]\s*|[oO]\s+)?"
 _ORIGIN_LABEL = re.compile(
-    r"^(?:origen|de|ordenante|titular\s+origen)\b\s*:?\s*(.*)$", re.IGNORECASE
+    r"^" + _BULLET + r"(?:cuenta\s+origen|nombre\s+remitente|remitente|titular\s+origen"
+    r"|ordenante|origen|nombre|de)\b\s*:?\s*(.*)$",
+    re.IGNORECASE,
 )
-_DEST_LABEL = re.compile(r"^(?:destino|para|beneficiari[oa])\b\s*:?\s*(.*)$", re.IGNORECASE)
+_DEST_LABEL = re.compile(
+    r"^" + _BULLET + r"(?:cuenta\s+destino|destinatari[oa]|titular\s+destino"
+    r"|beneficiari[oa]|destino|para)\b\s*:?\s*(.*)$",
+    re.IGNORECASE,
+)
 _BANK_LABEL = re.compile(
     r"^banco(?:\s*(origen|destino|emisor|receptor))?\s*:?\s*(.*)$", re.IGNORECASE
 )
 # Lo que sigue al nombre en la misma línea (cuenta/CBU/identificadores), no es el titular.
 _HOLDER_STOP = re.compile(r"\b(cbu|cvu|alias|cuit|cuil|dni|cuenta|ca\s*\$)\b", re.IGNORECASE)
+# Líneas que son OTRO campo del comprobante, no un nombre de titular. Si una etiqueta
+# va sola y la línea siguiente es uno de estos campos, el nombre no está ahí (ej. Ualá
+# parte "Nombre remitente" y deja "remitente" solo seguido de "Concepto").
+_FIELD_LABEL = re.compile(
+    r"^(?:concepto|motivo|importe|monto|fecha|banco|cbu|cvu|alias|cu[ií]t|cu[ií]l|dni"
+    r"|id\b|n[º°]|numero|número|c[oó]digo|operaci[oó]n|cuenta|tarjeta|enviaste|recibiste)\b",
+    re.IGNORECASE,
+)
 
 
 def _extract_party(text: str, label_re: re.Pattern[str]) -> str | None:
@@ -226,8 +317,13 @@ def _extract_party(text: str, label_re: re.Pattern[str]) -> str | None:
             continue
         for j in range(i + 1, min(i + 4, len(lines))):
             candidate = lines[j].strip()
-            if candidate:
-                return candidate
+            if not candidate:
+                continue
+            # La línea siguiente es OTRO campo (Concepto, Motivo, CBU…): el nombre no
+            # está acá → vacío (mejor None que cargar la etiqueta de otro campo).
+            if _FIELD_LABEL.match(candidate):
+                return None
+            return candidate
         return None
     return None
 
