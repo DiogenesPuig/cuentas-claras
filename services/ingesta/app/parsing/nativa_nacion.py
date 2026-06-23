@@ -16,6 +16,11 @@ Layout (todo en la página del "RESUMEN CONSOLIDADO"):
 - `TOTAL TITULAR <NOMBRE> ...` / `TOTAL ADICIONAL <NOMBRE> ...` cierran el grupo de
   cada tarjeta (titular y adicionales/extensiones, FR-6c); de ahí sale el titular.
   El PAN no aparece en el texto, así que `last4` queda None (F2-5 matchea por titular).
+  El resumen repite la palabra "TITULAR"/"ADICIONAL" después del nombre, y el nombre
+  viene en orden **Apellido Nombre** (reportado 2026-06-23: el combo de medios mostraba
+  el apellido); `_normalize_holder` saca ese sufijo y da vuelta el orden. Heurística
+  simple (reversa todos los tokens): no acierta con nombres/apellidos de más de una
+  palabra cada uno, pero cubre el caso común de un apellido + un nombre.
 """
 
 from __future__ import annotations
@@ -47,6 +52,21 @@ _MONTHS = {
     "ene": 1, "feb": 2, "mar": 3, "abr": 4, "may": 5, "jun": 6,
     "jul": 7, "ago": 8, "sep": 9, "set": 9, "oct": 10, "nov": 11, "dic": 12,
 }
+
+
+_HOLDER_SUFFIX = {"TITULAR", "ADICIONAL"}
+
+
+def _normalize_holder(raw: str) -> str:
+    """Banco Nación/Nativa imprime "TOTAL TITULAR <APELLIDO> <NOMBRE> TITULAR ..." (ídem
+    ADICIONAL): el grupo capturado arrastra el sufijo repetido y el nombre viene en orden
+    Apellido Nombre. Saca el sufijo y da vuelta el orden de las palabras para mostrar el
+    nombre de pila primero (ej. en `accountLabel`). No distingue apellidos/nombres de más
+    de una palabra: ante esos casos, el orden puede seguir quedando mal."""
+    tokens = raw.split()
+    if tokens and tokens[-1].upper() in _HOLDER_SUFFIX:
+        tokens = tokens[:-1]
+    return " ".join(reversed(tokens))
 
 
 def matches(text: str) -> bool:
@@ -154,7 +174,10 @@ def parse(text: str) -> StatementParse:
         total = _TOTAL.match(line)
         if total:
             hint = StatementAccountHint(
-                bank=bank, network=network, last4=None, holder=total.group("holder").strip()
+                bank=bank,
+                network=network,
+                last4=None,
+                holder=_normalize_holder(total.group("holder").strip()),
             )
             cards.append(StatementCard(account_hint=hint, rows=pending))
             pending = []

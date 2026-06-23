@@ -1,12 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createAccount,
+  getOrCreateTransferAccount,
   listAccounts,
   listMembersForHolder,
   updateAccount,
   type Account,
   type AccountInput,
   type MemberOption,
+  type TransferAccountHolder,
 } from './api';
 
 export const accountsKeys = {
@@ -48,6 +50,18 @@ export function useUpdateAccount(workspaceId: string | undefined) {
 
   return useMutation<Account, Error, { id: string; input: AccountInput }>({
     mutationFn: ({ id, input }) => updateAccount(id, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: accountsKeys.list(workspaceId) });
+    },
+  });
+}
+
+/** Busca/crea (lazy) el medio `'transfer'` de una persona, para el alta de transferencias (F2-11). */
+export function useGetOrCreateTransferAccount(workspaceId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation<Account, Error, TransferAccountHolder>({
+    mutationFn: (holder) => getOrCreateTransferAccount(workspaceId as string, holder),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: accountsKeys.list(workspaceId) });
     },

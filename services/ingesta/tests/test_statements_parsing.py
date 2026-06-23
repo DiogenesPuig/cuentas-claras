@@ -93,14 +93,23 @@ def test_nativa_bank_detected_by_header_markers() -> None:
     assert nativa_nacion._bank("un resumen de otro banco") is None
 
 
+def test_nativa_normalize_holder() -> None:
+    assert nativa_nacion._normalize_holder("PEREZ JUAN TITULAR") == "JUAN PEREZ"
+    assert nativa_nacion._normalize_holder("GOMEZ MARIA ADICIONAL") == "MARIA GOMEZ"
+    # Sin sufijo TITULAR/ADICIONAL (no debería pasar en el layout real, pero no rompe).
+    assert nativa_nacion._normalize_holder("PEREZ JUAN") == "JUAN PEREZ"
+
+
 def test_nativa_close_date_and_cards() -> None:
     res = parse_statement_text(NATIVA)
     assert res.statement_close_on == "2026-05-21"  # "Estado de cuenta al : 21-May-26"
     # Una tarjeta por titular y por adicional (FR-6c); ignora el consolidado/SU PAGO.
     assert len(res.cards) == 2
     titular, adicional = res.cards
-    assert titular.account_hint.holder == "NOMBRE APELLIDO TITULAR"
-    assert adicional.account_hint.holder == "NOMBRE APELLIDO ADICIONAL"
+    # El resumen imprime "Apellido Nombre TITULAR/ADICIONAL" (ver `_normalize_holder`):
+    # el parser saca el sufijo y muestra el nombre de pila primero.
+    assert titular.account_hint.holder == "APELLIDO NOMBRE"
+    assert adicional.account_hint.holder == "APELLIDO NOMBRE"
     for c in res.cards:
         assert c.account_hint.bank == "Banco Nación"
         assert c.account_hint.network == "mastercard"

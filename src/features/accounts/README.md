@@ -9,22 +9,29 @@ tipo, moneda, últimos 4 dígitos, holder (miembro o nombre) y, si es extensión
 - `api.ts` — Supabase: `listAccounts` (no archivados del workspace), `listMembersForHolder`
   (miembros del workspace para el selector de holder, vía `workspace_members` + la vista
   `member_directory` — `profiles` solo es legible por su propio dueño), `createAccount` y
-  `updateAccount` (RLS exige rol owner/admin). Sin React.
+  `updateAccount` (RLS exige rol owner/admin), `getOrCreateTransferAccount(workspaceId, holder)`
+  (F2-11: busca el medio `type='transfer'` de una persona —por `owner_member_id` o `holder_name`—
+  y, si no existe, lo crea lazy; un único medio "Transferencia" por persona, sin banco). Sin React.
 - `hooks.ts` — react-query: `useAccounts(workspaceId)` (se reutilizará en el alta de movimientos,
-  B8), `useMembersForHolder`, `useCreateAccount` y `useUpdateAccount`.
-- `schema.ts` — zod del form: `name`, `bank`, `network`, `type`, `currency`, `last4`, `holderKind`
-  (`member` | `name`) + `ownerMemberId`/`holderName` según corresponda, `isExtension` +
-  `parentAccountId` si aplica, `billingCloseDay`.
+  B8), `useMembersForHolder`, `useCreateAccount`, `useUpdateAccount` y
+  `useGetOrCreateTransferAccount` (F2-11, invalida `accounts` al crear).
+- `schema.ts` — zod del form: `name`, `bank`, `network`, `type` (incluye `'transfer'`, F2-11),
+  `currency`, `last4`, `holderKind` (`member` | `name`) + `ownerMemberId`/`holderName` según
+  corresponda, `isExtension` + `parentAccountId` si aplica, `billingCloseDay`.
 - `index.ts` — barrel del feature.
 - `format.ts` / `format.test.ts` — `accountLabel(account)`: etiqueta para los combos de medios
   (banco · red · ••últimos4 · (primeras 5 letras del dueño); cae al nombre si no hay datos de
-  tarjeta, ej. efectivo), para distinguir tarjetas y titular/extensión. Pura.
+  tarjeta, ej. efectivo), para distinguir tarjetas y titular/extensión. Excepción (F2-11): el medio
+  `'transfer'` también agrega el dueño sin tener datos de tarjeta —si no, varias personas verían el
+  mismo "Transferencia" en el combo, sin forma de distinguirlas—. Pura.
 - `components/AccountList.tsx` — lista plana de medios (extensiones como fila propia, marcadas);
   muestra el form de alta/edición solo si el usuario es owner/admin (`useMyRole`).
 - `components/AccountForm.tsx` — alta/edición de un medio: resuelve `owner_member_id` (si el
   holder es un miembro) u `holder_name` (si es "otra persona"), y exige `parent_account_id`
   cuando `isExtension` está activo. Acepta `defaults?` para precargar valores en modo alta (lo
-  usa el alta inline desde la importación de resúmenes, F2-5).
+  usa el alta inline desde la importación de resúmenes, F2-5). `TYPE_LABELS` incluye
+  `transfer: 'Transferencia'` (F2-11; el alta normal vía este form sigue existiendo, pero el flujo
+  de transferencias del form de movimientos crea ese medio solo, sin pasar por acá).
 
 ## Fuera de alcance (ver ticket B7)
 

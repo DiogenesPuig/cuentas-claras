@@ -36,18 +36,17 @@ export function counterpartyFor(info: TransferPartyInfo, side: TransferSide): st
 
 export interface TransferAccountDefaults {
   name: string;
-  bank: string;
   holderName: string;
 }
 
-/** Valores para precargar el alta del medio `bank_account` del lado dueño. */
-export function transferAccountDefaults(
-  holder: string | null,
-  bank: string | null,
-): TransferAccountDefaults {
+/**
+ * Valores para precargar el alta (lazy) del medio `'transfer'` del lado dueño (F2-11).
+ * Un único medio por persona, sin banco (el banco vive en `transactions.bank`); por
+ * eso el nombre es siempre genérico, no incluye el banco del comprobante.
+ */
+export function transferAccountDefaults(holder: string | null): TransferAccountDefaults {
   return {
-    name: ['Transferencia', bank].filter(Boolean).join(' ') || 'Transferencia',
-    bank: bank ?? '',
+    name: 'Transferencia',
     holderName: holder ?? '',
   };
 }

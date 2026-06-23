@@ -16,6 +16,7 @@ const TYPE_LABELS: Record<AccountFormInput['type'], string> = {
   cash: 'Efectivo',
   wallet: 'Billetera',
   bank_account: 'Cuenta bancaria',
+  transfer: 'Transferencia',
 };
 
 const NETWORK_LABELS: Record<(typeof CARD_NETWORKS)[number], string> = {

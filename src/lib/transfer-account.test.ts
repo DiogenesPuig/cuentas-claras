@@ -40,19 +40,17 @@ describe('holderFor / bankFor / counterpartyFor', () => {
 });
 
 describe('transferAccountDefaults', () => {
-  it('nombra el medio con el banco cuando está disponible', () => {
-    expect(transferAccountDefaults('Juan Pérez', 'Banco Patagonia')).toEqual({
-      name: 'Transferencia Banco Patagonia',
-      bank: 'Banco Patagonia',
+  it('nombre genérico "Transferencia", sin banco (un medio por persona, F2-11)', () => {
+    expect(transferAccountDefaults('Juan Pérez')).toEqual({
+      name: 'Transferencia',
       holderName: 'Juan Pérez',
     });
   });
 
-  it('sin banco, usa un nombre genérico', () => {
-    expect(transferAccountDefaults('Juan Pérez', null)).toEqual({
+  it('sin titular, deja el nombre del titular vacío', () => {
+    expect(transferAccountDefaults(null)).toEqual({
       name: 'Transferencia',
-      bank: '',
-      holderName: 'Juan Pérez',
+      holderName: '',
     });
   });
 });

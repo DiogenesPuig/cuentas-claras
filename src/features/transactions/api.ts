@@ -16,6 +16,8 @@ export interface TransactionInput {
   description: string | null;
   categoryId: string | null;
   accountId: string | null;
+  /** Banco del movimiento (F2-11): hoy solo lo llena el flujo de transferencias. */
+  bank: string | null;
   occurredOn: string;
   chargedOn: string | null;
   attachmentId: string | null;
@@ -72,6 +74,7 @@ function toRow(input: TransactionInput) {
     description: input.description,
     category_id: input.categoryId,
     account_id: input.accountId,
+    bank: input.bank,
     occurred_on: input.occurredOn,
     charged_on: input.chargedOn,
     attachment_id: input.attachmentId,

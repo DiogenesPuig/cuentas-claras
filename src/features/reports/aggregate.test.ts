@@ -38,6 +38,7 @@ function makeTx(overrides: Partial<ReportTransactionView> = {}): ReportTransacti
     description: null,
     category_id: null,
     account_id: null,
+    bank: null,
     created_by: 'user-1',
     source: 'manual',
     is_shared: false,
