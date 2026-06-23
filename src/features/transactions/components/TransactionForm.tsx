@@ -260,7 +260,7 @@ export function TransactionForm({
             <option value="">Sin medio</option>
             {accounts.map((account) => (
               <option key={account.id} value={account.id}>
-                {accountLabel(account)}
+                {accountLabel({ ...account, holderName: account.holder_name })}
               </option>
             ))}
           </select>

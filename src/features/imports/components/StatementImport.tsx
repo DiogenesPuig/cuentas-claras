@@ -236,7 +236,7 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
                   <option value="">Sin medio</option>
                   {(accounts ?? []).map((a) => (
                     <option key={a.id} value={a.id}>
-                      {accountLabel(a)}
+                      {accountLabel({ ...a, holderName: a.holder_name })}
                     </option>
                   ))}
                 </select>

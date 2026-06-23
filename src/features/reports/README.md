@@ -19,8 +19,9 @@ mes a mes, con consolidado multi-moneda. Implementa **FR-20, FR-21, FR-22, FR-24
   - `personaAccounts`: para la vista "por persona", mapea cada holder a sus medios marcando
     cuáles son extensiones y de qué titular (FR-22: "se listan sus extensiones y las tarjetas
     titulares de las que cuelgan").
-  - `filterReportTransactions`: subconjunto que cumple filtros combinables (persona/categoría/
-    medio/banco/red, AND); permite drillear el desglose a una persona/categoría/medio.
+  - `filterReportTransactions`: subconjunto que cumple filtros combinables. Cada dimensión
+    (persona/categoría/medio/banco/red) acepta **varios valores**: dentro de una dimensión se
+    combinan con **OR** (ej. categoría = Transporte o Salud) y entre dimensiones con **AND**.
   - `personaSpending`: gasto por persona — cuánto aporta cada holder, su `share` (% del gasto
     total) y su categoría dominante (o "Varios" si ninguna supera el 40%). Para "p1 = 50%
     (mayormente en super)".
@@ -39,8 +40,9 @@ mes a mes, con consolidado multi-moneda. Implementa **FR-20, FR-21, FR-22, FR-24
   base del workspace (FR-21/FR-9b).
 - `components/PersonaBreakdown.tsx` — detalle del gasto por persona: % del total y categoría
   dominante ("mayormente en Super" / "varios"). Acompaña al donut de personas.
-- `components/ReportFilterBar.tsx` — filtros combinables y removibles (persona/banco/medio/categoría,
-  con "Limpiar") que alimentan el bloque de detalle.
+- `components/ReportFilterBar.tsx` — filtros combinables y removibles (persona/banco/medio/categoría)
+  que alimentan el bloque de detalle. Cada select **agrega** un valor y cada elegido queda como
+  **chip con "×"**; se pueden apilar varios por dimensión (OR) y combinarlas (AND). "Limpiar" saca todos.
 
 ## Layout de la pantalla (C13)
 

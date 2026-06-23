@@ -14,4 +14,22 @@ describe('accountLabel', () => {
       'Master · ••9999',
     );
   });
+
+  it('agrega las primeras 5 letras del dueño entre paréntesis', () => {
+    expect(
+      accountLabel({
+        name: 'x',
+        bank: 'Banco Nación',
+        network: 'mastercard',
+        last4: null,
+        holderName: 'Lucas Puig',
+      }),
+    ).toBe('Banco Nación · Master · (Lucas)');
+  });
+
+  it('no agrega el dueño a un medio sin datos de tarjeta (efectivo)', () => {
+    expect(
+      accountLabel({ name: 'Efectivo', bank: null, network: null, last4: null, holderName: 'Juan' }),
+    ).toBe('Efectivo');
+  });
 });

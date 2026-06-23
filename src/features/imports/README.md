@@ -52,4 +52,10 @@ Al cargar el staging, cada tarjeta del resumen se matchea contra los medios del 
 resumen no trae `last4` (ej. Nativa). Si hay match, el medio queda asociado; si no, el usuario lo
 elige del combo o lo crea inline (`AccountQuickCreate`, precargado con `accountDefaultsFromHint`).
 Si una tarjeta no matchea, el alta inline se **abre sola** precargada. El combo de medios muestra
-banco · red · ••últimos4 (`accounts/format.accountLabel`).
+banco · red · ••últimos4 · (dueño) (`accounts/format.accountLabel`).
+
+**Importante (anti-falsa-asociación):** el auto-match por titular (sin `last4`, ej. Nativa) exige
+que el **banco coincida en ambos lados**; nunca asocia un resumen a una tarjeta de **otro banco**
+(ni a una sin banco) por mero parecido de nombre. Por eso el parser fija el banco desde el
+encabezado del resumen (Nativa-Nación lo detecta por "Nativa"/"Nación"/CUIT). Sin certeza de
+banco, la tarjeta queda como **candidato** para que el usuario elija, no como match automático.

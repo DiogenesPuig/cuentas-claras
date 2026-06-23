@@ -73,14 +73,29 @@ function bankCompatible(a: string | null, b: string | null): boolean {
   return na === nb || na.includes(nb) || nb.includes(na);
 }
 
+/** Ambos bancos conocidos y NO compatibles → conflicto (ej. Nación vs Patagonia). */
+function bankConflicts(a: string | null, b: string | null): boolean {
+  if (!a || !b) return false; // dato faltante ≠ conflicto
+  return !bankCompatible(a, b);
+}
+
+/** Banco compatible y conocido en AMBOS lados (no por ausencia). */
+function bankPositivelyCompatible(a: string | null, b: string | null): boolean {
+  return !!a && !!b && bankCompatible(a, b);
+}
+
 export function matchAccount<T extends MatchableAccount>(
   hint: AccountHint,
   accounts: readonly T[],
 ): AccountMatchResult<T> {
-  // 1. Match fuerte por last4 (+ red compatible).
+  // 1. Match fuerte por last4 (+ red compatible, sin conflicto de banco).
   if (hint.last4) {
     const byLast4 = accounts.filter(
-      (a) => a.last4 != null && a.last4 === hint.last4 && networkCompatible(a.network, hint.network),
+      (a) =>
+        a.last4 != null &&
+        a.last4 === hint.last4 &&
+        networkCompatible(a.network, hint.network) &&
+        !bankConflicts(a.bank, hint.bank),
     );
     if (byLast4.length === 1) return { matched: byLast4[0], candidates: [] };
     if (byLast4.length > 1) {
@@ -93,19 +108,23 @@ export function matchAccount<T extends MatchableAccount>(
   }
 
   // 2. Por titular + banco (caso sin last4 en el resumen, ej. Nativa-Nación).
+  //    El auto-match exige que el banco coincida POSITIVAMENTE en ambos lados: así un
+  //    resumen de Banco Nación nunca se asocia solo a una tarjeta de otro banco (ni a una
+  //    sin banco) por mero parecido de nombre. Sin esa certeza, queda como candidato.
   if (hint.holder) {
     const strong = accounts.filter(
       (a) =>
         holderOverlap(a.holderName, hint.holder) >= 2 &&
-        bankCompatible(a.bank, hint.bank) &&
+        bankPositivelyCompatible(a.bank, hint.bank) &&
         networkCompatible(a.network, hint.network),
     );
     if (strong.length === 1) return { matched: strong[0], candidates: [] };
     if (strong.length > 1) return { matched: null, candidates: strong };
 
-    // Candidatos débiles: comparten al menos un token de nombre y banco compatible.
+    // Candidatos débiles: comparten al menos un token de nombre y el banco NO entra en
+    // conflicto (banco desconocido de algún lado → candidato, nunca auto-match cruzado).
     const weak = accounts.filter(
-      (a) => holderOverlap(a.holderName, hint.holder) >= 1 && bankCompatible(a.bank, hint.bank),
+      (a) => holderOverlap(a.holderName, hint.holder) >= 1 && !bankConflicts(a.bank, hint.bank),
     );
     if (weak.length > 0) return { matched: null, candidates: weak };
   }

@@ -105,13 +105,17 @@ export function ReportsPage() {
 
   // Vista DE DETALLE (abajo): los filtros (apilables) recortan el subconjunto y se ve su
   // desglose por la dimensión elegida. Vacío hasta que haya algún filtro activo.
-  const hasFilter = Boolean(filters.persona || filters.banco || filters.medio || filters.categoria);
+  const activeFilterValues = [
+    ...(filters.persona ?? []),
+    ...(filters.banco ?? []),
+    ...(filters.medio ?? []),
+    ...(filters.categoria ?? []),
+  ];
+  const hasFilter = activeFilterValues.length > 0;
   const detailTxs = filterReportTransactions(monthTransactions, filters);
   const detailGroups = aggregateByDimension(detailTxs, detailDimension, base, rateFor);
   const detailTotal = consolidateTransactions(detailTxs, base, rateFor).expense;
-  const detailLabel =
-    [filters.persona, filters.banco, filters.medio, filters.categoria].filter(Boolean).join(' · ') ||
-    'Filtrado';
+  const detailLabel = activeFilterValues.join(' · ') || 'Filtrado';
 
   // Vista ANUAL (acumulado del año hasta el mes activo).
   const yearTransactions = allTransactions.filter((tx) => tx.occurred_on.startsWith(year));
