@@ -26,6 +26,17 @@ Que la extracción de comprobantes de transferencia funcione entre **bancos y bi
 - El usuario aporta comprobantes reales (Naranja, Ualá, MP, BNA, Patagonia, …) en `samples/resumenes-privados/` (git-ignored, privados).
 - Por cada proveedor, agregar un **fixture de texto anonimizado** en `services/ingesta/tests/fixtures/` y su caso en `tests/test_receipts_parsing.py` (montos, fechas, origen/destino/banco esperados; y casos donde lo correcto es **vacío**).
 
+## Follow-up (reportado 2026-06-23, post F2-11): orden de nombre en `holder`
+Al cargar un comprobante de transferencia con un titular que **no** matchea a un miembro, F2-11
+crea el medio `'transfer'` con `holder_name` = `origin_holder`/`dest_holder` tal cual lo extrae
+`receipts.py` — y ese texto puede venir en **cualquier orden** (`Apellido Nombre` o `Nombre
+Apellido`) según el banco/billetera del comprobante. `accountLabel` (`features/accounts/format.ts`)
+muestra las primeras 5 letras del primer token, así que si el comprobante trae "Apellido Nombre"
+el combo de medios termina mostrando el apellido (poco útil en un workspace familiar, donde el
+apellido suele ser compartido). Decisión (2026-06-23): **no** tocarlo ahora vía heurística (mostrar
+el último token rompería los casos donde sí viene "Nombre Apellido"); evaluarlo en este ticket
+junto con la extracción real por proveedor, donde se puede saber el orden con más certeza.
+
 ## Criterios de aceptación
 - [ ] El comprobante de MP de 1 peso ya **no** carga `2026` como monto (carga 1 o, si no hay certeza, nada).
 - [ ] Para cada proveedor con sample, la extracción acierta los campos presentes **o** devuelve vacío (nunca un valor inventado).

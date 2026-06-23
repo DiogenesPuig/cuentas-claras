@@ -32,4 +32,23 @@ describe('accountLabel', () => {
       accountLabel({ name: 'Efectivo', bank: null, network: null, last4: null, holderName: 'Juan' }),
     ).toBe('Efectivo');
   });
+
+  it('un medio `transfer` sí agrega el dueño aunque no tenga datos de tarjeta (F2-11)', () => {
+    expect(
+      accountLabel({
+        name: 'Transferencia',
+        bank: null,
+        network: null,
+        last4: null,
+        holderName: 'Lucas Puig',
+        type: 'transfer',
+      }),
+    ).toBe('Transferencia (Lucas)');
+  });
+
+  it('un `transfer` sin dueño cae al nombre genérico', () => {
+    expect(
+      accountLabel({ name: 'Transferencia', bank: null, network: null, last4: null, type: 'transfer' }),
+    ).toBe('Transferencia');
+  });
 });
