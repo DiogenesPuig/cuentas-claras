@@ -83,6 +83,25 @@ def test_amount_ignora_identificadores_largos() -> None:
     assert extract_amount(text, "transfer") == 2500.0
 
 
+# --- F2-12 A.1: monto conservador (mata el bug del año-como-monto) ---------
+
+
+def test_amount_ignora_anio_de_fecha_en_linea_etiquetada() -> None:
+    # El año de una fecha en la MISMA línea que la etiqueta no debe ganar como monto.
+    assert extract_amount("Importe del 05/06/2026: 1.000,00\n", "transfer") == 1000.0
+
+
+def test_amount_etiquetado_entero_sin_centavos_se_respeta() -> None:
+    # Un monto ETIQUETADO sin centavos (ej. $2000 redondo) SÍ se carga: la etiqueta
+    # alcanza como señal. Solo se descartan los enteros sueltos SIN etiqueta.
+    assert extract_amount("Importe: 2000\n", "transfer") == 2000.0
+
+
+def test_amount_sin_etiqueta_ni_centavos_da_none() -> None:
+    # Enteros sueltos sin etiqueta ni centavos → vacío (no se inventa un monto).
+    assert extract_amount("Transferencia recibida\n1500\nOperacion 778899\n", "transfer") is None
+
+
 def test_detect_subtype() -> None:
     assert detect_subtype(TRANSFER) == "transfer"
     assert detect_subtype(TICKET) == "purchase"
@@ -207,3 +226,135 @@ def test_transfer_extraction_pobla_origen_y_destino() -> None:
     assert res.origin_holder == "Juan Perez"
     assert res.dest_holder == "Maria Lopez"
     assert res.confidence == 1.0  # ya estaba en el tope; el boost no lo pasa de 1.0
+
+
+# --- F2-12 A.2: vocabulario por proveedor + fechas en español --------------
+#
+# Fixtures ANONIMIZADOS (nombres/CBU/CUIL inventados) que preservan el LAYOUT real de
+# cada comprobante (etiquetas, formato de fecha, orden de campos) — que es lo que parsea
+# la heurística. Inline, siguiendo la convención de este archivo. Cubren los 5
+# proveedores con muestra al 2026-06-24: Patagonia (ya cubierto arriba), Naranja X, BNA,
+# Ualá y Mercado Pago.
+
+# Naranja X: monto "Enviaste" sin centavos en la línea siguiente; fecha con mes
+# abreviado (22/JUN/2026); etiquetas "Cuenta origen/destino".
+TRANSFER_NARANJA = """NaranjaX
+Comprobante de transferencia
+Enviaste
+$35.000
+
+22/JUN/2026 - 22:19 h
+Cuenta origen
+NX Ana Beatriz Gomez
+Naranja X
+CBU
+0000000000000000000000
+CUIL
+20-11111111-1
+Cuenta destino
+Carlos Daniel Ruiz
+Mercado Pago
+CVU
+0000000000000000000001
+"""
+
+# BNA: monto "Monto" con centavos en la línea siguiente; etiqueta "Destinatario".
+TRANSFER_BNA = """3 Transferencia
+BNA
+Destinatario
+Carlos Daniel Ruiz
+CUIT
+20222222222
+Monto
+$1.652,44
+CBU
+0000000000000000000000
+Banco
+Motivo
+Varios
+Fecha
+03/04/2026 15:10:46
+"""
+
+# Ualá: clave-valor en una línea; "Monto debitado", "Cuenta destino". El PDF apila la
+# etiqueta "Nombre remitente" y el OCR la parte: "Nombre <valor>" + "remitente" solo.
+TRANSFER_UALA = """Ualá Comprobante de transferencia
+Fecha y hora 23/06/2026 14:05 hs
+Monto debitado $1,00
+Cuenta destino Carlos Daniel Ruiz
+CBU destino 0000000000000000000000
+CUIT destino 20222222222
+Nombre Ana Beatriz Gomez
+remitente
+Concepto VAR
+Id Op. ABC123
+"""
+
+# Mercado Pago: monto $1 SIN etiqueta (queda en None, principio rector); fecha textual
+# "23 de junio de 2026"; etiquetas "De"/"Para" con bullet del OCR ("o De"/"o Para").
+TRANSFER_MP = """mercado pago
+Comprobante de transferencia
+Martes, 23 de junio de 2026 a las 14:04 hs
+$1
+Motivo: Varios
+o De
+Ana Beatriz Gomez
+CUIT/CUIL: 20-11111111-1
+Mercado Pago
+CVU: 0000000000000000000000
+o Para
+Carlos Daniel Ruiz
+CUIT/CUIL: 20-22222222-2
+Uala Bank S.A.U
+CBU: 0000000000000000000001
+"""
+
+
+def test_transfer_naranja_x() -> None:
+    res = extract_from_text(TRANSFER_NARANJA)
+    assert res.amount == 35000.0  # "Enviaste" etiqueta el monto de la línea siguiente
+    assert res.date == "2026-06-22"  # mes abreviado 22/JUN/2026
+    # El prefijo "NX" del logo es ruido de OCR conocido: se limpiará en la fase por
+    # proveedor (el enfoque genérico no puede distinguirlo del nombre).
+    assert res.origin_holder == "NX Ana Beatriz Gomez"
+    assert res.dest_holder == "Carlos Daniel Ruiz"
+
+
+def test_transfer_bna() -> None:
+    res = extract_from_text(TRANSFER_BNA)
+    assert res.amount == 1652.44  # "Monto" etiqueta el monto de la línea siguiente
+    assert res.date == "2026-04-03"
+    assert res.dest_holder == "Carlos Daniel Ruiz"
+    assert res.origin_holder is None  # el comprobante no muestra origen
+
+
+def test_transfer_uala() -> None:
+    res = extract_from_text(TRANSFER_UALA)
+    assert res.amount == 1.0  # "Monto debitado $1,00" (con centavos)
+    assert res.date == "2026-06-23"
+    assert res.origin_holder == "Ana Beatriz Gomez"  # "Nombre remitente"
+    assert res.dest_holder == "Carlos Daniel Ruiz"  # "Cuenta destino"
+
+
+def test_transfer_mercado_pago() -> None:
+    res = extract_from_text(TRANSFER_MP)
+    # $1 sin etiqueta ni centavos → vacío (principio rector: mejor manual que el año).
+    assert res.amount is None
+    assert res.date == "2026-06-23"  # fecha textual "23 de junio de 2026"
+    assert res.origin_holder == "Ana Beatriz Gomez"  # "o De" (bullet del OCR)
+    assert res.dest_holder == "Carlos Daniel Ruiz"  # "o Para"
+
+
+def test_party_no_agarra_otro_campo_como_nombre() -> None:
+    # Etiqueta sola seguida de OTRO campo (Concepto) → None, no carga "Concepto VAR".
+    text = "Comprobante de transferencia\nremitente\nConcepto Varios\nCBU 0000\n"
+    assert extract_origin(text) is None
+
+
+def test_fecha_mes_textual_y_abreviado() -> None:
+    from app.parsing.receipts import extract_date
+
+    assert extract_date("Fecha 22/JUN/2026") == "2026-06-22"
+    assert extract_date("el 5 de marzo de 2026") == "2026-03-05"
+    assert extract_date("1-dic-26") == "2026-12-01"
+    assert extract_date("sin fecha valida") is None

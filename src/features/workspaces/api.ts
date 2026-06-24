@@ -195,6 +195,43 @@ export async function createInvitation(
   return data;
 }
 
+/** Duración de un link de invitación genérico antes de vencer (horas). */
+const INVITE_LINK_TTL_HOURS = 48;
+
+/**
+ * Crea un link de invitación genérico y reutilizable: una invitación SIN email
+ * (`email = null`) que cualquiera con el link puede aceptar hasta que venza
+ * (48 hs) o se revoque. A diferencia de las invitaciones por email, aceptarla
+ * NO la consume (ver `accept_invitation`, migración 0012).
+ */
+export async function createInviteLink(workspaceId: string, role: MemberRole): Promise<Invitation> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('No hay sesión activa.');
+
+  const expiresAt = new Date(Date.now() + INVITE_LINK_TTL_HOURS * 60 * 60 * 1000).toISOString();
+  const payload: TablesInsert<'invitations'> = {
+    workspace_id: workspaceId,
+    email: null,
+    role,
+    invited_by: user.id,
+    expires_at: expiresAt,
+  };
+  const { data, error } = await supabase.from('invitations').insert(payload).select().single();
+  if (error) throw error;
+  return data;
+}
+
+/** Revoca una invitación (link o email): deja de ser aceptable. RLS exige owner/admin. */
+export async function revokeInvitation(invitationId: string): Promise<void> {
+  const { error } = await supabase
+    .from('invitations')
+    .update({ status: 'revoked' })
+    .eq('id', invitationId);
+  if (error) throw error;
+}
+
 /**
  * Datos de una invitación a partir de su token, para mostrarlos antes de
  * aceptarla. `null` si el token no existe. Usa una función `SECURITY DEFINER`

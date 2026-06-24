@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { registerSchema, type RegisterInput } from '../schema';
 import { signUpWithPassword } from '../api';
 
 export function RegisterPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  // Destino al que volver tras registrarse (p. ej. /invite/:token si vino de un link).
+  const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname;
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmationNotice, setConfirmationNotice] = useState(false);
   const {
@@ -20,7 +23,7 @@ export function RegisterPage() {
     try {
       const data = await signUpWithPassword(values.email, values.password);
       if (data.session) {
-        navigate('/', { replace: true });
+        navigate(from ?? '/', { replace: true });
       } else {
         setConfirmationNotice(true);
       }
@@ -35,7 +38,7 @@ export function RegisterPage() {
         <h1 className="text-2xl font-bold">Revisá tu email</h1>
         <p className="text-sm text-muted-foreground">
           Te enviamos un link para confirmar tu cuenta. Una vez confirmada, podés{' '}
-          <Link to="/login" className="font-medium text-primary underline">
+          <Link to="/login" state={location.state} className="font-medium text-primary underline">
             iniciar sesión
           </Link>
           .
@@ -94,7 +97,7 @@ export function RegisterPage() {
 
         <p className="text-center text-sm text-muted-foreground">
           ¿Ya tenés cuenta?{' '}
-          <Link to="/login" className="font-medium text-primary underline">
+          <Link to="/login" state={location.state} className="font-medium text-primary underline">
             Iniciá sesión
           </Link>
         </p>

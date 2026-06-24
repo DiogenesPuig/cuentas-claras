@@ -3,6 +3,7 @@ import { upsertMyProfile } from '@/features/auth';
 import {
   acceptInvitation,
   createInvitation,
+  createInviteLink,
   createWorkspace,
   getMyRole,
   getWorkspace,
@@ -11,6 +12,7 @@ import {
   listMyWorkspaces,
   previewInvitation,
   removeMember,
+  revokeInvitation,
   updateMemberRole,
   updateWorkspaceSettings,
   type Invitation,
@@ -135,6 +137,30 @@ export function useCreateInvitation(workspaceId: string | undefined) {
 
   return useMutation<Invitation, Error, InviteInput>({
     mutationFn: (input) => createInvitation(workspaceId as string, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: workspacesKeys.invitations(workspaceId) });
+    },
+  });
+}
+
+/** Genera un link de invitación genérico y reutilizable (sin email). */
+export function useCreateInviteLink(workspaceId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation<Invitation, Error, MemberRole>({
+    mutationFn: (role) => createInviteLink(workspaceId as string, role),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: workspacesKeys.invitations(workspaceId) });
+    },
+  });
+}
+
+/** Revoca una invitación (link o email) para que deje de ser aceptable. */
+export function useRevokeInvitation(workspaceId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: (invitationId) => revokeInvitation(invitationId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: workspacesKeys.invitations(workspaceId) });
     },

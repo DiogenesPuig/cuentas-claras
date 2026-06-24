@@ -81,7 +81,7 @@ export function LoginPage() {
 
         <p className="text-center text-sm text-muted-foreground">
           ¿No tenés cuenta?{' '}
-          <Link to="/register" className="font-medium text-primary underline">
+          <Link to="/register" state={location.state} className="font-medium text-primary underline">
             Registrate
           </Link>
         </p>
