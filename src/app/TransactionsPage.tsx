@@ -3,6 +3,7 @@ import { useAuth } from '@/features/auth';
 import { useCategories } from '@/features/categories';
 import { useAccounts, useMembersForHolder } from '@/features/accounts';
 import { useMyRole, type MemberRole } from '@/features/workspaces';
+import { StatementImport } from '@/features/imports';
 import {
   EMPTY_FIELD_FILTERS,
   ExportButton,
@@ -58,11 +59,23 @@ export function TransactionsPage() {
 
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   if (!workspaceId) return null;
 
   const isFormOpen = editing !== null || isCreating;
+
+  // Alta de movimiento e importación de resumen son mutuamente excluyentes.
+  function openCreate() {
+    setIsImporting(false);
+    setIsCreating(true);
+  }
+
+  function openImport() {
+    closeForm();
+    setIsImporting(true);
+  }
   const canManageAny = role !== null && role !== undefined && CAN_MANAGE_ANY_ROLES.includes(role);
 
   function canEdit(transaction: TransactionView): boolean {
@@ -105,14 +118,43 @@ export function TransactionsPage() {
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Movimientos</h1>
 
-      {!isFormOpen && (
-        <button
-          type="button"
-          onClick={() => setIsCreating(true)}
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
-        >
-          + Gasto / Ingreso
-        </button>
+      {!isFormOpen && !isImporting && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={openCreate}
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
+            + Gasto / Ingreso
+          </button>
+          <button
+            type="button"
+            onClick={openImport}
+            className="rounded-md border border-input px-4 py-2 text-sm font-medium hover:bg-accent"
+          >
+            Importar resumen
+          </button>
+        </div>
+      )}
+
+      {isImporting && (
+        <div className="space-y-2 rounded-md border border-border p-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Importar resumen</h2>
+            <button
+              type="button"
+              onClick={() => setIsImporting(false)}
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
+              Cerrar
+            </button>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Subí el PDF del resumen de tarjeta (Banco Patagonia Visa/Master), revisá los movimientos
+            detectados y confirmalos en bloque.
+          </p>
+          <StatementImport workspaceId={workspaceId} />
+        </div>
       )}
 
       {isFormOpen && (
@@ -155,7 +197,10 @@ export function TransactionsPage() {
         transactions={transactions ?? []}
         isLoading={isLoading}
         canEdit={canEdit}
-        onEdit={setEditing}
+        onEdit={(transaction) => {
+          setIsImporting(false);
+          setEditing(transaction);
+        }}
         onDelete={handleDelete}
       />
     </div>

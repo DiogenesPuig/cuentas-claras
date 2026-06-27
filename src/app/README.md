@@ -6,7 +6,7 @@ Composición de la aplicación: rutas, providers y layout.
 
 - `router.tsx` — rutas (`/login`, `/register`, `/onboarding`, `/invite/:token` protegida solo con
   `RequireAuth`; `/` = `HomeGate` (sin barra de secciones); las secciones
-  `categorias`/`medios`/`movimientos`/`importar`/`reportes`/`grupo` van bajo `AppLayout`. Todo
+  `categorias`/`medios`/`movimientos`/`reportes`/`grupo` van bajo `AppLayout`. Todo
   protegido con `RequireAuth` + `RequireWorkspace`).
 - `providers.tsx` — `QueryClientProvider` + `AuthProvider`.
 - `HomeGate.tsx` — inicio `/`: 1 grupo → redirige a `/reportes`; >1 grupo → `GroupsLanding`.
@@ -17,11 +17,10 @@ Composición de la aplicación: rutas, providers y layout.
 - `OnboardingPage.test.tsx` — smoke test de validación del form de onboarding.
 - `CategoriesPage.tsx` — pantalla `/categorias`: gestión de categorías del workspace activo (B6).
 - `AccountsPage.tsx` — pantalla `/medios`: gestión de tarjetas/medios del workspace activo (B7).
-- `TransactionsPage.tsx` — pantalla `/movimientos`: alta/edición/borrado de movimientos (B8) +
-  lista con búsqueda (`SearchBar`, debounced) y filtros combinables (`FilterBar`: persona, medio,
-  categoría, moneda) más el mes activo, todo aplicado en la query vía `useTransactions` (B10).
-- `ImportPage.tsx` — pantalla `/importar`: subir un resumen de tarjeta (PDF), revisar los
-  movimientos detectados y confirmarlos en bloque (`features/imports`, FR-16/F2-3).
+- `TransactionsPage.tsx` — pantalla `/movimientos`: única página de carga de datos. Alta/edición/
+  borrado de movimientos (manual o por comprobante/OCR, B8) **e importación de resúmenes** de
+  tarjeta (`StatementImport`, FR-16/F2-3) — dos acciones inline mutuamente excluyentes — + lista con
+  búsqueda (`SearchBar`, debounced) y filtros combinables (`FilterBar`) sobre el mes activo (B10).
 - `ReportsPage.tsx` — pantalla `/reportes` (C13): bloque **general** (todo el grupo, tabs de
   dimensión; gráfico izq. / info der.), **detalle por filtro** (filtros apilables persona/banco/
   medio/categoría → subconjunto con "ver por"; info izq. / gráfico der.; vacío hasta filtrar),
