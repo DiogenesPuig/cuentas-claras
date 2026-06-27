@@ -22,6 +22,17 @@ export const onboardingSchema = z.object({
 });
 export type OnboardingInput = z.infer<typeof onboardingSchema>;
 
+/** Alta de un grupo adicional (el perfil ya existe, así que no pide el nombre del usuario). */
+export const createWorkspaceSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, 'El nombre del grupo es obligatorio')
+    .max(80, 'Máximo 80 caracteres'),
+  baseCurrency: z.enum(BASE_CURRENCIES),
+});
+export type CreateWorkspaceFormInput = z.infer<typeof createWorkspaceSchema>;
+
 /** Roles asignables al invitar o al cambiar el rol de un miembro (no `owner`: no se otorga por UI). */
 export const ASSIGNABLE_ROLES = ['admin', 'member', 'viewer'] as const;
 export type AssignableRole = (typeof ASSIGNABLE_ROLES)[number];

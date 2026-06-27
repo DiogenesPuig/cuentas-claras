@@ -15,6 +15,7 @@ import {
   revokeInvitation,
   updateMemberRole,
   updateWorkspaceSettings,
+  type CreateWorkspaceInput,
   type Invitation,
   type InviteInput,
   type Member,
@@ -55,6 +56,18 @@ export function useCompleteOnboarding() {
       await upsertMyProfile(displayName);
       return createWorkspace({ name: workspaceName, base_currency: baseCurrency });
     },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: workspacesKeys.mine });
+    },
+  });
+}
+
+/** Crea un grupo adicional (el perfil del usuario ya existe). El trigger lo hace owner. */
+export function useCreateWorkspace() {
+  const queryClient = useQueryClient();
+
+  return useMutation<Workspace, Error, CreateWorkspaceInput>({
+    mutationFn: (input) => createWorkspace(input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: workspacesKeys.mine });
     },

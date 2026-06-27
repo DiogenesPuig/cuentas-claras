@@ -13,3 +13,5 @@
   (`RoleSelect` + "Generar link") y la lista de invitaciones pendientes; solo visible para
   owner/admin.
 - `WorkspaceSettings.tsx` — form para editar name/base_currency/fx_quote del workspace activo.
+- `CreateWorkspaceDialog.tsx` — modal para crear un grupo adicional (nombre + moneda); reusable en el
+  `WorkspaceSwitcher` y en `/grupo`. Al crear, llama `onCreated(id)` (el caller lo activa).
