@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { Category } from '@/features/categories';
@@ -115,7 +116,6 @@ export function TransactionForm({
 }: TransactionFormProps) {
   const amountRef = useRef<HTMLInputElement | null>(null);
   const [ocrLoading, setOcrLoading] = useState(false);
-  const [ocrMessage, setOcrMessage] = useState<string | null>(null);
   const [ocrApplied, setOcrApplied] = useState(false);
   // Origen/destino detectados en un comprobante de transferencia (F2-8/F2-9).
   const [transferInfo, setTransferInfo] = useState<TransferPartyInfo | null>(null);
@@ -136,7 +136,6 @@ export function TransactionForm({
   useEffect(() => {
     reset(defaultValuesFor(transaction));
     setOcrApplied(false);
-    setOcrMessage(null);
     setTransferInfo(null);
   }, [transaction, reset]);
 
@@ -213,7 +212,6 @@ export function TransactionForm({
   async function handleExtract() {
     if (!onExtractReceipt || !selectedFile) return;
     setOcrLoading(true);
-    setOcrMessage(null);
     // Reintento sobre una precarga previa: vaciar antes de aplicar el nuevo (BUG-3).
     if (ocrApplied) clearAppliedOcr();
     try {
@@ -231,7 +229,7 @@ export function TransactionForm({
         (result.merchant?.trim().length ?? 0) > 0 ||
         hasTransferInfo;
       if (!found) {
-        setOcrMessage('No se pudieron extraer datos del comprobante. Completá manualmente.');
+        toast.error('No se pudieron extraer datos del comprobante. Completá manualmente.');
         return;
       }
       if (result.amount != null) setValue('amount', String(result.amount));
@@ -246,13 +244,13 @@ export function TransactionForm({
       }
       setTransferInfo(hasTransferInfo ? transfer : null);
       setOcrApplied(true);
-      setOcrMessage(
-        result.confidence < LOW_CONFIDENCE
-          ? 'Datos precargados con baja confianza: revisalos antes de guardar.'
-          : 'Datos precargados desde el comprobante: revisalos antes de guardar.',
-      );
+      if (result.confidence < LOW_CONFIDENCE) {
+        toast.warning('Datos precargados con baja confianza: revisalos antes de guardar.');
+      } else {
+        toast.success('Datos precargados desde el comprobante: revisalos antes de guardar.');
+      }
     } catch {
-      setOcrMessage('No se pudo procesar el comprobante. Podés cargar los datos a mano.');
+      toast.error('No se pudo procesar el comprobante. Podés cargar los datos a mano.');
     } finally {
       setOcrLoading(false);
     }
@@ -474,7 +472,6 @@ export function TransactionForm({
             >
               {ocrLoading ? 'Leyendo comprobante…' : 'Extraer datos del comprobante'}
             </button>
-            {ocrMessage && <p className="text-sm text-muted-foreground">{ocrMessage}</p>}
           </div>
         )}
       </div>
