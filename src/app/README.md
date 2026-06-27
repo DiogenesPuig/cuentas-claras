@@ -5,9 +5,13 @@ Composición de la aplicación: rutas, providers y layout.
 ## Archivos
 
 - `router.tsx` — rutas (`/login`, `/register`, `/onboarding`, `/invite/:token` protegida solo con
-  `RequireAuth`, `/` protegida con `RequireAuth` + `RequireWorkspace` y envuelta en `AppLayout`,
-  con hijas `categorias`/`medios`/`movimientos`/`importar`/`reportes`/`grupo`).
+  `RequireAuth`; `/` = `HomeGate` (sin barra de secciones); las secciones
+  `categorias`/`medios`/`movimientos`/`importar`/`reportes`/`grupo` van bajo `AppLayout`. Todo
+  protegido con `RequireAuth` + `RequireWorkspace`).
 - `providers.tsx` — `QueryClientProvider` + `AuthProvider`.
+- `HomeGate.tsx` — inicio `/`: 1 grupo → redirige a `/reportes`; >1 grupo → `GroupsLanding`.
+- `GroupsLanding.tsx` — landing para elegir grupo cuando hay más de uno (tarjetas + "Nuevo grupo"
+  + salir); al entrar a un grupo lo activa y va a `/reportes`. Sin barra de secciones.
 - `OnboardingPage.tsx` — pantalla `/onboarding`: pide nombre del usuario, nombre del grupo y
   moneda base; crea el primer workspace (A4).
 - `OnboardingPage.test.tsx` — smoke test de validación del form de onboarding.
@@ -16,10 +20,6 @@ Composición de la aplicación: rutas, providers y layout.
 - `TransactionsPage.tsx` — pantalla `/movimientos`: alta/edición/borrado de movimientos (B8) +
   lista con búsqueda (`SearchBar`, debounced) y filtros combinables (`FilterBar`: persona, medio,
   categoría, moneda) más el mes activo, todo aplicado en la query vía `useTransactions` (B10).
-- `DashboardPage.tsx` — pantalla `/` (inicio): resumen del mes activo (`SummaryCard`), últimos
-  movimientos (`RecentTransactions`) y alta rápida vía `Fab` + modal con `TransactionForm` (B9).
-  El filtro de mes se aplica en la query (`useTransactions(workspaceId, { month })`, B10), no en
-  el cliente.
 - `ImportPage.tsx` — pantalla `/importar`: subir un resumen de tarjeta (PDF), revisar los
   movimientos detectados y confirmarlos en bloque (`features/imports`, FR-16/F2-3).
 - `ReportsPage.tsx` — pantalla `/reportes` (C13): bloque **general** (todo el grupo, tabs de
