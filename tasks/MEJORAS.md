@@ -82,12 +82,4 @@ según `CLAUDE.md`).
   descartado (el usuario eligió por persona/miembros).
 - **Origen:** pedido del usuario, no urgente.
 
-### MEJ-6 — Aviso de "baja confianza" más vistoso
-- **Qué:** cuando el OCR precarga datos con **baja confianza**, el aviso debe ser **más llamativo**
-  (banner/alerta destacada). Hoy pasa desapercibido.
-- **Contexto:** pedido del usuario (2026-06-27). El mensaje vive en
-  `src/features/transactions/components/TransactionForm.tsx` (~L233-234, umbral `LOW_CONFIDENCE = 0.5`):
-  "Datos precargados con baja confianza: revisalos antes de guardar."
-- **A tener en cuenta:** solo UI (estilo/jerarquía visual, ej. fondo de alerta + icono). Sin deps
-  nuevas. Mantener el texto en español.
-- **Origen:** pedido del usuario, no urgente.
+### ~~MEJ-6~~ — ✅ Aviso de "baja confianza" más vistoso — _hecho (toasts Sonner, PR #39)_
