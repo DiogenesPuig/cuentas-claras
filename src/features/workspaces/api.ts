@@ -41,9 +41,18 @@ export interface CreateWorkspaceInput {
 
 /** Workspaces a los que pertenece el usuario autenticado (vía `workspace_members`). */
 export async function listMyWorkspaces(): Promise<Workspace[]> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  // Filtramos por el usuario actual: la policy `wm_select` (is_member) deja ver a
+  // TODOS los miembros de tus grupos, así que sin este filtro el mismo workspace
+  // venía repetido una vez por cada miembro (BUG-1).
   const { data, error } = await supabase
     .from('workspace_members')
     .select('workspace:workspaces(*)')
+    .eq('user_id', user.id)
     .order('joined_at', { ascending: true });
   if (error) throw error;
 
