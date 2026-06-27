@@ -45,7 +45,7 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 **Bugs (detectados en producción)**
 - ✅ `BUG-1` Selector de grupo muestra el mismo workspace duplicado (uno por miembro) — _hecho (filtro por usuario en `listMyWorkspaces`, `tasks/done/`)_
 - ✅ `BUG-2` No se puede aceptar una invitación sin tener un grupo previo — _hecho (migración 0013, `tasks/done/`)_
-- `BUG-3` El form de alta no se vacía al reintentar con otro comprobante — `tasks/BUG-3-form-comprobante-no-se-vacia.md`
+- ✅ `BUG-3` El form de alta no se vacía al reintentar con otro comprobante — _hecho (limpia la precarga previa al reintentar, `tasks/done/`)_
 
 ## Plantilla de ticket
 

@@ -195,10 +195,27 @@ export function TransactionForm({
   const suggestedCategory =
     type === 'expense' && !categoryId ? suggestCategory(description, categoryOptions) : null;
 
+  // Limpia lo que precargó una extracción anterior. Sirve para que al reintentar
+  // con OTRO comprobante que falle o traiga menos datos, el form no quede con los
+  // datos viejos (BUG-3). Resetea solo los campos que toca el OCR.
+  function clearAppliedOcr() {
+    const d = defaultTransactionValues();
+    setValue('amount', d.amount);
+    setValue('currency', d.currency);
+    setValue('occurredOn', d.occurredOn);
+    setValue('description', d.description);
+    setValue('bank', d.bank);
+    setValue('accountId', d.accountId);
+    setTransferInfo(null);
+    setOcrApplied(false);
+  }
+
   async function handleExtract() {
     if (!onExtractReceipt || !selectedFile) return;
     setOcrLoading(true);
     setOcrMessage(null);
+    // Reintento sobre una precarga previa: vaciar antes de aplicar el nuevo (BUG-3).
+    if (ocrApplied) clearAppliedOcr();
     try {
       const result = await onExtractReceipt(selectedFile);
       const transfer: TransferPartyInfo = {
