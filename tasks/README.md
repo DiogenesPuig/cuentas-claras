@@ -43,7 +43,7 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 - ✅ `D17` CI en GitHub Actions (typecheck/lint/test/build en cada PR) — depende de A1.
 
 **Bugs (detectados en producción)**
-- `BUG-1` Selector de grupo muestra el mismo workspace duplicado (uno por miembro) — `tasks/BUG-1-grupos-duplicados-selector.md`
+- ✅ `BUG-1` Selector de grupo muestra el mismo workspace duplicado (uno por miembro) — _hecho (filtro por usuario en `listMyWorkspaces`, `tasks/done/`)_
 - ✅ `BUG-2` No se puede aceptar una invitación sin tener un grupo previo — _hecho (migración 0013, `tasks/done/`)_
 - `BUG-3` El form de alta no se vacía al reintentar con otro comprobante — `tasks/BUG-3-form-comprobante-no-se-vacia.md`
 
