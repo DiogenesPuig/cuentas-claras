@@ -13,6 +13,9 @@ dependencies = [
     "pyjwt[crypto]>=2.8",
     "python-multipart>=0.0.9",
     "pydantic-settings>=2.2",
+    # Cliente HTTP del fallback por visión (Fase B, F2-12). Síncrono, corre
+    # dentro de run_with_timeout (en un thread).
+    "httpx>=0.27",
 ]
 
 [project.optional-dependencies]
