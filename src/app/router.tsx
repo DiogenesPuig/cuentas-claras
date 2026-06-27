@@ -6,7 +6,6 @@ import { AccountsPage } from './AccountsPage';
 import { CategoriesPage } from './CategoriesPage';
 import { GroupPage } from './GroupPage';
 import { HomeGate } from './HomeGate';
-import { ImportPage } from './ImportPage';
 import { InviteAcceptPage } from './InviteAcceptPage';
 import { ReportsPage } from './ReportsPage';
 import { TransactionsPage } from './TransactionsPage';
@@ -55,7 +54,6 @@ const router = createBrowserRouter([
       { path: 'categorias', element: <CategoriesPage /> },
       { path: 'medios', element: <AccountsPage /> },
       { path: 'movimientos', element: <TransactionsPage /> },
-      { path: 'importar', element: <ImportPage /> },
       { path: 'reportes', element: <ReportsPage /> },
       { path: 'grupo', element: <GroupPage /> },
     ],
