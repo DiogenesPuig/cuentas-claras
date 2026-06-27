@@ -109,4 +109,7 @@ npm test            # vitest run  (npm run test:watch para modo watch)
 4. (Sonnet/Haiku) implementar **solo ese ticket**.
 5. Correr `typecheck`, `lint`, `test`. Si está instalado el hook de `claude-setup/`, el gate lo fuerza al cerrar el turno.
 6. Revisar el diff contra los criterios de aceptación antes de mergear. Para tickets de riesgo (auth, RLS, dinero, FX, permisos) usar el subagente `reviewer` (ver `claude-setup/README.md`).
-7. Mergear la rama del ticket a `main` (PR), siguiendo el patrón de tickets anteriores (`task/a5`, `task/b6`, …).
+7. Push de la rama + **abrir PR**. CI corre `typecheck`/`lint`/`test`/`build` + el check de Vercel.
+8. **Esperar a que el usuario lo pruebe en local antes de mergear** (regla 2026-06-27): el agente NO mergea hasta que el usuario corre el cambio en local y confirma que está OK. Excepción: cambios solo-docs/backlog (bajo riesgo) se pueden mergear sin prueba local.
+9. Mergear el PR a `main`. Vercel deploya producción solo (desde el repo `cuentas-claras`); los fixes de **DB** (migraciones aplicadas con `supabase db push`) ya quedan vivos sin depender del deploy del front, y el **micro de ingesta** (OCR/resúmenes) se actualiza aparte subiéndolo al Space de Hugging Face.
+10. Si el ticket está completo, mover su archivo a `tasks/done/` y actualizar `tasks/README.md`.
