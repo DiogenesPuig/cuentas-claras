@@ -46,7 +46,7 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 - ✅ `BUG-1` Selector de grupo muestra el mismo workspace duplicado (uno por miembro) — _hecho (filtro por usuario en `listMyWorkspaces`, `tasks/done/`)_
 - ✅ `BUG-2` No se puede aceptar una invitación sin tener un grupo previo — _hecho (migración 0013, `tasks/done/`)_
 - ✅ `BUG-3` El form de alta no se vacía al reintentar con otro comprobante — _hecho (limpia la precarga previa al reintentar, `tasks/done/`)_
-- `BUG-4` Página de error/404 propia (cuadro centrado) en vez de la default de React Router — `tasks/BUG-4-pagina-de-error-404.md`
+- ✅ `BUG-4` Página de error/404 propia (cuadro centrado) en vez de la default de React Router — _hecho (ErrorPage + errorElement + catch-all `*`, `tasks/done/`)_
 - `BUG-5` Los impuestos se tratan como persona/medio; manejarlos distinto (necesita decisión de diseño) — `tasks/BUG-5-impuestos-como-persona-medio.md`
 
 ## Plantilla de ticket
