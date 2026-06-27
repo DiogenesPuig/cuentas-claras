@@ -4,8 +4,8 @@ import { RequireWorkspace } from '@/features/workspaces';
 import { AppLayout } from './layout/AppLayout';
 import { AccountsPage } from './AccountsPage';
 import { CategoriesPage } from './CategoriesPage';
-import { DashboardPage } from './DashboardPage';
 import { GroupPage } from './GroupPage';
+import { HomeGate } from './HomeGate';
 import { ImportPage } from './ImportPage';
 import { InviteAcceptPage } from './InviteAcceptPage';
 import { ReportsPage } from './ReportsPage';
@@ -31,8 +31,19 @@ const router = createBrowserRouter([
       </RequireAuth>
     ),
   },
+  // Inicio: 1 grupo → Reportes; >1 → landing de grupos. Sin la barra de secciones.
   {
     path: '/',
+    element: (
+      <RequireAuth>
+        <RequireWorkspace>
+          <HomeGate />
+        </RequireWorkspace>
+      </RequireAuth>
+    ),
+  },
+  // Dentro de un grupo: secciones con `AppLayout` (Header + barra de secciones).
+  {
     element: (
       <RequireAuth>
         <RequireWorkspace>
@@ -41,7 +52,6 @@ const router = createBrowserRouter([
       </RequireAuth>
     ),
     children: [
-      { index: true, element: <DashboardPage /> },
       { path: 'categorias', element: <CategoriesPage /> },
       { path: 'medios', element: <AccountsPage /> },
       { path: 'movimientos', element: <TransactionsPage /> },

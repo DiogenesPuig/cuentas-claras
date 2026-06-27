@@ -1,7 +1,6 @@
 import {
   CreditCard,
   FileUp,
-  Home,
   ListChecks,
   PieChart,
   Tags,
@@ -20,12 +19,11 @@ interface Tab {
 }
 
 const TABS: Tab[] = [
-  { to: '/', label: 'Inicio', icon: Home, end: true },
-  { to: '/categorias', label: 'Categorías', icon: Tags },
-  { to: '/medios', label: 'Medios', icon: CreditCard },
-  { to: '/movimientos', label: 'Movimientos', icon: ListChecks },
-  { to: '/importar', label: 'Importar', icon: FileUp },
   { to: '/reportes', label: 'Reportes', icon: PieChart },
+  { to: '/movimientos', label: 'Movimientos', icon: ListChecks },
+  { to: '/medios', label: 'Medios', icon: CreditCard },
+  { to: '/categorias', label: 'Categorías', icon: Tags },
+  { to: '/importar', label: 'Importar', icon: FileUp },
   { to: '/grupo', label: 'Grupo', icon: Users },
 ];
 

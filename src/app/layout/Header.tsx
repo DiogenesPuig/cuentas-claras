@@ -1,13 +1,18 @@
-import { LogOut } from 'lucide-react';
+import { LayoutGrid, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth';
+import { useMyWorkspaces } from '@/features/workspaces';
 import { useActiveWorkspace } from '@/hooks/useActiveWorkspace';
 import { MonthSwitcher } from '@/components/MonthSwitcher';
 import { WorkspaceSwitcher } from '@/components/WorkspaceSwitcher';
 
-/** Cabecera de la app: selector de workspace, selector de mes y salir. */
+/** Cabecera de la app: volver a grupos (si hay varios), selector de workspace/mes y salir. */
 export function Header() {
   const { signOut } = useAuth();
+  const navigate = useNavigate();
   const clearWorkspace = useActiveWorkspace((state) => state.clearWorkspace);
+  const { data: workspaces } = useMyWorkspaces();
+  const hasMultipleGroups = (workspaces?.length ?? 0) > 1;
 
   async function handleSignOut() {
     clearWorkspace();
@@ -17,7 +22,20 @@ export function Header() {
   return (
     <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur">
       <div className="flex items-center justify-between gap-2 px-4 py-2">
-        <WorkspaceSwitcher />
+        <div className="flex items-center gap-1">
+          {hasMultipleGroups && (
+            <button
+              type="button"
+              aria-label="Ver todos los grupos"
+              title="Ver todos los grupos"
+              onClick={() => navigate('/')}
+              className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <LayoutGrid className="h-5 w-5" aria-hidden />
+            </button>
+          )}
+          <WorkspaceSwitcher />
+        </div>
         <button
           type="button"
           aria-label="Cerrar sesión"
