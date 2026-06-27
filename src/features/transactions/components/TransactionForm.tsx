@@ -115,7 +115,10 @@ export function TransactionForm({
 }: TransactionFormProps) {
   const amountRef = useRef<HTMLInputElement | null>(null);
   const [ocrLoading, setOcrLoading] = useState(false);
-  const [ocrMessage, setOcrMessage] = useState<string | null>(null);
+  const [ocrMessage, setOcrMessage] = useState<{
+    text: string;
+    variant: 'info' | 'warning' | 'error';
+  } | null>(null);
   const [ocrApplied, setOcrApplied] = useState(false);
   // Origen/destino detectados en un comprobante de transferencia (F2-8/F2-9).
   const [transferInfo, setTransferInfo] = useState<TransferPartyInfo | null>(null);
@@ -231,7 +234,7 @@ export function TransactionForm({
         (result.merchant?.trim().length ?? 0) > 0 ||
         hasTransferInfo;
       if (!found) {
-        setOcrMessage('No se pudieron extraer datos del comprobante. Completá manualmente.');
+        setOcrMessage({ text: 'No se pudieron extraer datos del comprobante. Completá manualmente.', variant: 'error' });
         return;
       }
       if (result.amount != null) setValue('amount', String(result.amount));
@@ -248,11 +251,11 @@ export function TransactionForm({
       setOcrApplied(true);
       setOcrMessage(
         result.confidence < LOW_CONFIDENCE
-          ? 'Datos precargados con baja confianza: revisalos antes de guardar.'
-          : 'Datos precargados desde el comprobante: revisalos antes de guardar.',
+          ? { text: 'Datos precargados con baja confianza: revisalos antes de guardar.', variant: 'warning' }
+          : { text: 'Datos precargados desde el comprobante: revisalos antes de guardar.', variant: 'info' },
       );
     } catch {
-      setOcrMessage('No se pudo procesar el comprobante. Podés cargar los datos a mano.');
+      setOcrMessage({ text: 'No se pudo procesar el comprobante. Podés cargar los datos a mano.', variant: 'error' });
     } finally {
       setOcrLoading(false);
     }
@@ -474,7 +477,18 @@ export function TransactionForm({
             >
               {ocrLoading ? 'Leyendo comprobante…' : 'Extraer datos del comprobante'}
             </button>
-            {ocrMessage && <p className="text-sm text-muted-foreground">{ocrMessage}</p>}
+            {ocrMessage && (
+              ocrMessage.variant === 'warning' ? (
+                <div className="flex items-start gap-2 rounded-md border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-800 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-200">
+                  <span className="mt-0.5 shrink-0">⚠️</span>
+                  <span>{ocrMessage.text}</span>
+                </div>
+              ) : ocrMessage.variant === 'error' ? (
+                <p className="text-sm text-destructive">{ocrMessage.text}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">{ocrMessage.text}</p>
+              )
+            )}
           </div>
         )}
       </div>
