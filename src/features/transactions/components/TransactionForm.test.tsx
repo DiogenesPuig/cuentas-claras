@@ -6,6 +6,9 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Account } from '@/features/accounts';
 import { TransactionForm } from './TransactionForm';
 
+const toastMock = vi.hoisted(() => ({ error: vi.fn(), warning: vi.fn(), success: vi.fn() }));
+vi.mock('sonner', () => ({ toast: toastMock }));
+
 const getOrCreateTransferAccountMock = vi.fn();
 
 // Mockeamos el barrel completo (no `vi.importActual`: el barrel re-exporta `api.ts`, que
@@ -173,7 +176,7 @@ describe('TransactionForm', () => {
     await userEvent.upload(fileInput, new File(['b'], 'malo.jpg', { type: 'image/jpeg' }));
     await userEvent.click(screen.getByRole('button', { name: 'Extraer datos del comprobante' }));
     await waitFor(() => {
-      expect(screen.getByText(/No se pudieron extraer datos/i)).toBeInTheDocument();
+      expect(toastMock.error).toHaveBeenCalledWith(expect.stringMatching(/No se pudieron extraer datos/i));
     });
     expect(screen.getByLabelText('Monto')).toHaveValue(null);
     expect(screen.getByLabelText('Motivo (opcional)')).toHaveValue('');
@@ -203,7 +206,7 @@ describe('TransactionForm', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Extraer datos del comprobante' }));
 
     await waitFor(() => {
-      expect(screen.getByText(/No se pudieron extraer datos/i)).toBeInTheDocument();
+      expect(toastMock.error).toHaveBeenCalledWith(expect.stringMatching(/No se pudieron extraer datos/i));
     });
     expect(screen.getByLabelText('Monto')).toHaveValue(null);
   });
