@@ -9,9 +9,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, File, UploadFile
 
+from app import llm
 from app.auth import AuthenticatedUser, require_user
 from app.config import Settings, get_settings
 from app.ocr import image_or_pdf_to_text
+from app.parsing.llm_extract import merge, should_use_llm_fallback
 from app.parsing.receipts import extract_from_text
 from app.schemas import ReceiptExtraction
 from app.uploads import read_upload_limited, run_with_timeout
@@ -29,7 +31,16 @@ async def extract_receipt(
     content_type = file.content_type
 
     def _work(raw: bytes) -> ReceiptExtraction:
+        # Fase A: OCR + heurística (gratis, sin red).
         text = image_or_pdf_to_text(raw, content_type)
-        return extract_from_text(text)
+        result = extract_from_text(text)
+        # Fase B (F2-12): si la Fase A quedó floja y hay key, fallback por visión.
+        if llm.is_enabled(settings) and should_use_llm_fallback(
+            result, settings.llm_fallback_max_confidence
+        ):
+            fallback = llm.extract_with_vision(raw, content_type, settings)
+            if fallback is not None:
+                result = merge(result, fallback)
+        return result
 
     return await run_with_timeout(lambda: _work(content), settings.process_timeout_seconds)

@@ -44,3 +44,50 @@ según `CLAUDE.md`).
 - **A tener en cuenta:** sin dependencias nuevas. Definir el fallback si todavía no hay nombre
   (ej. parte local del email). Pensar i18n (texto en español, preparado para traducción).
 - **Origen:** pedido del usuario, no urgente.
+
+### MEJ-4 — Alias: varios nombres de titular → una misma cuenta/miembro
+- **Qué:** poder asignar **varios nombres** de titular (como vienen en los comprobantes) a una
+  sola "cuenta"/persona de la app. Ej.: el banco X detecta `Pepito Perez` y el banco Y `Perez
+  Pepito` → ambos deberían mapear al mismo miembro/medio, en vez de crear dos personas distintas.
+- **Contexto:** pedido del usuario (2026-06-27) probando OCR de transferencias. Conecta con F2-11
+  (medio `'transfer'` con `holder_name`) y el follow-up de **orden del nombre** de `F2-12`
+  (`Apellido Nombre` vs `Nombre Apellido` según banco/billetera). Hoy un titular no matcheado crea
+  un medio nuevo por cada variante del nombre.
+- **A tener en cuenta:** probablemente requiere esquema (tabla de alias de titular → `account`/
+  miembro) + UI para gestionar esos alias en `features/accounts` (medios) y/o en el grupo. Decisión
+  de diseño/esquema → escalar a Opus antes de implementar. Normalizar también ayuda a F2-5 (match
+  por titular en resúmenes).
+- **Origen:** pedido del usuario, no urgente.
+
+### MEJ-5 — Reportes: separar ingresos/gastos + donut de ingresos solo miembros
+- **Qué (diseño acordado con el usuario, 2026-06-27):** reordenar `/reportes` así:
+  ```
+  [1] Ingresos vs Gastos  (arriba, macro: total INGRESOS y total GASTOS, sin desglose)
+  [2] Donut GASTOS (izq)      [3] Donut INGRESOS (der)
+  [4] Gráficos por filtro (más particulares; con un dato por defecto, nunca vacío)
+  ```
+- **Donut de INGRESOS [3]:** **por persona pero SOLO miembros** del workspace; todos los
+  no-miembros (titulares de transferencia que no matchean a un miembro) se agrupan en una sola
+  porción **"Otros"**. Motivo: el usuario recibe transferencias de gente que no conoce y no le
+  interesa verlas individualizadas; sí pueden seguir apareciendo en el **filtro** (desplegable),
+  pero no como porciones del resumen.
+- **Donut de GASTOS [2]:** mantiene su desglose actual (categoría/persona). Si es por persona,
+  aplicar el mismo criterio "solo miembros + Otros" por consistencia.
+- **Contexto/archivos:** `src/features/reports/components/BarChart.tsx`, `DonutChart.tsx`,
+  `ConsolidatedTotals.tsx`, `ReportTabs.tsx`; agregación pura en `src/features/reports/aggregate.ts`
+  (ya distingue `income`/`expense` y mapea miembros vía `memberNameById` → lo no-mapeado = "Otros").
+- **A tener en cuenta:** sin dependencias nuevas (Recharts ya está). El lumping "no-miembro → Otros"
+  va en la lógica pura (`aggregate.ts`) y se testea. "Desconocido" = holder que no es miembro del
+  workspace. El gráfico [1] es macro (dos totales/barras); ver por categorías en ingresos quedó
+  descartado (el usuario eligió por persona/miembros).
+- **Origen:** pedido del usuario, no urgente.
+
+### MEJ-6 — Aviso de "baja confianza" más vistoso
+- **Qué:** cuando el OCR precarga datos con **baja confianza**, el aviso debe ser **más llamativo**
+  (banner/alerta destacada). Hoy pasa desapercibido.
+- **Contexto:** pedido del usuario (2026-06-27). El mensaje vive en
+  `src/features/transactions/components/TransactionForm.tsx` (~L233-234, umbral `LOW_CONFIDENCE = 0.5`):
+  "Datos precargados con baja confianza: revisalos antes de guardar."
+- **A tener en cuenta:** solo UI (estilo/jerarquía visual, ej. fondo de alerta + icono). Sin deps
+  nuevas. Mantener el texto en español.
+- **Origen:** pedido del usuario, no urgente.

@@ -35,6 +35,22 @@ class Settings(BaseSettings):
     # Tiempo máximo de procesado de un archivo (segundos) antes de abortar.
     process_timeout_seconds: float = 30.0
 
+    # --- Fallback LLM/visión (Fase B, F2-12) ---
+    # Proveedor del fallback de extracción por visión. Hoy soportado: "gemini".
+    llm_provider: str = "gemini"
+    # API key del proveedor (Gemini: AI Studio, free, sin tarjeta). Si falta, el
+    # fallback queda DESACTIVADO y la extracción usa solo la Fase A (no rompe).
+    gemini_api_key: str | None = None
+    # Modelo de visión de Gemini para la extracción del comprobante.
+    gemini_model: str = "gemini-2.0-flash"
+    # Si la confianza de la Fase A es <= a esto, se intenta el fallback (con key).
+    llm_fallback_max_confidence: float = 0.5
+
+    @property
+    def llm_enabled(self) -> bool:
+        """True si hay proveedor + key para usar el fallback por visión."""
+        return self.llm_provider == "gemini" and bool(self.gemini_api_key)
+
     @property
     def cors_origins(self) -> list[str]:
         return [o.strip() for o in self.web_origin.split(",") if o.strip()]

@@ -23,12 +23,14 @@ app/
   uploads.py         endurecimiento: límite de tamaño + timeout de procesado
   ocr.py             borde IO: bytes (imagen) → texto (Tesseract, lazy) (F2-2)
   pdf.py             borde IO: bytes (PDF) → texto (pdfplumber, lazy; password en memoria) (F2-3)
+  llm.py             borde IO: imagen → ReceiptExtraction vía Gemini (fallback Fase B); sin key → None (F2-12)
   routes/
     health.py        GET  /v1/health (público)
-    receipts.py      POST /v1/receipts:extract (FR-14) — OCR (ocr.py) + heurística pura
+    receipts.py      POST /v1/receipts:extract (FR-14) — Fase A (ocr.py + heurística) + fallback Fase B (llm.py)
     statements.py    POST /v1/statements:parse (FR-16) — pdf.py + dispatcher de parseo
   parsing/           LÓGICA PURA (sin FastAPI/red/IO), testeable y portable
     receipts.py      extract_from_text(text) → ReceiptExtraction: monto/fecha/comercio (F2-2)
+    llm_extract.py   prompt + parseo/validación/merge del fallback por visión (F2-12), agnóstico de proveedor
     statements.py    parse_statement_text(text) → StatementParse: dispatcher por plantilla (F2-3)
     patagonia.py     parser tabular Patagonia (Visa/Master/CR): filas por tarjeta, cuotas, pagos (F2-3)
     nativa_nacion.py parser Nativa-Nación (Mastercard, Banco Nación): grupos por titular/adicional (F2-3b)
@@ -55,6 +57,16 @@ Todos (salvo `/v1/health`) exigen `Authorization: Bearer <access_token de Supaba
 El micro valida la **firma** del JWT, no consulta la DB. Dos modos por config:
 - `SUPABASE_JWT_SECRET` seteado → HS256 (secret legacy del proyecto).
 - Solo `SUPABASE_URL` → JWKS (RS256/ES256) contra `…/auth/v1/.well-known/jwks.json` (recomendado).
+
+## Fallback por visión (Fase B, F2-12)
+
+Cuando la **Fase A** (OCR + regex) queda floja —sin monto, o confianza ≤ `LLM_FALLBACK_MAX_CONFIDENCE`—, el endpoint manda la **imagen** del comprobante a un modelo de visión y mergea el resultado (principio rector: ante la duda, vacío; nunca inventa). Lógica pura en `parsing/llm_extract.py`; borde HTTP en `llm.py`.
+
+- **Proveedor:** Gemini (free, sin tarjeta). Key en https://aistudio.google.com/apikey.
+- **Degradación:** sin `GEMINI_API_KEY`, el fallback queda apagado y se usa solo la Fase A (no rompe).
+- **Env vars:** `LLM_PROVIDER` (`gemini`), `GEMINI_API_KEY`, `GEMINI_MODEL` (`gemini-2.0-flash`), `LLM_FALLBACK_MAX_CONFIDENCE` (`0.5`).
+- **En HF Spaces:** setear `GEMINI_API_KEY` en *Settings → Variables and secrets* (como secret) para activarlo en producción.
+- Cambiar de proveedor (Gemini → Claude el día que se pague) = reescribir solo `llm.py`.
 
 ## Seguridad del parseo (input no confiable)
 

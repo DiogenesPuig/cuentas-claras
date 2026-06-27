@@ -17,10 +17,13 @@ Que la extracción de comprobantes de transferencia funcione entre **bancos y bi
 - **Detección por proveedor** (como `parsing/patagonia.py` / `parsing/nativa_nacion.py` para resúmenes): identificar el emisor por marcas del texto y enrutar a reglas específicas cuando aporten precisión.
 - **Confianza honesta:** si los campos no se reconocen con seguridad, bajar `confidence` y devolver vacío en vez de un valor dudoso (el front ya avisa con baja confianza; preferimos campo vacío).
 
-## Fase B — Fallback LLM/visión (la mitad "híbrida")
-- Cuando la Fase A devuelve baja confianza o le falta un campo clave, llamar a un modelo (Claude con visión sobre la imagen del comprobante) para extraer el JSON del contrato (`ReceiptExtraction`).
-- Cliente del modelo en el **borde** (`app/ocr.py` o un `app/llm.py`), key por env; el prompt/validación de salida en un módulo testeable. Validar y **no confiar a ciegas**: si el LLM no está seguro, vacío (mismo principio rector).
-- Definir y escalar: proveedor/modelo, costo por comprobante, manejo de errores/timeout, y que la ausencia de key **degrade** a solo Fase A (no rompa).
+## Fase B — Fallback LLM/visión (la mitad "híbrida") ✅ HECHO (2026-06-27)
+- Cuando la Fase A devuelve baja confianza o le falta un campo clave, llamar a un modelo con visión sobre la imagen del comprobante para extraer el JSON del contrato (`ReceiptExtraction`).
+- Cliente del modelo en el **borde** (`app/llm.py`), key por env; prompt/parseo/validación/merge en un módulo puro testeable (`app/parsing/llm_extract.py`). Validar y **no confiar a ciegas**: si el modelo no está seguro, vacío (mismo principio rector).
+- **Decisión (2026-06-27, con el usuario):** proveedor **Gemini 2.0 Flash** (free, sin tarjeta — el usuario rechaza servicios que pidan tarjeta; Anthropic requiere pago). Cliente vía `httpx` (no SDK). El boundary es agnóstico de proveedor: cambiar a Claude el día que se pague = reescribir solo `llm.py`.
+- Degradación: sin `GEMINI_API_KEY` el micro corre solo con Fase A (no rompe). La key se activa cuando el usuario quiera (hoy queda sin key).
+- Disparo: `should_use_llm_fallback` (sin monto, o confianza ≤ `LLM_FALLBACK_MAX_CONFIDENCE`). Merge por campo, confianza = la mayor.
+- Tests: `tests/test_llm_extract.py` (puro: prompt/decisión/parseo/validación/merge) y `tests/test_llm_client.py` (borde con httpx mockeado: degradación sin key, wireo Gemini→parse, errores → None). Suite verde (79 passed).
 
 ## Samples / fixtures
 - El usuario aporta comprobantes reales (Naranja, Ualá, MP, BNA, Patagonia, …) en `samples/resumenes-privados/` (git-ignored, privados).
@@ -83,8 +86,8 @@ OCR **real** de las 5 muestras (Naranja X, Mercado Pago, BNA, Ualá, Patagonia).
 - [x] El comprobante de MP de 1 peso ya **no** carga `2026` como monto (queda en `None` → carga manual). *(A.1)*
 - [x] Para cada proveedor con sample, la extracción acierta los campos presentes **o** devuelve vacío (nunca un valor inventado). *(A.2, verificado con OCR real de los 5 proveedores)*
 - [x] Tests del parser (pytest) cubren cada proveedor agregado, incluidos los casos "preferir vacío". *(A.2)*
-- [~] Lógica de extracción pura y testeable. *(hecho; el cliente del LLM aislado en el borde corresponde a Fase B)*
-- [ ] Sin API key del LLM, el micro sigue funcionando con la Fase A (degradación, no error). *(Fase B pendiente; hoy NO hay dependencia de LLM, así que el micro ya corre 100% con Fase A)*
+- [x] Lógica de extracción pura y testeable. *(Fase A en `receipts.py`; Fase B pura en `parsing/llm_extract.py`, cliente aislado en `app/llm.py`)*
+- [x] Sin API key del LLM, el micro sigue funcionando con la Fase A (degradación, no error). *(Fase B con Gemini; sin `GEMINI_API_KEY` el fallback queda apagado)*
 
 ## Fuera de alcance
 - Modelo de medios/persona de la transferencia (F2-11).
