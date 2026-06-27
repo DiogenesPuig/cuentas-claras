@@ -22,6 +22,7 @@ export {
 export {
   useMyWorkspaces,
   useCompleteOnboarding,
+  useCreateWorkspace,
   useMyRole,
   useWorkspace,
   useUpdateWorkspaceSettings,
@@ -36,12 +37,14 @@ export {
 } from './hooks';
 export {
   onboardingSchema,
+  createWorkspaceSchema,
   BASE_CURRENCIES,
   ASSIGNABLE_ROLES,
   inviteSchema,
   FX_QUOTES,
   workspaceSettingsSchema,
   type OnboardingInput,
+  type CreateWorkspaceFormInput,
   type BaseCurrency,
   type AssignableRole,
   type InviteFormInput,
@@ -55,3 +58,4 @@ export { InviteForm } from './components/InviteForm';
 export { InviteLink } from './components/InviteLink';
 export { InviteSection } from './components/InviteSection';
 export { WorkspaceSettings } from './components/WorkspaceSettings';
+export { CreateWorkspaceDialog } from './components/CreateWorkspaceDialog';

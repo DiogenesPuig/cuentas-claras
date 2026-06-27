@@ -1,14 +1,17 @@
-import { ChevronDown } from 'lucide-react';
-import { useMyWorkspaces } from '@/features/workspaces';
+import { useState } from 'react';
+import { ChevronDown, Plus } from 'lucide-react';
+import { CreateWorkspaceDialog, useMyWorkspaces } from '@/features/workspaces';
 import { useActiveWorkspace } from '@/hooks/useActiveWorkspace';
 
 /**
- * Selector del workspace activo. Lista los grupos del usuario y cambia el
- * activo en el store (lo que refresca los datos dependientes del grupo).
+ * Selector del workspace activo. Lista los grupos del usuario, cambia el activo
+ * en el store (lo que refresca los datos dependientes del grupo) y permite crear
+ * un grupo nuevo.
  */
 export function WorkspaceSwitcher() {
   const { data: workspaces, isLoading } = useMyWorkspaces();
   const { workspaceId, setWorkspace } = useActiveWorkspace();
+  const [creating, setCreating] = useState(false);
 
   if (isLoading) {
     return <span className="text-sm text-muted-foreground">Cargando…</span>;
@@ -19,22 +22,40 @@ export function WorkspaceSwitcher() {
   }
 
   return (
-    <div className="relative inline-flex items-center">
-      <select
-        aria-label="Grupo activo"
-        value={workspaceId ?? ''}
-        onChange={(event) => setWorkspace(event.target.value)}
-        className="appearance-none rounded-md bg-transparent py-1 pl-2 pr-7 text-base font-semibold text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring"
+    <div className="inline-flex items-center gap-1">
+      <div className="relative inline-flex items-center">
+        <select
+          aria-label="Grupo activo"
+          value={workspaceId ?? ''}
+          onChange={(event) => setWorkspace(event.target.value)}
+          className="appearance-none rounded-md bg-transparent py-1 pl-2 pr-7 text-base font-semibold text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          {workspaces.map((workspace) => (
+            <option key={workspace.id} value={workspace.id}>
+              {workspace.name}
+            </option>
+          ))}
+        </select>
+        <ChevronDown
+          className="pointer-events-none absolute right-2 h-4 w-4 text-muted-foreground"
+          aria-hidden
+        />
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setCreating(true)}
+        title="Nuevo grupo"
+        aria-label="Nuevo grupo"
+        className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
       >
-        {workspaces.map((workspace) => (
-          <option key={workspace.id} value={workspace.id}>
-            {workspace.name}
-          </option>
-        ))}
-      </select>
-      <ChevronDown
-        className="pointer-events-none absolute right-2 h-4 w-4 text-muted-foreground"
-        aria-hidden
+        <Plus className="h-4 w-4" aria-hidden />
+      </button>
+
+      <CreateWorkspaceDialog
+        open={creating}
+        onClose={() => setCreating(false)}
+        onCreated={(id) => setWorkspace(id)}
       />
     </div>
   );
