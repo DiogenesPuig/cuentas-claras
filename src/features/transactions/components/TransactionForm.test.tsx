@@ -137,6 +137,50 @@ describe('TransactionForm', () => {
     });
   });
 
+  it('al reintentar con otro comprobante que no extrae, limpia lo precargado antes (BUG-3)', async () => {
+    const onExtractReceipt = vi
+      .fn()
+      .mockResolvedValueOnce({
+        amount: 2350.5,
+        currency: 'ARS',
+        date: '2026-05-21',
+        merchant: 'Supermercado La Economia',
+        confidence: 0.9,
+      })
+      .mockResolvedValueOnce({
+        amount: null,
+        currency: null,
+        date: null,
+        merchant: null,
+        confidence: 0,
+      });
+    render(
+      <TransactionForm
+        categories={[]}
+        accounts={[]}
+        onSubmit={vi.fn()}
+        onExtractReceipt={onExtractReceipt}
+      />,
+    );
+
+    const fileInput = screen.getByLabelText('Comprobante (opcional)');
+    // 1er comprobante: precarga datos.
+    await userEvent.upload(fileInput, new File(['a'], 'ok.jpg', { type: 'image/jpeg' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Extraer datos del comprobante' }));
+    await waitFor(() => expect(screen.getByLabelText('Monto')).toHaveValue(2350.5));
+
+    // 2do comprobante: no extrae → el form NO debe quedar con los datos del 1ro.
+    await userEvent.upload(fileInput, new File(['b'], 'malo.jpg', { type: 'image/jpeg' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Extraer datos del comprobante' }));
+    await waitFor(() => {
+      expect(screen.getByText(/No se pudieron extraer datos/i)).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText('Monto')).toHaveValue(null);
+    expect(screen.getByLabelText('Motivo (opcional)')).toHaveValue('');
+    const [y, m, d] = new Date().toISOString().slice(0, 10).split('-');
+    expect(screen.getByLabelText('Fecha')).toHaveValue(`${d}/${m}/${y}`);
+  });
+
   it('avisa y no precarga si el OCR no extrae datos', async () => {
     const onExtractReceipt = vi.fn().mockResolvedValue({
       amount: null,
