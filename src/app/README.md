@@ -32,6 +32,10 @@ Composición de la aplicación: rutas, providers y layout.
 - `InviteAcceptPage.tsx` — pantalla `/invite/:token`: muestra a qué grupo/rol invita el token
   (`useInvitationPreview`) y lo acepta (`useAcceptInvitation`); rechaza tokens vencidos/inválidos
   (C15). No requiere `RequireWorkspace`: quien acepta puede no tener workspaces todavía.
+- `ErrorPage.tsx` — pantalla de error propia: cuadro centrado con título, descripción y link
+  "Volver al inicio". Distingue 404 (ruta inexistente) de otros errores de routing via
+  `useRouteError`/`isRouteErrorResponse`. Usada como `errorElement` en la raíz del router y como
+  ruta catch-all `*`.
 - `InviteAcceptPage.test.tsx` — valida los tres casos: token usable (muestra y acepta), vencido o
   revocado (sin botón de aceptar), y token inexistente.
 
