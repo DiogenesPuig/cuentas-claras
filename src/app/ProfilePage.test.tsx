@@ -13,10 +13,14 @@ vi.mock('@/lib/supabase', () => ({
 
 vi.mock('@/features/auth', async () => {
   const actual = await vi.importActual<typeof import('@/features/auth')>('@/features/auth');
+  // Referencias ESTABLES: si el hook devolviera un objeto nuevo en cada render, el
+  // `useEffect([profile])` de ProfilePage se dispararía en loop (reset → re-render → …).
+  const profile = { id: 'u1', name: 'diogepuig' };
+  const user = { email: 'dioge@example.com' };
   return {
     ...actual,
-    useAuth: () => ({ user: { email: 'dioge@example.com' } }),
-    useMyProfile: () => ({ data: { id: 'u1', name: 'diogepuig' }, isLoading: false }),
+    useAuth: () => ({ user }),
+    useMyProfile: () => ({ data: profile, isLoading: false }),
     useUpdateMyProfile: () => ({ mutateAsync, isPending: false }),
   };
 });

@@ -20,10 +20,12 @@ export function ProfilePage() {
     defaultValues: { name: '' },
   });
 
-  // Precarga el nombre actual cuando llega del server.
+  // Precarga el nombre actual cuando llega del server. Depende del VALOR del nombre
+  // (no de la identidad del objeto) para no re-ejecutarse en cada render.
+  const profileName = profile?.name;
   useEffect(() => {
-    if (profile) reset({ name: profile.name });
-  }, [profile, reset]);
+    if (profileName) reset({ name: profileName });
+  }, [profileName, reset]);
 
   async function onSubmit(values: ProfileInput) {
     try {
