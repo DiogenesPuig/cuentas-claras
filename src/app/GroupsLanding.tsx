@@ -4,6 +4,7 @@ import { LogOut, Plus, Users } from 'lucide-react';
 import { useAuth } from '@/features/auth';
 import { CreateWorkspaceDialog, useMyWorkspaces, type Workspace } from '@/features/workspaces';
 import { useActiveWorkspace } from '@/hooks/useActiveWorkspace';
+import { WelcomeGreeting } from '@/components/WelcomeGreeting';
 
 /**
  * Pantalla de inicio cuando el usuario tiene MÁS DE UN grupo: elige a cuál entrar.
@@ -42,7 +43,9 @@ export function GroupsLanding() {
         </button>
       </header>
 
-      <p className="text-sm text-muted-foreground">Elegí un grupo para entrar.</p>
+      <p className="text-sm text-muted-foreground">
+        <WelcomeGreeting className="text-foreground" /> Elegí un grupo para entrar.
+      </p>
 
       <ul className="grid gap-3 sm:grid-cols-2">
         {(workspaces ?? []).map((workspace) => (

@@ -13,3 +13,6 @@ UI reutilizable y transversal.
 - `MonthSwitcher.tsx` — navegación del período/mes activo (usa `useActiveMonth`).
 - `Fab.tsx` — botón flotante de acción principal (usado en `DashboardPage` para abrir el alta
   rápida de movimientos, B9).
+- `WelcomeGreeting.tsx` / `WelcomeGreeting.test.tsx` — saludo "¡Hola, &lt;nombre&gt;!" (MEJ-3): usa el
+  nombre del perfil (`useMyProfile`) y cae a la parte local del email; no renderiza si no hay ninguno.
+  Se muestra en el `Header` y en `GroupsLanding`.

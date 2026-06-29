@@ -5,6 +5,7 @@ import { useMyWorkspaces } from '@/features/workspaces';
 import { useActiveWorkspace } from '@/hooks/useActiveWorkspace';
 import { MonthSwitcher } from '@/components/MonthSwitcher';
 import { WorkspaceSwitcher } from '@/components/WorkspaceSwitcher';
+import { WelcomeGreeting } from '@/components/WelcomeGreeting';
 
 /** Cabecera de la app: volver a grupos (si hay varios), selector de workspace/mes y salir. */
 export function Header() {
@@ -56,7 +57,8 @@ export function Header() {
           </button>
         </div>
       </div>
-      <div className="flex items-center justify-end px-4 pb-2">
+      <div className="flex items-center justify-between gap-2 px-4 pb-2">
+        <WelcomeGreeting className="truncate text-sm text-muted-foreground" />
         <MonthSwitcher />
       </div>
     </header>
