@@ -14,8 +14,8 @@ Próximos tickets a ejecutar, de más simple/independiente a más grande. Cada u
 desde `main`**, probado en local antes de mergear (regla 2026-06-27):
 
 1. ~~**MEJ-5**~~ — ✅ separar gráficos ingresos/gastos + donuts en espejo (PR #41, mergeado).
-2. **MEJ-7** (en curso) — editar mi perfil (nombre global). Chico, sin migración. Desbloquea el "llamarme Dioge".
-3. **MEJ-8** — apodos locales (renombrar a otros solo para mí). Mediano, localStorage, sin migración.
+2. ~~**MEJ-7**~~ — ✅ editar mi perfil (nombre global) + acceso desde Header y TabBar (PR #42, mergeado).
+3. **MEJ-8** (próximo) — apodos locales (renombrar a otros solo para mí). Mediano, localStorage, sin migración.
 4. **MEJ-4** — identidad de persona (alias + personas sin cuenta). El más grande; hacerlo **último**:
    - 4a. **Parte A (alias)**: diseño cerrado → implementar (migración `holder_aliases`).
    - 4b. **Parte B (personas sin cuenta)**: **cerrar diseño con Opus** (modelo de datos/RLS) y recién
@@ -72,11 +72,10 @@ siguen pendientes y de baja prioridad.
   mismo modelo de identidad (decisión del usuario 2026-06-29). Requiere sesión de diseño con Opus.
 - **Origen:** pedido del usuario (A: 2026-06-27; B: 2026-06-29), no urgente.
 
-### MEJ-7 — Editar mi perfil: cambiar mi nombre (global)
-- **Diseño cerrado (2026-06-29) → ticket propio:** `tasks/MEJ-7-editar-perfil-nombre.md`.
-- **Resumen:** UI para editar `profiles.name` (global, todos lo ven); reusa `upsertMyProfile` del
-  onboarding; invalidar queries de miembros para refrescar el nombre vivo. Sin migración.
-- **Origen:** pedido del usuario (2026-06-29), no urgente.
+### ~~MEJ-7~~ — ✅ Editar mi perfil: cambiar mi nombre (global) — _hecho (PR #42, `tasks/done/`)_
+- Pantalla `/perfil` que edita `profiles.name` (global); `useMyProfile`/`useUpdateMyProfile` (invalida
+  el directorio de miembros de reportes y los del grupo). Acceso desde el ícono del Header y la tab
+  "Perfil" del TabBar.
 
 ### MEJ-8 — Apodos locales: renombrar a otras personas solo para mí
 - **Diseño cerrado (2026-06-29) → ticket propio:** `tasks/MEJ-8-apodos-locales.md`.
