@@ -16,8 +16,8 @@ desde `main`**, probado en local antes de mergear (regla 2026-06-27):
 1. ~~**MEJ-5**~~ — ✅ separar gráficos ingresos/gastos + donuts en espejo (PR #41, mergeado).
 2. ~~**MEJ-7**~~ — ✅ editar mi perfil (nombre global) + acceso desde Header y TabBar (PR #42, mergeado).
 3. ~~**MEJ-3**~~ — ✅ saludo "¡Hola, &lt;nombre&gt;!" en Header y landing (PR #43, mergeado).
-4. **MEJ-8** (próximo) — apodos privados por usuario, **en DB con RLS** (sincroniza entre dispositivos).
-   Trae migración (`persona_aliases`).
+4. ~~**MEJ-8**~~ — ✅ apodos privados por usuario en DB con RLS, editables desde Reportes y desde
+   Grupo→miembros (PR #44, mergeado). _Falta `supabase db push` al remoto para activarlo en prod._
 5. **MEJ-4** — identidad de persona (alias + personas sin cuenta). El más grande; hacerlo **último**:
    - 4a. **Parte A (alias)**: diseño cerrado → implementar (migración `holder_aliases`).
    - 4b. **Parte B (personas sin cuenta)**: **cerrar diseño con Opus** (modelo de datos/RLS, promoción
@@ -73,12 +73,10 @@ aprobar) siguen pendientes y de baja prioridad.
   el directorio de miembros de reportes y los del grupo). Acceso desde el ícono del Header y la tab
   "Perfil" del TabBar.
 
-### MEJ-8 — Apodos privados: renombrar a otras personas solo para mí (por usuario)
-- **Diseño cerrado (2026-06-29) → ticket propio:** `tasks/MEJ-8-apodos-locales.md`.
-- **Resumen:** apodos por `(usuario, workspace, personaKey)` **en la base** con RLS (privados, pero
-  sincronizan entre dispositivos — el usuario descartó localStorage). Pisan el label en reportes; capa
-  de presentación pura (no toca `aggregate.ts`). **Requiere migración + RLS** (tabla `persona_aliases`).
-- **Origen:** pedido del usuario (2026-06-29), no urgente.
+### ~~MEJ-8~~ — ✅ Apodos privados: renombrar a otras personas solo para mí (por usuario) — _hecho (PR #44, `tasks/done/`)_
+- Apodos por `(usuario, workspace, personaKey)` en la base con RLS (privados, sincronizan entre
+  dispositivos). Tabla `persona_aliases` (migración 0015). Feature `aliases` + edición inline desde
+  Reportes (detalle por persona) y Grupo→lista de miembros. _Pendiente: `supabase db push` al remoto._
 
 ### ~~MEJ-5~~ — ✅ Reportes: separar ingresos/gastos + donut de ingresos solo miembros — _hecho (PR #41, `tasks/done/`)_
 - Reordenó `/reportes` → [1] ingresos vs gastos (macro), [2] donut gastos + [3] donut ingresos por
