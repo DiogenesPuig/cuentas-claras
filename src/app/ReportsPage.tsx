@@ -159,12 +159,24 @@ export function ReportsPage() {
                 <h2 className="text-sm font-semibold">Gastos</h2>
                 <ReportTabs value={dimension} onChange={setDimension} />
               </div>
-              <DonutChart groups={expenseGroups} baseCurrency={base} metric="expense" showLegend={false} />
+              <DonutChart
+                groups={expenseGroups}
+                baseCurrency={base}
+                metric="expense"
+                complement={{ label: 'Ingresos', value: totals.income }}
+                showLegend={false}
+              />
               <GroupBreakdown groups={expenseGroups} baseCurrency={base} metric="expense" />
             </div>
             <div className="space-y-3">
               <h2 className="text-sm font-semibold">Ingresos por persona</h2>
-              <DonutChart groups={incomeGroups} baseCurrency={base} metric="income" showLegend={false} />
+              <DonutChart
+                groups={incomeGroups}
+                baseCurrency={base}
+                metric="income"
+                complement={{ label: 'Gastos', value: totals.expense }}
+                showLegend={false}
+              />
               <GroupBreakdown groups={incomeGroups} baseCurrency={base} metric="income" />
             </div>
           </section>

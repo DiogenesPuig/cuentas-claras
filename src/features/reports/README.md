@@ -44,8 +44,10 @@ mes a mes, con consolidado multi-moneda. Implementa **FR-20, FR-21, FR-22, FR-24
 - `index.ts` — barrel del feature.
 - `components/ReportTabs.tsx` — pills para elegir la dimensión (desglose general y "ver por" del detalle).
 - `components/DonutChart.tsx` — torta (Recharts) del consolidado por dimensión. `metric`
-  (`'expense'`|`'income'`, default gasto; MEJ-5) elige qué grafica cada porción. `showLegend`
-  apaga la leyenda cuando la info va en una columna aparte (`GroupBreakdown`).
+  (`'expense'`|`'income'`, default gasto; MEJ-5) elige qué grafica cada porción. `complement`
+  (MEJ-5) agrega una porción **gris** con la otra métrica del período sin detallar, para que el
+  donut de gastos y el de ingresos se vean como espejo (mismo total). `showLegend` apaga la leyenda
+  cuando la info va en una columna aparte (`GroupBreakdown`).
 - `components/GroupBreakdown.tsx` — info del gráfico: cada grupo con su color (igual que el donut),
   monto y % del total mostrado. `metric` (gasto/ingreso, MEJ-5) igual que el donut. Sirve para el
   grupo entero o para el subconjunto de un filtro.

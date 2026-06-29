@@ -7,3 +7,6 @@ export const CHART_COLORS = [
 export function chartColor(index: number): string {
   return CHART_COLORS[index % CHART_COLORS.length];
 }
+
+/** Gris neutro para la porción "complemento" del donut (la otra métrica, sin detallar; MEJ-5). */
+export const COMPLEMENT_COLOR = '#d4d4d8';
