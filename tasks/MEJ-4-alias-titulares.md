@@ -1,12 +1,27 @@
-# MEJ-4 Alias de titulares: varios nombres → un mismo medio/persona
+# MEJ-4 Identidad de persona: alias de titulares + personas del grupo sin cuenta
 
-**Sprint:** Mejoras (post Fase 2) · **Modelo sugerido:** Sonnet (diseño cerrado por Opus + usuario, 2026-06-29) · **Depende de:** F2-11
+**Sprint:** Mejoras (post Fase 2) · **Modelo sugerido:** Opus (cerrar diseño de la Parte B) → Sonnet (implementar) · **Depende de:** F2-11
 
-## Problema (reportado por el usuario, 2026-06-27)
-El mismo titular escrito distinto en cada banco/billetera (ej. `Pepito Perez` vs `Perez Pepito` vs
-`PEREZ, Pepito Juan`, o apodos/abreviaturas) genera **medios `'transfer'` duplicados** y atribución
-de persona inconsistente. Conecta con F2-11 (medio por persona), el follow-up de orden de nombre de
-F2-12 y el match por titular de resúmenes (F2-5).
+> **Este ticket unifica dos pedidos** que tocan el MISMO modelo (la "identidad de persona"), para no
+> hacerlos por separado y tener que rehacer (decisión del usuario, 2026-06-29):
+> - **Parte A — Alias de titulares** (diseño cerrado): varios nombres → un mismo medio/persona.
+> - **Parte B — Personas del grupo sin cuenta** (diseño a cerrar): una persona real del grupo que NO
+>   usa la app, pero que el usuario quiere ver **individualizada** en los reportes (hoy cae en "Otros").
+>
+> Implementar **A primero** (ya está diseñada) y **B después** (requiere cerrar diseño, ver abajo).
+
+## Problema (reportado por el usuario, 2026-06-27 y 2026-06-29)
+1. **(A)** El mismo titular escrito distinto en cada banco/billetera (ej. `Pepito Perez` vs `Perez
+   Pepito` vs `PEREZ, Pepito Juan`, o apodos/abreviaturas) genera **medios `'transfer'` duplicados**
+   y atribución de persona inconsistente. Conecta con F2-11 (medio por persona), el follow-up de
+   orden de nombre de F2-12 y el match por titular de resúmenes (F2-5).
+2. **(B)** En los donuts de resumen de `/reportes` (MEJ-5) los no-miembros se agrupan en una sola
+   porción **"Otros"**. Pero a veces un no-miembro **es parte real del grupo** (solo que no entró a
+   la app) y el usuario quiere verlo individualizado, **a nivel grupo** (que todos lo vean así, no
+   solo él — eso lo confirmó el usuario el 2026-06-29; el apodo local es MEJ-8).
+
+---
+# PARTE A — Alias de titulares (diseño cerrado, lista para implementar)
 
 ## Causa raíz encontrada (2026-06-29)
 La lógica de nombres ya existe y es pura (`src/lib/name-match.ts`: `nameTokenOverlap` orden-indistinto,
@@ -76,9 +91,53 @@ casos que la heurística no puede adivinar (apodos, "José" vs "Pepito", "Perez 
 - [ ] Migración aplicada en remoto + `database.types.ts` regenerado + `schema_fase1.sql` al día.
 - [ ] Lógica pura con tests que pasan; no se debilita RLS.
 
-## Fuera de alcance
+## Fuera de alcance (Parte A)
 - **Merge** de medios duplicados existentes (mover movimientos / eliminar dup) → posible follow-up.
 - Alias a nivel **miembro** compartido entre varios medios (acá el alias es por medio `'transfer'`).
 - Reusar `holder_aliases` en el match de **resúmenes** (`account-match` ya queda preparado; cablearlo
   al flujo de statements es una extensión barata pero opcional, fuera de este v1).
 - IA/embeddings para matching de nombres (sigue siendo por reglas).
+
+---
+# PARTE B — Personas del grupo sin cuenta (diseño A CERRAR antes de implementar)
+
+> Pedido del usuario (2026-06-29): que un no-miembro que **es del grupo** (pero no usa la app) se
+> pueda ver **individualizado** en los reportes en vez de caer en "Otros" (MEJ-5), y que ese cambio
+> sea **a nivel grupo** (todos lo ven así). Esto excede un flag de visualización: en los hechos es
+> el concepto de **"miembro/persona del grupo sin cuenta de usuario"**. Por eso vive acá, junto a la
+> identidad de persona, y NO se improvisa: **Opus cierra el diseño con el usuario antes de codear.**
+
+## Decisión ya tomada
+- **Alcance: a nivel GRUPO** (persistido en DB, lo ven todos). El equivalente "solo para mí" es el
+  apodo local de MEJ-8; esto es distinto.
+
+## Decisiones de diseño PENDIENTES (cerrar con Opus + usuario)
+1. **Modelo de datos.** Dos caminos a evaluar:
+   - (a) **`workspace_members` con `user_id` NULL** (miembro "placeholder" sin cuenta): reusa toda la
+     maquinaria de persona (los reportes ya agrupan por `owner_member_id`, F2-10). Hay que revisar
+     **RLS** e invariantes que hoy asumen `user_id` no nulo, y cómo se "promueve" a cuenta real si
+     esa persona después entra a la app (linkear el placeholder al `user_id`).
+   - (b) **Tabla nueva** `group_persons` (o similar) para personas sin cuenta, referenciada por
+     `accounts.owner_person_id`. Más aislada, pero duplica el concepto de persona y obliga a unificar
+     "persona" = miembro ∪ group_person en agregación, filtros y matching.
+   → Recomendación inicial (a revisar): **(a)**, por reuso; decidir según el costo de RLS.
+2. **Cómo se asocia un titular suelto a esa persona.** Probablemente reusando el **matcher + alias de
+   la Parte A** (`holder_aliases`): la persona sin cuenta es, en la práctica, un "dueño" con sus
+   nombres alternativos. Esto es la razón fuerte de unir A y B.
+3. **UX.** Desde "Otros"/gestión de personas: "convertir este titular en persona del grupo" → crea la
+   persona sin cuenta y le asocia el/los medios `'transfer'` y alias correspondientes.
+4. **Reportes (MEJ-5).** `aggregateByPersonaMembersOnly` ya deja individuales las `member:*`; si B usa
+   el camino (a), una persona sin cuenta es un `member:*` más y **deja de caer en "Otros"
+   automáticamente**. Verificar que el donut de ingresos/gastos y el detalle lo reflejen.
+
+## Criterios de aceptación (Parte B — preliminares, afinar al cerrar diseño)
+- [ ] El usuario puede marcar/crear una "persona del grupo sin cuenta" y asociarle titulares/medios.
+- [ ] Esa persona aparece **individualizada** (no en "Otros") en los donuts de resumen de `/reportes`,
+      para **todos** los integrantes del grupo.
+- [ ] Migración aplicada en remoto + `database.types.ts` regenerado + `schema_fase1.sql` al día.
+- [ ] RLS no se debilita; un usuario solo gestiona personas de workspaces a los que pertenece.
+
+## Fuera de alcance (Parte B)
+- Apodos **locales** (solo para mí) → MEJ-8.
+- Invitar a esa persona / convertirla en cuenta real (el "linkeo" placeholder→user es follow-up salvo
+  que el diseño lo incluya barato).

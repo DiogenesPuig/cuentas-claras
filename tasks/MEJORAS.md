@@ -8,6 +8,24 @@ Acá vamos sumando ideas a medida que aparecen. Cada una anota: contexto, qué h
 y dependencias/costos a tener en cuenta (ej. dependencias nuevas que requieren aprobación
 según `CLAUDE.md`).
 
+## Orden recomendado de trabajo (actualizado 2026-06-29)
+
+Próximos tickets a ejecutar, de más simple/independiente a más grande. Cada uno en su **rama propia
+desde `main`**, probado en local antes de mergear (regla 2026-06-27):
+
+1. **MEJ-5** (en curso, rama `task/mej-5`) — separar gráficos ingresos/gastos + donuts en espejo.
+   _Pendiente: que el usuario pruebe el espejo → mergear._
+2. **MEJ-7** — editar mi perfil (nombre global). Chico, sin migración. Desbloquea el "llamarme Dioge".
+3. **MEJ-8** — apodos locales (renombrar a otros solo para mí). Mediano, localStorage, sin migración.
+4. **MEJ-4** — identidad de persona (alias + personas sin cuenta). El más grande; hacerlo **último**:
+   - 4a. **Parte A (alias)**: diseño cerrado → implementar (migración `holder_aliases`).
+   - 4b. **Parte B (personas sin cuenta)**: **cerrar diseño con Opus** (modelo de datos/RLS) y recién
+     ahí implementar. No depende de MEJ-7/MEJ-8, pero conviene al final por tamaño y por tocar el
+     modelo de identidad.
+
+Notas: MEJ-7 y MEJ-8 son independientes entre sí y de MEJ-4 (se pueden reordenar). MEJ-1/MEJ-2/MEJ-3
+siguen pendientes y de baja prioridad.
+
 ## Ideas
 
 ### MEJ-1 — Date-picker con calendario en el form de movimientos
@@ -45,12 +63,27 @@ según `CLAUDE.md`).
   (ej. parte local del email). Pensar i18n (texto en español, preparado para traducción).
 - **Origen:** pedido del usuario, no urgente.
 
-### MEJ-4 — Alias: varios nombres de titular → una misma cuenta/miembro
-- **Diseño cerrado (2026-06-29) → ticket propio:** `tasks/MEJ-4-alias-titulares.md`.
-- **Resumen de decisiones:** columna `holder_aliases text[]` en `accounts`; solo matching futuro
-  (sin merge de duplicados existentes); UX = pantalla de gestión en Medios + prompt inline; incluye
-  auto-dedup base (unificar `getOrCreateTransferAccount` con el matcher fuzzy del front).
-- **Origen:** pedido del usuario, no urgente.
+### MEJ-4 — Identidad de persona: alias de titulares + personas del grupo sin cuenta
+- **Ticket propio (unifica dos pedidos):** `tasks/MEJ-4-alias-titulares.md`.
+- **Parte A — Alias de titulares (diseño cerrado 2026-06-29):** columna `holder_aliases text[]` en
+  `accounts`; solo matching futuro (sin merge de duplicados existentes); UX = gestión en Medios +
+  prompt inline; auto-dedup base (unificar `getOrCreateTransferAccount` con el matcher fuzzy del front).
+- **Parte B — Personas del grupo sin cuenta (diseño A CERRAR):** que un no-miembro que es del grupo
+  se vea individualizado en reportes (no en "Otros"), **a nivel grupo**. Se unió con A porque tocan el
+  mismo modelo de identidad (decisión del usuario 2026-06-29). Requiere sesión de diseño con Opus.
+- **Origen:** pedido del usuario (A: 2026-06-27; B: 2026-06-29), no urgente.
+
+### MEJ-7 — Editar mi perfil: cambiar mi nombre (global)
+- **Diseño cerrado (2026-06-29) → ticket propio:** `tasks/MEJ-7-editar-perfil-nombre.md`.
+- **Resumen:** UI para editar `profiles.name` (global, todos lo ven); reusa `upsertMyProfile` del
+  onboarding; invalidar queries de miembros para refrescar el nombre vivo. Sin migración.
+- **Origen:** pedido del usuario (2026-06-29), no urgente.
+
+### MEJ-8 — Apodos locales: renombrar a otras personas solo para mí
+- **Diseño cerrado (2026-06-29) → ticket propio:** `tasks/MEJ-8-apodos-locales.md`.
+- **Resumen:** apodos por `personaKey` en localStorage (por workspace) que pisan el label en reportes;
+  local (no afecta a otros), capa de presentación (no toca `aggregate.ts` puro). Sin migración.
+- **Origen:** pedido del usuario (2026-06-29), no urgente.
 
 ### MEJ-5 — Reportes: separar ingresos/gastos + donut de ingresos solo miembros
 - **Diseño cerrado (2026-06-27) → ticket propio:** `tasks/MEJ-5-separar-graficos-ingresos-gastos.md`.
