@@ -15,15 +15,17 @@ desde `main`**, probado en local antes de mergear (regla 2026-06-27):
 
 1. ~~**MEJ-5**~~ — ✅ separar gráficos ingresos/gastos + donuts en espejo (PR #41, mergeado).
 2. ~~**MEJ-7**~~ — ✅ editar mi perfil (nombre global) + acceso desde Header y TabBar (PR #42, mergeado).
-3. **MEJ-8** (próximo) — apodos locales (renombrar a otros solo para mí). Mediano, localStorage, sin migración.
-4. **MEJ-4** — identidad de persona (alias + personas sin cuenta). El más grande; hacerlo **último**:
+3. ~~**MEJ-3**~~ — ✅ saludo "¡Hola, &lt;nombre&gt;!" en Header y landing (PR #43, mergeado).
+4. **MEJ-8** (próximo) — apodos privados por usuario, **en DB con RLS** (sincroniza entre dispositivos).
+   Trae migración (`persona_aliases`).
+5. **MEJ-4** — identidad de persona (alias + personas sin cuenta). El más grande; hacerlo **último**:
    - 4a. **Parte A (alias)**: diseño cerrado → implementar (migración `holder_aliases`).
-   - 4b. **Parte B (personas sin cuenta)**: **cerrar diseño con Opus** (modelo de datos/RLS) y recién
-     ahí implementar. No depende de MEJ-7/MEJ-8, pero conviene al final por tamaño y por tocar el
-     modelo de identidad.
+   - 4b. **Parte B (personas sin cuenta)**: **cerrar diseño con Opus** (modelo de datos/RLS, promoción
+     placeholder→cuenta) y recién ahí implementar. Conviene al final por tamaño y por tocar el modelo
+     de identidad.
 
-Notas: MEJ-7 y MEJ-8 son independientes entre sí y de MEJ-4 (se pueden reordenar). MEJ-1/MEJ-2/MEJ-3
-siguen pendientes y de baja prioridad.
+Notas: MEJ-8 y MEJ-4 son independientes (se pueden reordenar). MEJ-1/MEJ-2 (necesitan deps nuevas a
+aprobar) siguen pendientes y de baja prioridad.
 
 ## Ideas
 
@@ -52,15 +54,9 @@ siguen pendientes y de baja prioridad.
   sin justificar"). Alternativa sin dep: botones "subir/bajar" por sección (más barato, sin DnD).
 - **Origen:** pedido del usuario, marcado por él mismo como **opcional**.
 
-### MEJ-3 — Mensaje de bienvenida "Bienvenido, &lt;nombre&gt;"
-- **Qué:** mostrar en pantalla (arriba / en algún lugar visible, ej. el `Header` o el dashboard)
-  un saludo tipo **"Bienvenido, &lt;nombre del usuario&gt;"**.
-- **Contexto:** pedido del usuario (2026-06-27) con la app ya en producción. El nombre vive en
-  `profiles.name` (lo setea el onboarding vía `upsertMyProfile`); el usuario autenticado se obtiene
-  con el hook de auth (`useAuth`). Header en `src/app/layout/Header.tsx`.
-- **A tener en cuenta:** sin dependencias nuevas. Definir el fallback si todavía no hay nombre
-  (ej. parte local del email). Pensar i18n (texto en español, preparado para traducción).
-- **Origen:** pedido del usuario, no urgente.
+### ~~MEJ-3~~ — ✅ Mensaje de bienvenida "¡Hola, &lt;nombre&gt;!" — _hecho (PR #43)_
+- Componente `WelcomeGreeting` (nombre del perfil con fallback al email) en el `Header` y en
+  `GroupsLanding`. Sin migración ni deps.
 
 ### MEJ-4 — Identidad de persona: alias de titulares + personas del grupo sin cuenta
 - **Ticket propio (unifica dos pedidos):** `tasks/MEJ-4-alias-titulares.md`.
