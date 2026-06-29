@@ -77,10 +77,11 @@ siguen pendientes y de baja prioridad.
   el directorio de miembros de reportes y los del grupo). Acceso desde el ícono del Header y la tab
   "Perfil" del TabBar.
 
-### MEJ-8 — Apodos locales: renombrar a otras personas solo para mí
+### MEJ-8 — Apodos privados: renombrar a otras personas solo para mí (por usuario)
 - **Diseño cerrado (2026-06-29) → ticket propio:** `tasks/MEJ-8-apodos-locales.md`.
-- **Resumen:** apodos por `personaKey` en localStorage (por workspace) que pisan el label en reportes;
-  local (no afecta a otros), capa de presentación (no toca `aggregate.ts` puro). Sin migración.
+- **Resumen:** apodos por `(usuario, workspace, personaKey)` **en la base** con RLS (privados, pero
+  sincronizan entre dispositivos — el usuario descartó localStorage). Pisan el label en reportes; capa
+  de presentación pura (no toca `aggregate.ts`). **Requiere migración + RLS** (tabla `persona_aliases`).
 - **Origen:** pedido del usuario (2026-06-29), no urgente.
 
 ### ~~MEJ-5~~ — ✅ Reportes: separar ingresos/gastos + donut de ingresos solo miembros — _hecho (PR #41, `tasks/done/`)_
