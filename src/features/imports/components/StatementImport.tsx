@@ -7,7 +7,7 @@ import {
   type AccountFormInput,
 } from '@/features/accounts';
 import { useCategories } from '@/features/categories';
-import { accountDefaultsFromHint, matchAccount } from '@/lib/account-match';
+import { accountDefaultsFromHint, isResidualHint, matchAccount } from '@/lib/account-match';
 import { IngestaError, type StatementAccountHint } from '@/lib/ingesta';
 import { useConfirmImport, useFindExistingHashes, useParseStatement } from '../hooks';
 import {
@@ -110,6 +110,8 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
       const matchable = toMatchable(accounts ?? []);
       const open = new Set<number>();
       built.cards.forEach((card, i) => {
+        // Sección de impuestos/cargos al pie (BUG-5): no es una tarjeta, no lleva medio.
+        if (isResidualHint(card.accountHint)) return;
         const { matched } = matchAccount(card.accountHint, matchable);
         if (matched) card.accountId = matched.id;
         // Tarjeta sin medio existente → abrir el alta directamente con los datos del resumen.
@@ -234,12 +236,15 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
       )}
 
       {model &&
-        model.cards.map((card, cardIdx) => (
+        model.cards.map((card, cardIdx) => {
+          // Impuestos/cargos al pie (BUG-5): no es una tarjeta, no se le asigna medio.
+          const isResidual = isResidualHint(card.accountHint);
+          return (
           <div key={cardIdx} className="space-y-2 rounded-md border border-border p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="text-sm">
                 <span className="font-medium">
-                  {card.accountHint.holder ?? 'Tarjeta'}
+                  {isResidual ? 'Impuestos y otros cargos del resumen' : card.accountHint.holder ?? 'Tarjeta'}
                 </span>{' '}
                 <span className="text-muted-foreground">
                   {[card.accountHint.bank, card.accountHint.network, card.accountHint.last4 && `••${card.accountHint.last4}`]
@@ -247,35 +252,42 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
                     .join(' · ')}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <select
-                  value={card.accountId}
-                  onChange={(e) => setCardAccount(cardIdx, e.target.value)}
-                  className="rounded-md border border-input bg-background px-2 py-1 text-sm"
-                  aria-label="Medio para esta tarjeta"
-                >
-                  <option value="">Sin medio</option>
-                  {(accounts ?? []).map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {accountLabel({ ...a, holderName: a.holder_name })}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => toggleCreate(cardIdx)}
-                  className="rounded-md border border-input px-2 py-1 text-sm font-medium hover:bg-accent"
-                >
-                  {createOpen.has(cardIdx) ? 'Cerrar' : '+ Crear medio'}
-                </button>
-              </div>
+              {!isResidual && (
+                <div className="flex items-center gap-2">
+                  <select
+                    value={card.accountId}
+                    onChange={(e) => setCardAccount(cardIdx, e.target.value)}
+                    className="rounded-md border border-input bg-background px-2 py-1 text-sm"
+                    aria-label="Medio para esta tarjeta"
+                  >
+                    <option value="">Sin medio</option>
+                    {(accounts ?? []).map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {accountLabel({ ...a, holderName: a.holder_name })}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => toggleCreate(cardIdx)}
+                    className="rounded-md border border-input px-2 py-1 text-sm font-medium hover:bg-accent"
+                  >
+                    {createOpen.has(cardIdx) ? 'Cerrar' : '+ Crear medio'}
+                  </button>
+                </div>
+              )}
             </div>
-            {!card.accountId && !createOpen.has(cardIdx) && (
+            {isResidual && (
+              <p className="text-xs text-muted-foreground">
+                Cargos del resumen (impuestos, sellos, IVA…): se importan sin medio.
+              </p>
+            )}
+            {!isResidual && !card.accountId && !createOpen.has(cardIdx) && (
               <p className="text-xs text-muted-foreground">
                 No encontramos un medio para esta tarjeta. Elegí uno o crealo con los datos del resumen.
               </p>
             )}
-            {createOpen.has(cardIdx) && (
+            {!isResidual && createOpen.has(cardIdx) && (
               <AccountQuickCreate
                 workspaceId={workspaceId}
                 title="Crear medio detectado en el resumen"
@@ -309,7 +321,8 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
               </table>
             </div>
           </div>
-        ))}
+          );
+        })}
 
       {model && (
         <div className="flex items-center gap-3">

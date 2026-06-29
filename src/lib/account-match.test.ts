@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   accountDefaultsFromHint,
+  isResidualHint,
   matchAccount,
   type AccountHint,
   type MatchableAccount,
@@ -136,5 +137,20 @@ describe('accountDefaultsFromHint', () => {
     expect(accountDefaultsFromHint({ bank: null, network: 'mastercard', last4: null, holder: 'LUCAS' }).name).toBe(
       'mastercard',
     );
+  });
+});
+
+describe('isResidualHint (BUG-5: sección de impuestos/cargos al pie)', () => {
+  it('es residual cuando no hay last4 ni titular (impuestos al pie)', () => {
+    expect(isResidualHint({ bank: 'Banco Patagonia', network: 'visa', last4: null, holder: null })).toBe(true);
+    expect(isResidualHint({ bank: null, network: null, last4: null, holder: null })).toBe(true);
+  });
+
+  it('no es residual si hay last4 (tarjeta real, ej. Patagonia)', () => {
+    expect(isResidualHint({ bank: 'Banco Patagonia', network: 'visa', last4: '1234', holder: null })).toBe(false);
+  });
+
+  it('no es residual si hay titular (tarjeta sin last4, ej. Nativa)', () => {
+    expect(isResidualHint({ bank: 'Banco Nación', network: 'mastercard', last4: null, holder: 'Lucas Puig' })).toBe(false);
   });
 });

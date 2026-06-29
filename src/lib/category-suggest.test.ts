@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { suggestCategory, type SuggestableCategory } from './category-suggest';
 
-// Categorías como las del seed (B6).
+// Categorías como las del seed (B6 + BUG-5).
 const CATS: SuggestableCategory[] = [
   { id: 'super', name: 'Supermercado' },
   { id: 'transp', name: 'Transporte' },
@@ -9,6 +9,7 @@ const CATS: SuggestableCategory[] = [
   { id: 'resto', name: 'Restaurantes' },
   { id: 'compras', name: 'Compras' },
   { id: 'servicios', name: 'Servicios' },
+  { id: 'impuestos', name: 'Impuestos' },
 ];
 
 describe('suggestCategory', () => {
@@ -40,5 +41,24 @@ describe('suggestCategory', () => {
     // "mercado libre" (Compras) es más largo/específico que "libre" suelto; y supera
     // a una coincidencia incidental corta. Verifica el desempate por longitud.
     expect(suggestCategory('MERCADO LIBRE * Cil', CATS)?.id).toBe('compras');
+  });
+
+  it('sugiere Impuestos para organismos y tributos (BUG-5)', () => {
+    expect(suggestCategory('AFIP VEP 00123', CATS)?.id).toBe('impuestos');
+    expect(suggestCategory('ARBA Ingresos Brutos', CATS)?.id).toBe('impuestos');
+    expect(suggestCategory('Percepcion AGIP', CATS)?.id).toBe('impuestos');
+    expect(suggestCategory('IVA FACTURA B', CATS)?.id).toBe('impuestos');
+    expect(suggestCategory('Impuesto sellos escritura', CATS)?.id).toBe('impuestos');
+    expect(suggestCategory('Tasa municipal habilitacion', CATS)?.id).toBe('impuestos');
+  });
+
+  it('no clasifica como Impuestos si la categoría no existe en el workspace', () => {
+    const sinImpuestos = CATS.filter((c) => c.id !== 'impuestos');
+    expect(suggestCategory('AFIP VEP', sinImpuestos)).toBeNull();
+  });
+
+  it('no clasifica como Impuestos un nombre de persona (BUG-5 — bajo riesgo de falso positivo)', () => {
+    expect(suggestCategory('Juan Perez transferencia', CATS)).toBeNull();
+    expect(suggestCategory('Maria Lopez sueldo', CATS)).toBeNull();
   });
 });
