@@ -29,6 +29,8 @@ Composición de la aplicación: rutas, providers y layout.
   el cliente con `features/reports` (sin lógica de datos propia).
 - `GroupPage.tsx` — pantalla `/grupo`: miembros (`MemberList`), invitar por email/link
   (`InviteSection`) y configuración del workspace activo (`WorkspaceSettings`) (C15).
+- `ProfilePage.tsx` — pantalla `/perfil` (MEJ-7): editar el nombre propio (global) vía
+  `useMyProfile`/`useUpdateMyProfile`. Se accede desde el ícono de perfil del `Header`.
 - `InviteAcceptPage.tsx` — pantalla `/invite/:token`: muestra a qué grupo/rol invita el token
   (`useInvitationPreview`) y lo acepta (`useAcceptInvitation`); rechaza tokens vencidos/inválidos
   (C15). No requiere `RequireWorkspace`: quien acepta puede no tener workspaces todavía.

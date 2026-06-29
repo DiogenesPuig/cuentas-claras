@@ -1,4 +1,4 @@
-import { LayoutGrid, LogOut } from 'lucide-react';
+import { LayoutGrid, LogOut, UserCog } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth';
 import { useMyWorkspaces } from '@/features/workspaces';
@@ -36,14 +36,25 @@ export function Header() {
           )}
           <WorkspaceSwitcher />
         </div>
-        <button
-          type="button"
-          aria-label="Cerrar sesión"
-          onClick={handleSignOut}
-          className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-        >
-          <LogOut className="h-5 w-5" aria-hidden />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            aria-label="Mi perfil"
+            title="Mi perfil"
+            onClick={() => navigate('/perfil')}
+            className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <UserCog className="h-5 w-5" aria-hidden />
+          </button>
+          <button
+            type="button"
+            aria-label="Cerrar sesión"
+            onClick={handleSignOut}
+            className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <LogOut className="h-5 w-5" aria-hidden />
+          </button>
+        </div>
       </div>
       <div className="flex items-center justify-end px-4 pb-2">
         <MonthSwitcher />

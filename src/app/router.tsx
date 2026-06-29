@@ -11,6 +11,7 @@ import { InviteAcceptPage } from './InviteAcceptPage';
 import { ReportsPage } from './ReportsPage';
 import { TransactionsPage } from './TransactionsPage';
 import { OnboardingPage } from './OnboardingPage';
+import { ProfilePage } from './ProfilePage';
 
 const router = createBrowserRouter([
   {
@@ -60,6 +61,7 @@ const router = createBrowserRouter([
           { path: 'movimientos', element: <TransactionsPage /> },
           { path: 'reportes', element: <ReportsPage /> },
           { path: 'grupo', element: <GroupPage /> },
+          { path: 'perfil', element: <ProfilePage /> },
         ],
       },
       // Catch-all: muestra ErrorPage para cualquier URL sin match.

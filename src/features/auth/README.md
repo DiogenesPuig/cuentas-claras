@@ -9,7 +9,9 @@ sesión con email+contraseña y/o OAuth de Google.
   `profiles` (`getMyProfile`, `upsertMyProfile`). Sin React.
 - `context.ts` — `AuthContext` y `useAuth()` (separado de `hooks.tsx` por fast-refresh de Vite).
 - `hooks.tsx` — `AuthProvider`: escucha `onAuthStateChange` y expone `session`/`user`/`loading`.
-- `schema.ts` — esquemas zod de los formularios de login/registro.
+- `queries.ts` — react-query del perfil propio (MEJ-7): `useMyProfile()` y `useUpdateMyProfile()`
+  (al guardar invalida el directorio de miembros de reportes y los miembros del grupo).
+- `schema.ts` — esquemas zod de los formularios de login/registro y del perfil (`profileSchema`, MEJ-7).
 - `index.ts` — barrel del feature.
 - `components/LoginPage.tsx` — pantalla `/login`.
 - `components/RegisterPage.tsx` — pantalla `/register`.
