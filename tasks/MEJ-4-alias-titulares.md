@@ -107,20 +107,25 @@ casos que la heurística no puede adivinar (apodos, "José" vs "Pepito", "Perez 
 > el concepto de **"miembro/persona del grupo sin cuenta de usuario"**. Por eso vive acá, junto a la
 > identidad de persona, y NO se improvisa: **Opus cierra el diseño con el usuario antes de codear.**
 
-## Decisión ya tomada
+## Decisiones ya tomadas
 - **Alcance: a nivel GRUPO** (persistido en DB, lo ven todos). El equivalente "solo para mí" es el
-  apodo local de MEJ-8; esto es distinto.
+  apodo de MEJ-8; esto es distinto.
+- **Promoción placeholder → cuenta real es REQUISITO** (no follow-up): el usuario confirmó (2026-06-29)
+  que un caso común es que esa persona **se una a la app más adelante**. Al hacerlo, debe **conservar
+  toda su historia** (medios, movimientos, apodos) sin migrar datos. Esto inclina el modelo a (a).
 
 ## Decisiones de diseño PENDIENTES (cerrar con Opus + usuario)
-1. **Modelo de datos.** Dos caminos a evaluar:
+1. **Modelo de datos.** Dos caminos:
    - (a) **`workspace_members` con `user_id` NULL** (miembro "placeholder" sin cuenta): reusa toda la
-     maquinaria de persona (los reportes ya agrupan por `owner_member_id`, F2-10). Hay que revisar
-     **RLS** e invariantes que hoy asumen `user_id` no nulo, y cómo se "promueve" a cuenta real si
-     esa persona después entra a la app (linkear el placeholder al `user_id`).
-   - (b) **Tabla nueva** `group_persons` (o similar) para personas sin cuenta, referenciada por
-     `accounts.owner_person_id`. Más aislada, pero duplica el concepto de persona y obliga a unificar
-     "persona" = miembro ∪ group_person en agregación, filtros y matching.
-   → Recomendación inicial (a revisar): **(a)**, por reuso; decidir según el costo de RLS.
+     maquinaria de persona (los reportes ya agrupan por `owner_member_id`, F2-10). **Promoción trivial:**
+     cuando la persona acepta la invitación, se **setea `user_id` en esa misma fila** → conserva su
+     `member:<id>` y toda la historia, sin mover nada. Hay que revisar **RLS** e invariantes que hoy
+     asumen `user_id` no nulo (ej. `is_member`, `member_directory`, triggers de alta de miembro).
+   - (b) **Tabla nueva** `group_persons` referenciada por `accounts.owner_person_id`. Más aislada, pero
+     duplica el concepto de persona y la promoción obliga a **migrar** todo lo que apuntaba a la persona
+     hacia el nuevo `workspace_member` (más trabajo y riesgo).
+   → **Recomendación reforzada: (a)**, sobre todo por el requisito de promoción sin pérdida de historia.
+     Decidir el detalle de RLS al cerrar el diseño.
 2. **Cómo se asocia un titular suelto a esa persona.** Probablemente reusando el **matcher + alias de
    la Parte A** (`holder_aliases`): la persona sin cuenta es, en la práctica, un "dueño" con sus
    nombres alternativos. Esto es la razón fuerte de unir A y B.
@@ -129,15 +134,22 @@ casos que la heurística no puede adivinar (apodos, "José" vs "Pepito", "Perez 
 4. **Reportes (MEJ-5).** `aggregateByPersonaMembersOnly` ya deja individuales las `member:*`; si B usa
    el camino (a), una persona sin cuenta es un `member:*` más y **deja de caer en "Otros"
    automáticamente**. Verificar que el donut de ingresos/gastos y el detalle lo reflejen.
+5. **Promoción (flujo).** Cómo se linkea el placeholder al `user_id` cuando la persona se une: ¿al
+   aceptar una invitación dirigida a ese placeholder?, ¿match por email/nombre con confirmación del
+   admin? Definir el disparador y la confirmación para no linkear a la persona equivocada.
+6. **Apodos de MEJ-8 (remap).** Los apodos de MEJ-8 se indexan por `personaKey`. Al **convertir** un
+   no-miembro (`name:<normalizado>`) en persona del grupo (`member:<id>`), hay que **remapear** las
+   filas de `persona_aliases` de esa clave vieja a la nueva (migración/handler pequeño dentro de B),
+   para no "perder" el apodo. Anotado como dependencia inversa MEJ-8 → MEJ-4.
 
 ## Criterios de aceptación (Parte B — preliminares, afinar al cerrar diseño)
 - [ ] El usuario puede marcar/crear una "persona del grupo sin cuenta" y asociarle titulares/medios.
 - [ ] Esa persona aparece **individualizada** (no en "Otros") en los donuts de resumen de `/reportes`,
       para **todos** los integrantes del grupo.
+- [ ] **Promoción:** cuando la persona se une a la app, su placeholder pasa a cuenta real **conservando
+      medios, movimientos y apodos** (sin migrar datos ni crear un duplicado).
 - [ ] Migración aplicada en remoto + `database.types.ts` regenerado + `schema_fase1.sql` al día.
 - [ ] RLS no se debilita; un usuario solo gestiona personas de workspaces a los que pertenece.
 
 ## Fuera de alcance (Parte B)
-- Apodos **locales** (solo para mí) → MEJ-8.
-- Invitar a esa persona / convertirla en cuenta real (el "linkeo" placeholder→user es follow-up salvo
-  que el diseño lo incluya barato).
+- Apodos (privados, MEJ-8) en sí — acá solo el **remap** de sus claves al promover (punto 6).
