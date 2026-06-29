@@ -46,17 +46,10 @@ según `CLAUDE.md`).
 - **Origen:** pedido del usuario, no urgente.
 
 ### MEJ-4 — Alias: varios nombres de titular → una misma cuenta/miembro
-- **Qué:** poder asignar **varios nombres** de titular (como vienen en los comprobantes) a una
-  sola "cuenta"/persona de la app. Ej.: el banco X detecta `Pepito Perez` y el banco Y `Perez
-  Pepito` → ambos deberían mapear al mismo miembro/medio, en vez de crear dos personas distintas.
-- **Contexto:** pedido del usuario (2026-06-27) probando OCR de transferencias. Conecta con F2-11
-  (medio `'transfer'` con `holder_name`) y el follow-up de **orden del nombre** de `F2-12`
-  (`Apellido Nombre` vs `Nombre Apellido` según banco/billetera). Hoy un titular no matcheado crea
-  un medio nuevo por cada variante del nombre.
-- **A tener en cuenta:** probablemente requiere esquema (tabla de alias de titular → `account`/
-  miembro) + UI para gestionar esos alias en `features/accounts` (medios) y/o en el grupo. Decisión
-  de diseño/esquema → escalar a Opus antes de implementar. Normalizar también ayuda a F2-5 (match
-  por titular en resúmenes).
+- **Diseño cerrado (2026-06-29) → ticket propio:** `tasks/MEJ-4-alias-titulares.md`.
+- **Resumen de decisiones:** columna `holder_aliases text[]` en `accounts`; solo matching futuro
+  (sin merge de duplicados existentes); UX = pantalla de gestión en Medios + prompt inline; incluye
+  auto-dedup base (unificar `getOrCreateTransferAccount` con el matcher fuzzy del front).
 - **Origen:** pedido del usuario, no urgente.
 
 ### MEJ-5 — Reportes: separar ingresos/gastos + donut de ingresos solo miembros
