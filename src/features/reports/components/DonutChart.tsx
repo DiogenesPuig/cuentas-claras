@@ -8,17 +8,20 @@ interface DonutChartProps {
   baseCurrency: string;
   /** Muestra la leyenda debajo del gráfico. Apagala si la info va en una columna aparte. */
   showLegend?: boolean;
+  /** Qué métrica consolidada grafica cada porción (MEJ-5: donut de ingresos vs gastos). */
+  metric?: 'expense' | 'income';
 }
 
-/** Torta del desglose por dimensión (FR-22), valuado en gasto consolidado en la moneda base. */
-export function DonutChart({ groups, baseCurrency, showLegend = true }: DonutChartProps) {
+/** Torta del desglose por dimensión (FR-22), valuado en gasto/ingreso consolidado en la moneda base. */
+export function DonutChart({ groups, baseCurrency, showLegend = true, metric = 'expense' }: DonutChartProps) {
   const data = groups
-    .filter((g) => g.consolidated.expense > 0)
-    .map((g) => ({ name: g.label, value: g.consolidated.expense }));
+    .filter((g) => g.consolidated[metric] > 0)
+    .map((g) => ({ name: g.label, value: g.consolidated[metric] }));
 
   if (data.length === 0) {
+    const what = metric === 'income' ? 'ingresos' : 'gastos';
     return (
-      <p className="text-sm text-muted-foreground">Sin gastos en este período para graficar.</p>
+      <p className="text-sm text-muted-foreground">Sin {what} en este período para graficar.</p>
     );
   }
 

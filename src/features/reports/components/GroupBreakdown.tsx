@@ -5,6 +5,8 @@ import { chartColor } from './chartColors';
 interface GroupBreakdownProps {
   groups: DimensionGroup[];
   baseCurrency: string;
+  /** Qué métrica consolidada lista cada grupo (MEJ-5: ingresos vs gastos). */
+  metric?: 'expense' | 'income';
 }
 
 /**
@@ -12,12 +14,13 @@ interface GroupBreakdownProps {
  * El total es el de los grupos que recibe, así sirve tanto para el grupo entero como para el
  * subconjunto de un filtro (ej. el % por categoría de una persona). Mismo orden que el donut.
  */
-export function GroupBreakdown({ groups, baseCurrency }: GroupBreakdownProps) {
-  const items = groups.filter((g) => g.consolidated.expense > 0);
-  const total = items.reduce((sum, g) => sum + g.consolidated.expense, 0);
+export function GroupBreakdown({ groups, baseCurrency, metric = 'expense' }: GroupBreakdownProps) {
+  const items = groups.filter((g) => g.consolidated[metric] > 0);
+  const total = items.reduce((sum, g) => sum + g.consolidated[metric], 0);
 
   if (items.length === 0) {
-    return <p className="text-sm text-muted-foreground">Sin gastos en el período.</p>;
+    const what = metric === 'income' ? 'ingresos' : 'gastos';
+    return <p className="text-sm text-muted-foreground">Sin {what} en el período.</p>;
   }
 
   return (
@@ -32,10 +35,10 @@ export function GroupBreakdown({ groups, baseCurrency }: GroupBreakdownProps) {
             />
             {group.label}
             <span className="text-muted-foreground">
-              {total > 0 ? `· ${Math.round((group.consolidated.expense / total) * 100)}%` : ''}
+              {total > 0 ? `· ${Math.round((group.consolidated[metric] / total) * 100)}%` : ''}
             </span>
           </span>
-          <span className="font-medium">{formatAmount(group.consolidated.expense, baseCurrency)}</span>
+          <span className="font-medium">{formatAmount(group.consolidated[metric], baseCurrency)}</span>
         </li>
       ))}
     </ul>

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   aggregateByDimension,
+  aggregateByPersonaMembersOnly,
+  OTHERS_LABEL,
   filterReportTransactions,
   monthlySeries,
   personaAccounts,
@@ -154,6 +156,67 @@ describe('aggregateByDimension', () => {
 
     const groups = aggregateByDimension(transactions, 'banco', 'ARS', rateFor);
     expect(groups[0].consolidated.expense).toBe(10 * 1000);
+  });
+});
+
+describe('aggregateByPersonaMembersOnly (MEJ-5: donut de resumen, solo miembros + "Otros")', () => {
+  const memberNameById = new Map([
+    ['member-1', 'Juan Pérez'],
+    ['member-2', 'Ana Gómez'],
+  ]);
+
+  it('deja a cada miembro como porción propia y colapsa a los no-miembros en "Otros"', () => {
+    const transactions = [
+      makeTx({ amount: 100, account: makeAccount({ holder_name: 'Juan', owner_member_id: 'member-1' }) }),
+      makeTx({ amount: 40, account: makeAccount({ holder_name: 'Ana', owner_member_id: 'member-2' }) }),
+      // No-miembros: dos titulares ajenos distintos → ambos a "Otros".
+      makeTx({ amount: 30, account: makeAccount({ holder_name: 'Carlos Ajeno', owner_member_id: null }) }),
+      makeTx({ amount: 20, account: makeAccount({ holder_name: 'Dora Externa', owner_member_id: null }) }),
+    ];
+
+    const groups = aggregateByPersonaMembersOnly(transactions, 'ARS', noRate, memberNameById);
+
+    const otros = groups.find((g) => g.label === OTHERS_LABEL);
+    expect(otros?.consolidated.expense).toBe(50); // 30 + 20 colapsados
+    expect(groups.filter((g) => g.label !== OTHERS_LABEL).map((g) => g.label).sort()).toEqual([
+      'Ana Gómez',
+      'Juan Pérez',
+    ]);
+  });
+
+  it('los movimientos sin medio también caen en "Otros"', () => {
+    const transactions = [
+      makeTx({ amount: 100, account: makeAccount({ holder_name: 'Juan', owner_member_id: 'member-1' }) }),
+      makeTx({ amount: 25, account: null }),
+    ];
+
+    const groups = aggregateByPersonaMembersOnly(transactions, 'ARS', noRate, memberNameById);
+
+    expect(groups.find((g) => g.label === OTHERS_LABEL)?.consolidated.expense).toBe(25);
+  });
+
+  it('no hay porción "Otros" si todos son miembros', () => {
+    const transactions = [
+      makeTx({ amount: 100, account: makeAccount({ holder_name: 'Juan', owner_member_id: 'member-1' }) }),
+      makeTx({ amount: 40, account: makeAccount({ holder_name: 'Ana', owner_member_id: 'member-2' }) }),
+    ];
+
+    const groups = aggregateByPersonaMembersOnly(transactions, 'ARS', noRate, memberNameById);
+
+    expect(groups.some((g) => g.label === OTHERS_LABEL)).toBe(false);
+    expect(groups).toHaveLength(2);
+  });
+
+  it('separa ingresos y gastos en el consolidado de cada grupo (para los donut por métrica)', () => {
+    const transactions = [
+      makeTx({ type: 'income', amount: 500, account: makeAccount({ holder_name: 'Juan', owner_member_id: 'member-1' }) }),
+      makeTx({ type: 'income', amount: 70, account: makeAccount({ holder_name: 'Ajeno', owner_member_id: null }) }),
+    ];
+
+    const groups = aggregateByPersonaMembersOnly(transactions, 'ARS', noRate, memberNameById);
+
+    expect(groups.find((g) => g.label === 'Juan Pérez')?.consolidated.income).toBe(500);
+    expect(groups.find((g) => g.label === OTHERS_LABEL)?.consolidated.income).toBe(70);
   });
 });
 

@@ -148,6 +148,48 @@ export function aggregateByDimension(
   );
 }
 
+/** Etiqueta/clave de la porción que agrupa a todos los no-miembros en los donut de resumen (MEJ-5). */
+export const OTHERS_LABEL = 'Otros';
+const OTHERS_KEY = 'otros';
+
+/**
+ * Como `aggregateByDimension(..., 'persona', ...)` pero colapsa a TODOS los no-miembros
+ * (medios sin `owner_member_id`, y los movimientos sin medio) en una única porción "Otros",
+ * dejando a cada miembro del workspace como porción propia (MEJ-5). Pensado para los donut de
+ * resumen de `/reportes`, donde el usuario solo quiere ver individualizados a los miembros del
+ * grupo (las transferencias de gente ajena no se detallan en el resumen). El detalle por filtro
+ * sigue usando `aggregateByDimension` (sin colapsar) para poder ver un no-miembro puntual.
+ * "Otros" no aparece si no hay no-miembros. Reusa `personaIdentity` (mismo criterio F2-10).
+ */
+export function aggregateByPersonaMembersOnly(
+  transactions: ReportTransactionView[],
+  base: string,
+  rateFor: RateLookup,
+  memberNameById: MemberNameById = NO_MEMBERS,
+): DimensionGroup[] {
+  const byKey = new Map<string, { txs: ReportTransactionView[]; label: string }>();
+  for (const tx of transactions) {
+    const identity = personaIdentity(tx, memberNameById);
+    const isMember = identity.key.startsWith('member:');
+    const key = isMember ? identity.key : OTHERS_KEY;
+    const label = isMember ? identity.label : OTHERS_LABEL;
+    const entry = byKey.get(key) ?? { txs: [], label };
+    entry.txs.push(tx);
+    byKey.set(key, entry);
+  }
+
+  const groups: DimensionGroup[] = Array.from(byKey.entries()).map(([key, { txs, label }]) => ({
+    key,
+    label,
+    consolidated: consolidateTransactions(txs, base, rateFor),
+  }));
+
+  return groups.sort(
+    (a, b) =>
+      b.consolidated.income + b.consolidated.expense - (a.consolidated.income + a.consolidated.expense),
+  );
+}
+
 /**
  * Filtros combinables del reporte. Cada dimensión acepta VARIOS valores: dentro de una
  * dimensión se combinan con OR (ej. categoría = Transporte o Salud), y entre dimensiones con
