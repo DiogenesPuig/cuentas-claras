@@ -3,7 +3,8 @@
 - `RequireWorkspace.tsx` — guard: si el usuario no tiene workspaces, redirige a `/onboarding`.
 - `MemberList.tsx` — lista de miembros (nombre/avatar/rol, nunca el teléfono); owner/admin pueden
   cambiar el rol de los demás (`RoleSelect`) y quitarlos. El `owner` no se edita ni se quita desde
-  acá (transferir ownership queda fuera de alcance).
+  acá (transferir ownership queda fuera de alcance). Cada miembro tiene un ✏️ para ponerle un
+  **apodo privado** (MEJ-8, `features/aliases`; misma `personaKey` `member:<id>` que los reportes).
 - `RoleSelect.tsx` — select de rol asignable (`admin`/`member`/`viewer`).
 - `InviteForm.tsx` — form de invitación por email + rol (un solo uso).
 - `InviteLink.tsx` — fila de una invitación con su link copiable (`/invite/:token`) y botón

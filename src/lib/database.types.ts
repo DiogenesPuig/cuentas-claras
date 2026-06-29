@@ -307,6 +307,44 @@ export type Database = {
           },
         ]
       }
+      persona_aliases: {
+        Row: {
+          alias: string
+          created_at: string
+          id: string
+          persona_key: string
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          alias: string
+          created_at?: string
+          id?: string
+          persona_key: string
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          alias?: string
+          created_at?: string
+          id?: string
+          persona_key?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "persona_aliases_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

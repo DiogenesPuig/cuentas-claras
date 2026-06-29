@@ -226,6 +226,8 @@ const DOMINANT_THRESHOLD = 0.4;
 const MIXED_LABEL = 'Varios';
 
 export interface PersonaSpending {
+  /** Clave de identidad de la persona (`member:<id>` o `name:<norm>`); para apodos (MEJ-8). */
+  key: string;
   /** Persona: nombre vivo del miembro (si el medio tiene `owner_member_id`) o `holder_name`. */
   holder: string;
   /** Gasto consolidado de la persona, en la moneda base. */
@@ -264,6 +266,7 @@ export function personaSpending(
       const holderExpense = group.consolidated.expense;
       const topShare = top ? top.consolidated.expense / holderExpense : 0;
       return {
+        key: group.key,
         holder: group.label,
         expense: holderExpense,
         share: totalExpense > 0 ? holderExpense / totalExpense : 0,

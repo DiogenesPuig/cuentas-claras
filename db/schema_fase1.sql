@@ -467,6 +467,41 @@ create trigger trg_ws_add_owner
   for each row execute function add_owner_on_workspace_create();
 
 -- ============================================================================
+-- PERSONA_ALIASES (MEJ-8): apodos PRIVADOS por usuario para "personas" del reporte
+--   Cada usuario le pone un nombre alternativo a una persona (miembro o titular ajeno)
+--   que solo ve él. persona_key = `member:<owner_member_id>` o `name:<holder normalizado>`.
+--   RLS: cada uno ve/edita SOLO sus apodos, y solo en workspaces a los que pertenece.
+-- ============================================================================
+create table persona_aliases (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid not null references auth.users (id) on delete cascade,
+  workspace_id uuid not null references workspaces (id) on delete cascade,
+  persona_key  text not null,
+  alias        text not null,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now(),
+  unique (user_id, workspace_id, persona_key)
+);
+
+create index persona_aliases_user_ws_idx on persona_aliases (user_id, workspace_id);
+
+create trigger trg_persona_aliases_updated
+  before update on persona_aliases
+  for each row execute function set_updated_at();
+
+alter table persona_aliases enable row level security;
+
+create policy pa_select on persona_aliases
+  for select using (user_id = auth.uid() and is_member(workspace_id));
+create policy pa_insert on persona_aliases
+  for insert with check (user_id = auth.uid() and is_member(workspace_id));
+create policy pa_update on persona_aliases
+  for update using (user_id = auth.uid())
+  with check (user_id = auth.uid() and is_member(workspace_id));
+create policy pa_delete on persona_aliases
+  for delete using (user_id = auth.uid());
+
+-- ============================================================================
 -- SEED: categorías globales por defecto (workspace_id = NULL)
 -- ============================================================================
 insert into categories (workspace_id, name, kind, icon) values
