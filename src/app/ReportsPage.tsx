@@ -9,6 +9,7 @@ import {
   ReportFilterBar,
   ReportTabs,
   aggregateByDimension,
+  aggregateByPersonaMembersOnly,
   consolidateTransactions,
   dimensionLabelFor,
   filterReportTransactions,
@@ -94,12 +95,16 @@ export function ReportsPage() {
   const allTransactions = transactions ?? [];
   const monthTransactions = allTransactions.filter((tx) => tx.occurred_on.startsWith(activeMonth));
 
-  // Vista GENERAL (todo el grupo, sin filtrar): totales, desglose por dimensión y mes a mes.
-  const groups = aggregateByDimension(monthTransactions, dimension, base, rateFor, memberNameById);
+  // RESUMEN del mes (MEJ-5): totales macro + donut de gastos y donut de ingresos separados.
   const totals = consolidateTransactions(monthTransactions, base, rateFor);
+  // [2] Gastos por la dimensión elegida; en "persona" se colapsan los no-miembros en "Otros".
+  const expenseGroups =
+    dimension === 'persona'
+      ? aggregateByPersonaMembersOnly(monthTransactions, base, rateFor, memberNameById)
+      : aggregateByDimension(monthTransactions, dimension, base, rateFor, memberNameById);
+  // [3] Ingresos por persona, SOLO miembros (los no-miembros caen en "Otros").
+  const incomeGroups = aggregateByPersonaMembersOnly(monthTransactions, base, rateFor, memberNameById);
   const series = monthlySeries(allTransactions, months, base, rateFor);
-  const personaInfo = personaAccounts(accounts ?? [], memberNameById);
-  const personas = personaSpending(monthTransactions, base, rateFor, memberNameById);
 
   // Opciones del filtro de detalle, a partir de lo que hay en el mes (FR-22).
   const distinct = (values: (string | null | undefined)[], fallback: string) =>
@@ -114,19 +119,21 @@ export function ReportsPage() {
     categoria: distinct(monthTransactions.map((tx) => tx.category?.name), 'Sin categoría'),
   };
 
-  // Vista DE DETALLE (abajo): los filtros (apilables) recortan el subconjunto y se ve su
-  // desglose por la dimensión elegida. Vacío hasta que haya algún filtro activo.
+  // [4] DETALLE por filtro: los filtros (apilables) recortan el subconjunto y se ve su desglose
+  // por la dimensión elegida. Sin filtro = todo el mes (nunca vacío). A diferencia de los donut
+  // de resumen, acá NO se colapsan no-miembros: un titular ajeno puntual sí se puede ver.
   const activeFilterValues = [
     ...(filters.persona ?? []),
     ...(filters.banco ?? []),
     ...(filters.medio ?? []),
     ...(filters.categoria ?? []),
   ];
-  const hasFilter = activeFilterValues.length > 0;
   const detailTxs = filterReportTransactions(monthTransactions, filters, memberNameById);
   const detailGroups = aggregateByDimension(detailTxs, detailDimension, base, rateFor, memberNameById);
   const detailTotal = consolidateTransactions(detailTxs, base, rateFor).expense;
-  const detailLabel = activeFilterValues.join(' · ') || 'Filtrado';
+  const detailPersonas = personaSpending(detailTxs, base, rateFor, memberNameById);
+  const personaInfo = personaAccounts(accounts ?? [], memberNameById);
+  const detailLabel = activeFilterValues.join(' · ') || 'Todo el mes';
 
   // Vista ANUAL (acumulado del año hasta el mes activo).
   const yearTransactions = allTransactions.filter((tx) => tx.occurred_on.startsWith(year));
@@ -142,23 +149,64 @@ export function ReportsPage() {
         <p className="text-sm text-muted-foreground">Cargando…</p>
       ) : (
         <>
+          {/* [1] INGRESOS VS GASTOS — foto macro del mes (sin desglose). */}
           <ConsolidatedTotals consolidated={totals} baseCurrency={base} />
 
-          {/* GENERAL — todo el grupo. Gráfico a la izquierda, info a la derecha. */}
+          {/* [2] GASTOS (izq) + [3] INGRESOS (der) — donuts de resumen, solo miembros + "Otros". */}
+          <section className="grid gap-6 md:grid-cols-2 md:items-start">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold">Gastos</h2>
+                <ReportTabs value={dimension} onChange={setDimension} />
+              </div>
+              <DonutChart
+                groups={expenseGroups}
+                baseCurrency={base}
+                metric="expense"
+                complement={{ label: 'Ingresos', value: totals.income }}
+                showLegend={false}
+              />
+              <GroupBreakdown groups={expenseGroups} baseCurrency={base} metric="expense" />
+            </div>
+            <div className="space-y-3">
+              <h2 className="text-sm font-semibold">Ingresos por persona</h2>
+              <DonutChart
+                groups={incomeGroups}
+                baseCurrency={base}
+                metric="income"
+                complement={{ label: 'Gastos', value: totals.expense }}
+                complementPosition="start"
+                showLegend={false}
+              />
+              <GroupBreakdown groups={incomeGroups} baseCurrency={base} metric="income" />
+            </div>
+          </section>
+
+          {/* [4] DETALLE — filtros apilables (persona/banco/medio/categoría). Sin filtro = todo el
+              mes (nunca vacío). Acá sí se ven los no-miembros individualmente. */}
           <section className="space-y-3">
-            <h2 className="text-sm font-semibold">General — todo el grupo</h2>
-            <ReportTabs value={dimension} onChange={setDimension} />
+            <h2 className="text-sm font-semibold">Detalle por filtro</h2>
+            <ReportFilterBar filters={filters} options={filterOptions} onChange={setFilters} />
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm">
+                <span className="text-muted-foreground">{detailLabel} · gasto total: </span>
+                <span className="font-semibold">{formatAmount(detailTotal, base)}</span>
+              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Ver por</span>
+                <ReportTabs value={detailDimension} onChange={setDetailDimension} />
+              </div>
+            </div>
             <div className="grid gap-6 md:grid-cols-2 md:items-start">
-              <DonutChart groups={groups} baseCurrency={base} showLegend={false} />
               <div className="space-y-3">
-                {dimension === 'persona' ? (
-                  <PersonaBreakdown people={personas} baseCurrency={base} />
+                {detailDimension === 'persona' ? (
+                  <PersonaBreakdown people={detailPersonas} baseCurrency={base} />
                 ) : (
-                  <GroupBreakdown groups={groups} baseCurrency={base} />
+                  <GroupBreakdown groups={detailGroups} baseCurrency={base} />
                 )}
-                {dimension === 'persona' && (
+                {detailDimension === 'persona' && (
                   <ul className="space-y-1 text-xs text-muted-foreground">
-                    {personas.map((person) => (
+                    {detailPersonas.map((person) => (
                       <li key={person.holder}>
                         <span className="font-medium text-foreground">{person.holder}:</span>{' '}
                         {(personaInfo.get(person.holder) ?? [])
@@ -175,37 +223,8 @@ export function ReportsPage() {
                   </ul>
                 )}
               </div>
+              <DonutChart groups={detailGroups} baseCurrency={base} showLegend={false} />
             </div>
-          </section>
-
-          {/* DETALLE — filtros apilables (persona/banco/medio/categoría). Info a la izquierda,
-              gráfico a la derecha (invertido respecto del general). Vacío hasta filtrar. */}
-          <section className="space-y-3">
-            <h2 className="text-sm font-semibold">Detalle por filtro</h2>
-            <ReportFilterBar filters={filters} options={filterOptions} onChange={setFilters} />
-            {hasFilter ? (
-              <>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm">
-                    <span className="text-muted-foreground">{detailLabel} · gasto total: </span>
-                    <span className="font-semibold">{formatAmount(detailTotal, base)}</span>
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Ver por</span>
-                    <ReportTabs value={detailDimension} onChange={setDetailDimension} />
-                  </div>
-                </div>
-                <div className="grid gap-6 md:grid-cols-2 md:items-start">
-                  <GroupBreakdown groups={detailGroups} baseCurrency={base} />
-                  <DonutChart groups={detailGroups} baseCurrency={base} showLegend={false} />
-                </div>
-              </>
-            ) : (
-              <p className="rounded-md border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                Elegí una persona, banco, medio o categoría para ver acá su desglose. Podés apilar
-                filtros (ej. Persona + Restaurantes) y sacarlos con "Limpiar".
-              </p>
-            )}
           </section>
 
           <section className="space-y-2">

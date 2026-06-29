@@ -11,7 +11,9 @@ export {
 export {
   REPORT_DIMENSIONS,
   REPORT_DIMENSION_LABELS,
+  OTHERS_LABEL,
   aggregateByDimension,
+  aggregateByPersonaMembersOnly,
   consolidateTransactions,
   dimensionLabelFor,
   filterReportTransactions,
