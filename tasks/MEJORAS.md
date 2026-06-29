@@ -13,9 +13,8 @@ según `CLAUDE.md`).
 Próximos tickets a ejecutar, de más simple/independiente a más grande. Cada uno en su **rama propia
 desde `main`**, probado en local antes de mergear (regla 2026-06-27):
 
-1. **MEJ-5** (en curso, rama `task/mej-5`) — separar gráficos ingresos/gastos + donuts en espejo.
-   _Pendiente: que el usuario pruebe el espejo → mergear._
-2. **MEJ-7** — editar mi perfil (nombre global). Chico, sin migración. Desbloquea el "llamarme Dioge".
+1. ~~**MEJ-5**~~ — ✅ separar gráficos ingresos/gastos + donuts en espejo (PR #41, mergeado).
+2. **MEJ-7** (en curso) — editar mi perfil (nombre global). Chico, sin migración. Desbloquea el "llamarme Dioge".
 3. **MEJ-8** — apodos locales (renombrar a otros solo para mí). Mediano, localStorage, sin migración.
 4. **MEJ-4** — identidad de persona (alias + personas sin cuenta). El más grande; hacerlo **último**:
    - 4a. **Parte A (alias)**: diseño cerrado → implementar (migración `holder_aliases`).
@@ -85,11 +84,9 @@ siguen pendientes y de baja prioridad.
   local (no afecta a otros), capa de presentación (no toca `aggregate.ts` puro). Sin migración.
 - **Origen:** pedido del usuario (2026-06-29), no urgente.
 
-### MEJ-5 — Reportes: separar ingresos/gastos + donut de ingresos solo miembros
-- **Diseño cerrado (2026-06-27) → ticket propio:** `tasks/MEJ-5-separar-graficos-ingresos-gastos.md`.
-- **Resumen:** reordenar `/reportes` → [1] ingresos vs gastos (macro), [2] donut gastos, [3] donut
-  ingresos (por persona, solo miembros; no-miembros → "Otros"), [4] detalle por filtro. Lumping
-  no-miembro→"Otros" en `aggregate.ts` (puro, testeado). Sin deps nuevas.
-- **Origen:** pedido del usuario, no urgente.
+### ~~MEJ-5~~ — ✅ Reportes: separar ingresos/gastos + donut de ingresos solo miembros — _hecho (PR #41, `tasks/done/`)_
+- Reordenó `/reportes` → [1] ingresos vs gastos (macro), [2] donut gastos + [3] donut ingresos por
+  persona (solo miembros; no-miembros → "Otros") en espejo con zona gris del complemento, [4] detalle
+  por filtro. Lumping no-miembro→"Otros" y `aggregateByPersonaMembersOnly` en `aggregate.ts` (puro).
 
 ### ~~MEJ-6~~ — ✅ Aviso de "baja confianza" más vistoso — _hecho (toasts Sonner, PR #39)_
