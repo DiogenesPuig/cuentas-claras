@@ -16,6 +16,13 @@ interface DonutChartProps {
    * el donut de gastos es el total de ingresos en gris, y viceversa. No aparece si es <= 0.
    */
   complement?: { label: string; value: number };
+  /**
+   * Dónde va la porción gris del complemento (MEJ-5). Para que el espejo sea real, los gastos
+   * deben ocupar el MISMO arco en ambos donut: en el de gastos van primero (`complement` ingresos
+   * al final, `'end'`); en el de ingresos el gris de gastos va primero (`'start'`), así el arco de
+   * gastos arranca en el mismo lugar y solo cambia el color.
+   */
+  complementPosition?: 'start' | 'end';
 }
 
 /** Torta del desglose por dimensión (FR-22), valuado en gasto/ingreso consolidado en la moneda base. */
@@ -25,14 +32,18 @@ export function DonutChart({
   showLegend = true,
   metric = 'expense',
   complement,
+  complementPosition = 'end',
 }: DonutChartProps) {
   const data = groups
     .filter((g) => g.consolidated[metric] > 0)
     .map((g, index) => ({ name: g.label, value: g.consolidated[metric], color: chartColor(index) }));
 
-  // Porción gris de la otra métrica (espejo): va al final, fuera de la paleta de colores.
+  // Porción gris de la otra métrica (espejo), fuera de la paleta. Su posición fija el arco para
+  // que gastos e ingresos ocupen el mismo lugar en ambos donut (ver `complementPosition`).
   if (complement && complement.value > 0) {
-    data.push({ name: complement.label, value: complement.value, color: COMPLEMENT_COLOR });
+    const slice = { name: complement.label, value: complement.value, color: COMPLEMENT_COLOR };
+    if (complementPosition === 'start') data.unshift(slice);
+    else data.push(slice);
   }
 
   if (data.length === 0) {

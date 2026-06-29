@@ -175,6 +175,7 @@ export function ReportsPage() {
                 baseCurrency={base}
                 metric="income"
                 complement={{ label: 'Gastos', value: totals.expense }}
+                complementPosition="start"
                 showLegend={false}
               />
               <GroupBreakdown groups={incomeGroups} baseCurrency={base} metric="income" />
