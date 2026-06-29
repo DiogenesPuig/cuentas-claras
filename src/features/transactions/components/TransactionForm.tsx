@@ -28,6 +28,7 @@ import {
 import type { ReceiptExtraction, Transaction, TransactionInput } from '../api';
 import { displayToIsoDate, isoToDisplayDate } from '../format';
 import { suggestCategory } from '@/lib/category-suggest';
+import { isInstitutionalPayee } from '@/lib/payee';
 
 /** Debajo de este valor avisamos que la extracción puede ser imprecisa. */
 const LOW_CONFIDENCE = 0.5;
@@ -119,6 +120,8 @@ export function TransactionForm({
   const [ocrApplied, setOcrApplied] = useState(false);
   // Origen/destino detectados en un comprobante de transferencia (F2-8/F2-9).
   const [transferInfo, setTransferInfo] = useState<TransferPartyInfo | null>(null);
+  // null = usar heurística; true/false = override manual del usuario (BUG-5).
+  const [treatAsInstitutional, setTreatAsInstitutional] = useState<boolean | null>(null);
   const [creatingTransferAccount, setCreatingTransferAccount] = useState(false);
   const getOrCreateTransferAccount = useGetOrCreateTransferAccount(workspaceId);
   const {
@@ -137,6 +140,7 @@ export function TransactionForm({
     reset(defaultValuesFor(transaction));
     setOcrApplied(false);
     setTransferInfo(null);
+    setTreatAsInstitutional(null);
   }, [transaction, reset]);
 
   useEffect(() => {
@@ -159,6 +163,13 @@ export function TransactionForm({
   const ownerBank = transferInfo && ownerSide ? bankFor(transferInfo, ownerSide) : null;
   const counterparty = transferInfo && ownerSide ? counterpartyFor(transferInfo, ownerSide) : null;
 
+  // Heurística BUG-5: si cualquiera de los dos lados es organismo/empresa de servicios,
+  // no se crea persona ni medio 'transfer'. El usuario puede sobreescribir con el toggle.
+  const heuristicIsInstitutional =
+    transferInfo !== null &&
+    (isInstitutionalPayee(transferInfo.originHolder) || isInstitutionalPayee(transferInfo.destHolder));
+  const effectiveIsInstitutional = treatAsInstitutional ?? heuristicIsInstitutional;
+
   // Persona dueña de la transferencia (F2-11): si el titular matchea a un miembro, se
   // busca/crea SU medio `'transfer'` (uno por persona, no por persona+banco).
   const matchedMember = ownerHolder ? matchMember(ownerHolder, members ?? []) : null;
@@ -167,7 +178,12 @@ export function TransactionForm({
 
   // Si el medio `'transfer'` de la persona ya existe, se asocia solo. Si no, se crea
   // lazy (sin pedirle al usuario que lo cree a mano) y se asocia el recién creado.
+  // Para pagos institucionales (BUG-5) se omite: no hay persona ni medio 'transfer'.
   useEffect(() => {
+    if (effectiveIsInstitutional) {
+      if (accountId) setValue('accountId', '');
+      return;
+    }
     if (accountId || !ownerHolder) return;
     if (transferMatch) {
       setValue('accountId', transferMatch.id);
@@ -180,7 +196,7 @@ export function TransactionForm({
       .then((account) => setValue('accountId', account.id))
       .finally(() => setCreatingTransferAccount(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transferMatch?.id, ownerHolder, matchedMember?.id]);
+  }, [transferMatch?.id, ownerHolder, matchedMember?.id, effectiveIsInstitutional]);
 
   // Banco del comprobante (F2-11): vive en el movimiento, no en el medio (el
   // usuario sigue pudiendo cambiarlo o borrarlo).
@@ -206,6 +222,7 @@ export function TransactionForm({
     setValue('bank', d.bank);
     setValue('accountId', d.accountId);
     setTransferInfo(null);
+    setTreatAsInstitutional(null);
     setOcrApplied(false);
   }
 
@@ -391,13 +408,23 @@ export function TransactionForm({
               </option>
             ))}
           </select>
-          {ownerHolder && (
+          {ownerHolder && !effectiveIsInstitutional && (
             <p className="text-xs text-muted-foreground">
               Transferencia con {ownerHolder}
               {counterparty ? ` (de/para ${counterparty})` : ''}.
               {creatingTransferAccount && ' Creando su medio "Transferencia"…'}
               {!workspaceId && !accountId && ' Falta el workspace activo para asignar el medio.'}
             </p>
+          )}
+          {transferInfo && (
+            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+              <input
+                type="checkbox"
+                checked={effectiveIsInstitutional}
+                onChange={(e) => setTreatAsInstitutional(e.target.checked)}
+              />
+              Es un pago a empresa/impuesto (no a una persona)
+            </label>
           )}
         </div>
       </div>

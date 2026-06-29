@@ -22,6 +22,18 @@ interface Rule {
   keywords: string[];
 }
 
+/** Exportados para que `payee.ts` pueda reutilizarlos en la detección institucional. */
+export const IMPUESTOS_KEYWORDS: string[] = [
+  'afip', 'arca', 'arba', 'agip', 'dgr', 'rentas', 'ingresos brutos', 'monotributo',
+  'vep', 'iva', 'ley 25413', 'ley 25.413', 'percepcion', 'percepciones', 'sellos',
+  'impuesto', 'tasa municipal',
+];
+
+export const SERVICIOS_KEYWORDS: string[] = [
+  'edesur', 'edenor', 'metrogas', 'aysa', 'telecom', 'movistar', 'claro arg', 'personal', 'netflix',
+  'spotify', 'directv', 'flow', 'cablevision',
+];
+
 const RULES: Rule[] = [
   {
     category: ['Transporte'],
@@ -57,10 +69,11 @@ const RULES: Rule[] = [
   },
   {
     category: ['Servicios'],
-    keywords: [
-      'edesur', 'edenor', 'metrogas', 'aysa', 'telecom', 'movistar', 'claro arg', 'personal', 'netflix',
-      'spotify', 'directv', 'flow', 'cablevision',
-    ],
+    keywords: SERVICIOS_KEYWORDS,
+  },
+  {
+    category: ['Impuestos'],
+    keywords: IMPUESTOS_KEYWORDS,
   },
 ];
 

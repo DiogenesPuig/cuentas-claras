@@ -473,6 +473,7 @@ insert into categories (workspace_id, name, kind, icon) values
   (null, 'Supermercado',    'expense', '🛒'),
   (null, 'Alquiler',        'expense', '🏠'),
   (null, 'Servicios',       'expense', '💡'),
+  (null, 'Impuestos',       'expense', '🧾'),
   (null, 'Transporte',      'expense', '🚗'),
   (null, 'Salud',           'expense', '⚕️'),
   (null, 'Ocio',            'expense', '🎉'),
