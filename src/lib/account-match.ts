@@ -134,6 +134,17 @@ export function matchAccount<T extends MatchableAccount>(
 }
 
 /**
+ * ¿El hint corresponde a la sección residual del resumen (impuestos, sellos, IVA y
+ * otros cargos al pie) en lugar de a una tarjeta concreta? Los parsers cierran cada
+ * tarjeta con su "Total Consumos"/"TOTAL TITULAR" (de ahí salen `last4`/`holder`); las
+ * filas sueltas que quedan al final se agrupan en una card sin `last4` ni `holder`.
+ * Esos cargos no pertenecen a un medio (BUG-5): no tiene sentido pedir/crear uno.
+ */
+export function isResidualHint(hint: AccountHint): boolean {
+  return !hint.last4 && !hint.holder;
+}
+
+/**
  * Valores neutros para precargar el alta de un medio nuevo desde el `account_hint`.
  * No depende del schema del form (eso lo mapea la feature), para no atar `lib/` a la UI.
  */
