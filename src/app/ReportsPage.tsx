@@ -1,6 +1,14 @@
 import { useMemo, useState } from 'react';
 import { useAccounts, useMembersForHolder } from '@/features/accounts';
 import {
+  displayPersonaLabel,
+  useAliases,
+  useDeleteAlias,
+  useUpsertAlias,
+  type AliasMap,
+} from '@/features/aliases';
+import type { DimensionGroup } from '@/features/reports';
+import {
   BarChart,
   ConsolidatedTotals,
   DonutChart,
@@ -69,6 +77,10 @@ export function ReportsPage() {
   const { data: transactions, isLoading } = useReportTransactions(workspaceId, range);
   const { data: accounts } = useAccounts(workspaceId);
   const { data: members } = useMembersForHolder(workspaceId);
+  // Apodos privados del usuario (MEJ-8): pisan el nombre mostrado de cada persona.
+  const { data: aliasData } = useAliases(workspaceId);
+  const upsertAlias = useUpsertAlias(workspaceId);
+  const deleteAlias = useDeleteAlias(workspaceId);
 
   // Nombre vivo del miembro por `owner_member_id` (F2-10): dedup de persona en los reportes.
   const memberNameById = useMemo(
@@ -106,6 +118,14 @@ export function ReportsPage() {
   const incomeGroups = aggregateByPersonaMembersOnly(monthTransactions, base, rateFor, memberNameById);
   const series = monthlySeries(allTransactions, months, base, rateFor);
 
+  // Apodos (MEJ-8): pisan el label de cada grupo de persona (display-only; no afecta agrupación).
+  const aliases: AliasMap = aliasData ?? {};
+  const aliasGroups = (groups: DimensionGroup[]): DimensionGroup[] =>
+    groups.map((g) => ({ ...g, label: displayPersonaLabel(g.key, g.label, aliases) }));
+  // En gastos solo aplica cuando el desglose es por persona; en ingresos siempre es por persona.
+  const expenseGroupsView = dimension === 'persona' ? aliasGroups(expenseGroups) : expenseGroups;
+  const incomeGroupsView = aliasGroups(incomeGroups);
+
   // Opciones del filtro de detalle, a partir de lo que hay en el mes (FR-22).
   const distinct = (values: (string | null | undefined)[], fallback: string) =>
     Array.from(new Set(values.map((v) => v ?? fallback))).sort((a, b) => a.localeCompare(b, 'es'));
@@ -135,6 +155,13 @@ export function ReportsPage() {
   const personaInfo = personaAccounts(accounts ?? [], memberNameById);
   const detailLabel = activeFilterValues.join(' · ') || 'Todo el mes';
 
+  // Apodos en la lista por persona del detalle (MEJ-8): mostrar + editar inline.
+  const personaAliasing = {
+    labelFor: (key: string, baseLabel: string) => displayPersonaLabel(key, baseLabel, aliases),
+    onSave: (key: string, alias: string) => upsertAlias.mutate({ personaKey: key, alias }),
+    onClear: (key: string) => deleteAlias.mutate(key),
+  };
+
   // Vista ANUAL (acumulado del año hasta el mes activo).
   const yearTransactions = allTransactions.filter((tx) => tx.occurred_on.startsWith(year));
   const yearTotals = consolidateTransactions(yearTransactions, base, rateFor);
@@ -160,25 +187,25 @@ export function ReportsPage() {
                 <ReportTabs value={dimension} onChange={setDimension} />
               </div>
               <DonutChart
-                groups={expenseGroups}
+                groups={expenseGroupsView}
                 baseCurrency={base}
                 metric="expense"
                 complement={{ label: 'Ingresos', value: totals.income }}
                 showLegend={false}
               />
-              <GroupBreakdown groups={expenseGroups} baseCurrency={base} metric="expense" />
+              <GroupBreakdown groups={expenseGroupsView} baseCurrency={base} metric="expense" />
             </div>
             <div className="space-y-3">
               <h2 className="text-sm font-semibold">Ingresos por persona</h2>
               <DonutChart
-                groups={incomeGroups}
+                groups={incomeGroupsView}
                 baseCurrency={base}
                 metric="income"
                 complement={{ label: 'Gastos', value: totals.expense }}
                 complementPosition="start"
                 showLegend={false}
               />
-              <GroupBreakdown groups={incomeGroups} baseCurrency={base} metric="income" />
+              <GroupBreakdown groups={incomeGroupsView} baseCurrency={base} metric="income" />
             </div>
           </section>
 
@@ -200,7 +227,7 @@ export function ReportsPage() {
             <div className="grid gap-6 md:grid-cols-2 md:items-start">
               <div className="space-y-3">
                 {detailDimension === 'persona' ? (
-                  <PersonaBreakdown people={detailPersonas} baseCurrency={base} />
+                  <PersonaBreakdown people={detailPersonas} baseCurrency={base} aliasing={personaAliasing} />
                 ) : (
                   <GroupBreakdown groups={detailGroups} baseCurrency={base} />
                 )}
@@ -208,7 +235,9 @@ export function ReportsPage() {
                   <ul className="space-y-1 text-xs text-muted-foreground">
                     {detailPersonas.map((person) => (
                       <li key={person.holder}>
-                        <span className="font-medium text-foreground">{person.holder}:</span>{' '}
+                        <span className="font-medium text-foreground">
+                          {displayPersonaLabel(person.key, person.holder, aliases)}:
+                        </span>{' '}
                         {(personaInfo.get(person.holder) ?? [])
                           .map(
                             (acc) =>

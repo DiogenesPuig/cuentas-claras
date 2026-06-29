@@ -30,9 +30,9 @@ mes a mes, con consolidado multi-moneda. Implementa **FR-20, FR-21, FR-22, FR-24
     filtro son **etiquetas** legibles, no la clave interna). Cada dimensión
     (persona/categoría/medio/banco/red) acepta **varios valores**: dentro de una dimensión se
     combinan con **OR** (ej. categoría = Transporte o Salud) y entre dimensiones con **AND**.
-  - `personaSpending`: gasto por persona — cuánto aporta cada persona, su `share` (% del gasto
-    total) y su categoría dominante (o "Varios" si ninguna supera el 40%). Para "p1 = 50%
-    (mayormente en super)".
+  - `personaSpending`: gasto por persona — `key` (identidad de persona, para apodos MEJ-8), cuánto
+    aporta cada persona, su `share` (% del gasto total) y su categoría dominante (o "Varios" si
+    ninguna supera el 40%). Para "p1 = 50% (mayormente en super)".
   - `aggregateByPersonaMembersOnly` (MEJ-5): como `aggregateByDimension(..., 'persona', ...)` pero
     colapsa a TODOS los no-miembros (medios sin `owner_member_id` y los sin medio) en una sola
     porción `OTHERS_LABEL` ("Otros"), dejando a cada miembro individual. Para los donut de resumen
@@ -58,7 +58,8 @@ mes a mes, con consolidado multi-moneda. Implementa **FR-20, FR-21, FR-22, FR-24
 - `components/ConsolidatedTotals.tsx` — totales por moneda original + consolidado en la moneda
   base del workspace (FR-21/FR-9b).
 - `components/PersonaBreakdown.tsx` — detalle del gasto por persona: % del total y categoría
-  dominante ("mayormente en Super" / "varios"). Acompaña al donut de personas.
+  dominante ("mayormente en Super" / "varios"). Acompaña al donut de personas. Con la prop opcional
+  `aliasing` (MEJ-8) muestra el apodo privado de cada persona y permite editarlo inline (✏️).
 - `components/ReportFilterBar.tsx` — filtros combinables y removibles (persona/banco/medio/categoría)
   que alimentan el bloque de detalle. Cada select **agrega** un valor y cada elegido queda como
   **chip con "×"**; se pueden apilar varios por dimensión (OR) y combinarlas (AND). "Limpiar" saca todos.
