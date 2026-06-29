@@ -53,26 +53,10 @@ según `CLAUDE.md`).
 - **Origen:** pedido del usuario, no urgente.
 
 ### MEJ-5 — Reportes: separar ingresos/gastos + donut de ingresos solo miembros
-- **Qué (diseño acordado con el usuario, 2026-06-27):** reordenar `/reportes` así:
-  ```
-  [1] Ingresos vs Gastos  (arriba, macro: total INGRESOS y total GASTOS, sin desglose)
-  [2] Donut GASTOS (izq)      [3] Donut INGRESOS (der)
-  [4] Gráficos por filtro (más particulares; con un dato por defecto, nunca vacío)
-  ```
-- **Donut de INGRESOS [3]:** **por persona pero SOLO miembros** del workspace; todos los
-  no-miembros (titulares de transferencia que no matchean a un miembro) se agrupan en una sola
-  porción **"Otros"**. Motivo: el usuario recibe transferencias de gente que no conoce y no le
-  interesa verlas individualizadas; sí pueden seguir apareciendo en el **filtro** (desplegable),
-  pero no como porciones del resumen.
-- **Donut de GASTOS [2]:** mantiene su desglose actual (categoría/persona). Si es por persona,
-  aplicar el mismo criterio "solo miembros + Otros" por consistencia.
-- **Contexto/archivos:** `src/features/reports/components/BarChart.tsx`, `DonutChart.tsx`,
-  `ConsolidatedTotals.tsx`, `ReportTabs.tsx`; agregación pura en `src/features/reports/aggregate.ts`
-  (ya distingue `income`/`expense` y mapea miembros vía `memberNameById` → lo no-mapeado = "Otros").
-- **A tener en cuenta:** sin dependencias nuevas (Recharts ya está). El lumping "no-miembro → Otros"
-  va en la lógica pura (`aggregate.ts`) y se testea. "Desconocido" = holder que no es miembro del
-  workspace. El gráfico [1] es macro (dos totales/barras); ver por categorías en ingresos quedó
-  descartado (el usuario eligió por persona/miembros).
+- **Diseño cerrado (2026-06-27) → ticket propio:** `tasks/MEJ-5-separar-graficos-ingresos-gastos.md`.
+- **Resumen:** reordenar `/reportes` → [1] ingresos vs gastos (macro), [2] donut gastos, [3] donut
+  ingresos (por persona, solo miembros; no-miembros → "Otros"), [4] detalle por filtro. Lumping
+  no-miembro→"Otros" en `aggregate.ts` (puro, testeado). Sin deps nuevas.
 - **Origen:** pedido del usuario, no urgente.
 
 ### ~~MEJ-6~~ — ✅ Aviso de "baja confianza" más vistoso — _hecho (toasts Sonner, PR #39)_
