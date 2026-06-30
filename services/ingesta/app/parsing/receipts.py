@@ -284,6 +284,44 @@ _DEST_LABEL = re.compile(
 _BANK_LABEL = re.compile(
     r"^banco(?:\s*(origen|destino|emisor|receptor))?\s*:?\s*(.*)$", re.IGNORECASE
 )
+
+# Bancos/billeteras AR conocidos, para inferir el banco del ENCABEZADO del comprobante
+# cuando no hay una etiqueta "Banco:" (caso típico: el banco emisor está en el logo/título).
+# Patrones acotados (evitamos palabras genéricas como "nación"/"provincia"/"ciudad" sueltas
+# para no dar falsos positivos): "mejor vacío que mal". (patrón, nombre canónico)
+_KNOWN_BANKS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"\bpatagonia\b", re.IGNORECASE), "Banco Patagonia"),
+    (re.compile(r"\bgalicia\b", re.IGNORECASE), "Banco Galicia"),
+    (re.compile(r"\b(?:banco\s+(?:de\s+la\s+)?naci[oó]n|bna)\b", re.IGNORECASE), "Banco Nación"),
+    (re.compile(r"\b(?:banco\s+(?:de\s+la\s+)?provincia|bapro)\b", re.IGNORECASE), "Banco Provincia"),
+    (re.compile(r"\bsantander\b", re.IGNORECASE), "Santander"),
+    (re.compile(r"\b(?:bbva|franc[eé]s)\b", re.IGNORECASE), "BBVA"),
+    (re.compile(r"\bbanco\s+macro\b|\bmacro\b", re.IGNORECASE), "Banco Macro"),
+    (re.compile(r"\bicbc\b", re.IGNORECASE), "ICBC"),
+    (re.compile(r"\bhsbc\b", re.IGNORECASE), "HSBC"),
+    (re.compile(r"\bsupervielle\b", re.IGNORECASE), "Banco Supervielle"),
+    (re.compile(r"\bcredicoop\b", re.IGNORECASE), "Banco Credicoop"),
+    (re.compile(r"\bbanco\s+ciudad\b", re.IGNORECASE), "Banco Ciudad"),
+    (re.compile(r"\bcomafi\b", re.IGNORECASE), "Banco Comafi"),
+    (re.compile(r"\bita[uú]\b", re.IGNORECASE), "Itaú"),
+    (re.compile(r"\bbrubank\b", re.IGNORECASE), "Brubank"),
+    (re.compile(r"\bnaranja\s*x\b", re.IGNORECASE), "Naranja X"),
+    (re.compile(r"\bmercado\s*pago\b", re.IGNORECASE), "Mercado Pago"),
+    (re.compile(r"\bual[aá]\b", re.IGNORECASE), "Ualá"),
+    (re.compile(r"\bpersonal\s*pay\b", re.IGNORECASE), "Personal Pay"),
+    (re.compile(r"\bcuenta\s*dni\b", re.IGNORECASE), "Cuenta DNI"),
+]
+
+
+def _known_bank_in_header(lines: list[str], header_hi: int) -> str | None:
+    """Banco conocido que aparece en el ENCABEZADO (líneas antes de los bloques
+    Origen/Destino). Solo devuelve algo si hay EXACTAMENTE un banco conocido (si hay
+    varios, es ambiguo → None; mejor vacío que mal). Sin encabezado → None."""
+    if header_hi <= 0:
+        return None
+    header = "\n".join(lines[:header_hi])
+    found = {canon for pat, canon in _KNOWN_BANKS if pat.search(header)}
+    return next(iter(found)) if len(found) == 1 else None
 # Lo que sigue al nombre en la misma línea (cuenta/CBU/identificadores), no es el titular.
 _HOLDER_STOP = re.compile(r"\b(cbu|cvu|alias|cuit|cuil|dni|cuenta|ca\s*\$)\b", re.IGNORECASE)
 # Líneas que son OTRO campo del comprobante, no un nombre de titular. Si una etiqueta
@@ -343,7 +381,11 @@ def extract_bank(text: str, side: str) -> str | None:
 
     Prioriza una etiqueta explícita ("Banco origen"/"Banco destino"); si no hay,
     cae a una línea "Banco <entidad>" sin calificar dentro del bloque del lado
-    pedido (delimitado por las etiquetas Origen/Destino/Importe).
+    pedido (delimitado por las etiquetas Origen/Destino/Importe). Para el lado
+    ORIGEN, si tampoco hay banco etiquetado, infiere el banco emisor del ENCABEZADO
+    del comprobante con la lista de bancos conocidos (`_known_bank_in_header`): el
+    comprobante lo genera el banco del que sale el dinero (origen). Para 'dest' NO se
+    infiere del header (sería el emisor, no el destinatario).
     """
     lines = text.splitlines()
     origin_idx = next((i for i, ln in enumerate(lines) if _ORIGIN_LABEL.match(ln.strip())), None)
@@ -375,6 +417,12 @@ def extract_bank(text: str, side: str) -> str | None:
                 return candidate
             continue
         fallback = fallback or candidate
+
+    if fallback is None and side == "origin":
+        # Sin banco etiquetado en el bloque origen: inferir el emisor del encabezado.
+        block_starts = [i for i in (origin_idx, dest_idx) if i is not None]
+        header_hi = min(block_starts) if block_starts else 0
+        return _known_bank_in_header(lines, header_hi)
     return fallback
 
 

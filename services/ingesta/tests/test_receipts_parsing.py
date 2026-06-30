@@ -212,6 +212,51 @@ def test_transfer_sin_banco_da_none() -> None:
     assert res.dest_bank is None
 
 
+# Comprobante con el banco emisor en el ENCABEZADO (logo/título), sin etiqueta "Banco:".
+# Es el caso típico de una transferencia bancaria (ej. Patagonia). Datos inventados.
+TRANSFER_HEADER_BANCO = """Banco Patagonia
+Comprobante de transferencia
+Fecha: 10/06/2026
+Origen
+Gomez Carlos
+CBU: 0070000000000000000000
+Destino
+Fernandez Maria
+CBU: 0110000000000000000000
+Importe
+$ 7.500,00
+"""
+
+# Encabezado con DOS bancos conocidos: ambiguo → no se infiere (mejor vacío que mal).
+TRANSFER_HEADER_AMBIGUO = """Banco Patagonia Banco Galicia
+Origen
+Gomez Carlos
+Destino
+Fernandez Maria
+Importe
+$ 1.000,00
+"""
+
+
+def test_transfer_banco_origen_inferido_del_header() -> None:
+    # Origen sin "Banco:" → se infiere el emisor conocido del encabezado.
+    assert extract_bank(TRANSFER_HEADER_BANCO, "origin") == "Banco Patagonia"
+    # Destino NO se infiere del header (el emisor es el origen, no el destinatario).
+    assert extract_bank(TRANSFER_HEADER_BANCO, "dest") is None
+    res = extract_from_text(TRANSFER_HEADER_BANCO)
+    assert res.origin_bank == "Banco Patagonia"
+    assert res.dest_bank is None
+
+
+def test_transfer_header_banco_desconocido_no_se_infiere() -> None:
+    # "Banco Ejemplo" no está en la lista de conocidos → no se infiere (sigue None).
+    assert extract_bank(TRANSFER_MULTILINEA, "origin") is None
+
+
+def test_transfer_header_ambiguo_no_infiere() -> None:
+    assert extract_bank(TRANSFER_HEADER_AMBIGUO, "origin") is None
+
+
 def test_purchase_no_pobla_campos_de_transferencia() -> None:
     res = extract_from_text(TICKET)
     assert res.origin_holder is None

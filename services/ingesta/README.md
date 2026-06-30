@@ -29,7 +29,9 @@ app/
     receipts.py      POST /v1/receipts:extract (FR-14) — Fase A (ocr.py + heurística) + fallback Fase B (llm.py)
     statements.py    POST /v1/statements:parse (FR-16) — pdf.py + dispatcher de parseo
   parsing/           LÓGICA PURA (sin FastAPI/red/IO), testeable y portable
-    receipts.py      extract_from_text(text) → ReceiptExtraction: monto/fecha/comercio (F2-2)
+    receipts.py      extract_from_text(text) → ReceiptExtraction: monto/fecha/comercio (F2-2);
+                     en transferencias infiere el banco ORIGEN del encabezado con lista de bancos
+                     conocidos (`_KNOWN_BANKS`) si no hay etiqueta "Banco:" (mejor vacío que mal)
     llm_extract.py   prompt + parseo/validación/merge del fallback por visión (F2-12), agnóstico de proveedor
     statements.py    parse_statement_text(text) → StatementParse: dispatcher por plantilla (F2-3)
     patagonia.py     parser tabular Patagonia (Visa/Master/CR): filas por tarjeta, cuotas, pagos (F2-3)
