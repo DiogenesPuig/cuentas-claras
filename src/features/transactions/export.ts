@@ -37,7 +37,9 @@ export function toExportRows(transactions: TransactionView[]): ExportRow[] {
     moneda: tx.currency,
     persona: tx.account?.holder_name ?? '',
     medio: tx.account?.name ?? '',
-    banco: tx.account?.bank ?? '',
+    // El banco del movimiento (F2-11) tiene prioridad: en transferencias vive en
+    // `transactions.bank`, no en el medio.
+    banco: tx.bank ?? tx.account?.bank ?? '',
     categoria: tx.category?.name ?? '',
     descripcion: tx.description ?? '',
   }));

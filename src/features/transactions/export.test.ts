@@ -60,6 +60,16 @@ describe('toExportRows', () => {
     const [row] = toExportRows([makeTransaction({ type: 'income' })]);
     expect(row.tipo).toBe('Ingreso');
   });
+
+  it('F2-11: usa tx.bank (transferencia) cuando el medio no tiene banco', () => {
+    const [row] = toExportRows([
+      makeTransaction({
+        bank: 'Banco Galicia',
+        account: { name: 'Transferencia', holder_name: 'Ana', bank: null },
+      }),
+    ]);
+    expect(row.banco).toBe('Banco Galicia');
+  });
 });
 
 describe('toCsv', () => {

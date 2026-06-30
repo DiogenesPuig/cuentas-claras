@@ -59,7 +59,9 @@ function dimensionKeyFor(
     case 'persona':
       return personaIdentity(tx, memberNameById).key;
     case 'banco':
-      return tx.account?.bank ?? NO_ACCOUNT;
+      // El banco del movimiento (F2-11) tiene prioridad: en transferencias vive en
+      // `transactions.bank`, no en el medio (cuyo `bank` queda null).
+      return tx.bank ?? tx.account?.bank ?? NO_ACCOUNT;
     case 'red':
       return tx.account?.network ?? NO_ACCOUNT;
     case 'medio':

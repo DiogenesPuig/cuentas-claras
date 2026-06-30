@@ -157,6 +157,20 @@ describe('aggregateByDimension', () => {
     const groups = aggregateByDimension(transactions, 'banco', 'ARS', rateFor);
     expect(groups[0].consolidated.expense).toBe(10 * 1000);
   });
+
+  it('F2-11: en "banco" prioriza tx.bank (transferencia) sobre el banco del medio', () => {
+    const transactions = [
+      // Transferencia: el banco vive en tx.bank; el medio 'transfer' no tiene banco.
+      makeTx({ amount: 100, bank: 'Banco Galicia', account: makeAccount({ bank: null }) }),
+      // Compra normal: sin tx.bank, cae al banco del medio.
+      makeTx({ amount: 50, bank: null, account: makeAccount({ bank: 'Banco Nación' }) }),
+    ];
+
+    const groups = aggregateByDimension(transactions, 'banco', 'ARS', noRate);
+
+    expect(groups.find((g) => g.key === 'Banco Galicia')?.consolidated.expense).toBe(100);
+    expect(groups.find((g) => g.key === 'Banco Nación')?.consolidated.expense).toBe(50);
+  });
 });
 
 describe('aggregateByPersonaMembersOnly (MEJ-5: donut de resumen, solo miembros + "Otros")', () => {
