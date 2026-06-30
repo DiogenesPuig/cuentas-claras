@@ -9,7 +9,7 @@
 > ✅ F2-9 (medio de transferencia + atribución por persona en el front) y
 > ✅ F2-10 (dedup de persona en reportes por `owner_member_id`).
 > ✅ F2-12 (parser universal de comprobantes: Fase A regex/OCR + Fase B fallback por visión Gemini, PR #29).
-> **Pendiente: F2-13 (aviso de duplicado al dar de alta un movimiento).**
+> ✅ F2-13 (aviso suave de duplicado al dar de alta: hash del comprobante + monto/fecha; PR #45).
 > ✅ F2-11 (transferencia por persona): un único medio `'transfer'` por persona (lazy), banco del
 > movimiento en `transactions.bank`. **Follow-up pendiente (coordinación con F2-10, ya mergeado):**
 > la dimensión "banco" de reportes (`features/reports/aggregate.ts`) y la columna "Banco" de
@@ -21,18 +21,16 @@
 ## Archivos de esta carpeta
 
 - `PLAN.md` — plan de Fase 2: arquitectura, decisiones (resueltas y pendientes), desglose y orden.
-- `F2-13-aviso-duplicado-alta.md` — aviso suave (no bloqueo) al dar de alta un movimiento si ya existe
-  uno igual/parecido: hash exacto del comprobante + heurística monto+fecha(±2d)+medio/descr. Suma columna
-  `attachments.content_hash`. _Depende de F2-2, B8; distinto de F2-4 (resúmenes, bloqueo duro)._
 
 Completados (en `tasks/done/`): `F2-0-modelar-cuotas`, `F2-1-microservicio-python`,
 `F2-2-ocr-comprobantes`, `F2-3-parseo-resumenes-staging`, `F2-3b-nativa-nacion`,
 `F2-4-dedupe-importacion`, `F2-5-alta-medio-desde-resumen`, `F2-6-sugerencia-categoria`,
 `F2-7-visor-comprobantes`, `F2-8-comprobante-origen-destino`,
 `F2-9-medio-transferencia-desde-comprobante`, `F2-10-reportes-dedup-persona-por-miembro`,
-`F2-11-transferencia-por-persona`, `F2-12-parser-transferencias-universal`.
+`F2-11-transferencia-por-persona`, `F2-12-parser-transferencias-universal`,
+`F2-13-aviso-duplicado-alta`.
 
-**Pendiente:** **F2-13** (aviso de duplicado al dar de alta).
+**Fase 2: todos los tickets completados.** (Queda el follow-up de banco en reportes/export, ver arriba.)
 
 ### Decisiones de la charla (2026-06-23) que fijan estos tickets
 
