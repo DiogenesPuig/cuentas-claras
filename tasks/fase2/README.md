@@ -11,11 +11,10 @@
 > ✅ F2-12 (parser universal de comprobantes: Fase A regex/OCR + Fase B fallback por visión Gemini, PR #29).
 > ✅ F2-13 (aviso suave de duplicado al dar de alta: hash del comprobante + monto/fecha; PR #45).
 > ✅ F2-11 (transferencia por persona): un único medio `'transfer'` por persona (lazy), banco del
-> movimiento en `transactions.bank`. **Follow-up pendiente (coordinación con F2-10, ya mergeado):**
-> la dimensión "banco" de reportes (`features/reports/aggregate.ts`) y la columna "Banco" de
-> exportar CSV (`features/transactions/export.ts`) leen `account.bank`, que ahora es `null` para
-> transferencias (el banco vive en `transactions.bank`); hay que sumar `tx.bank ?? account?.bank`
-> para que esos movimientos no queden con banco vacío en reportes/export.
+> movimiento en `transactions.bank`. ✅ **Follow-up resuelto:** la dimensión "banco" de reportes
+> (`features/reports/aggregate.ts`) y la columna "Banco" de exportar CSV
+> (`features/transactions/export.ts`) ahora usan `tx.bank ?? account?.bank`, así las transferencias
+> (cuyo banco vive en `transactions.bank`, no en el medio) no quedan con banco vacío.
 > Los tickets completados se movieron a `tasks/done/` (ver allí su estado/criterios).
 
 ## Archivos de esta carpeta

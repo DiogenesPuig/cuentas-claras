@@ -134,7 +134,7 @@ export function ReportsPage() {
       monthTransactions.map((tx) => dimensionLabelFor('persona', tx, memberNameById)),
       'Sin medio',
     ),
-    banco: distinct(monthTransactions.map((tx) => tx.account?.bank), 'Sin medio'),
+    banco: distinct(monthTransactions.map((tx) => tx.bank ?? tx.account?.bank), 'Sin medio'),
     medio: distinct(monthTransactions.map((tx) => tx.account?.name), 'Sin medio'),
     categoria: distinct(monthTransactions.map((tx) => tx.category?.name), 'Sin categoría'),
   };
