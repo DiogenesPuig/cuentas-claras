@@ -3,12 +3,15 @@ import {
   createTransaction,
   deleteTransaction,
   extractReceiptData,
+  findDuplicateCandidates,
   getAttachment,
   getAttachmentUrl,
   listTransactions,
   updateTransaction,
   uploadAttachment,
   type Attachment,
+  type DuplicateCandidateView,
+  type DuplicateCriteria,
   type ReceiptExtraction,
   type Transaction,
   type TransactionInput,
@@ -70,6 +73,13 @@ export function useDeleteTransaction(workspaceId: string | undefined) {
 export function useUploadAttachment(workspaceId: string | undefined) {
   return useMutation<Attachment, Error, File>({
     mutationFn: (file) => uploadAttachment(workspaceId as string, file),
+  });
+}
+
+/** Busca duplicados candidatos del alta en curso (F2-13). On-demand (al confirmar el alta). */
+export function useFindDuplicateCandidates(workspaceId: string | undefined) {
+  return useMutation<DuplicateCandidateView[], Error, DuplicateCriteria>({
+    mutationFn: (criteria) => findDuplicateCandidates(workspaceId as string, criteria),
   });
 }
 

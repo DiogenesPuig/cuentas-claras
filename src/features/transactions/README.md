@@ -19,11 +19,13 @@ texto, **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado, y *
   alta se precargó desde un comprobante; `created_by = auth.uid()`; `TransactionInput` incluye
   `bank` —F2-11, banco del movimiento, hoy solo lo llena el flujo de transferencias—),
   `updateTransaction`, `deleteTransaction`, `uploadAttachment` (sube el archivo al bucket privado
-  `attachments` y crea su fila), `getAttachment` (resuelve `file_url`/`file_type` desde un
-  `attachment_id`, F2-7), `getAttachmentUrl` (signed URL temporal para mostrarlo/descargarlo)
-  y `extractReceiptData` (F2-1/F2-2: saca el access token de la sesión y llama al micro de ingesta vía
-  `lib/ingesta` para precargar monto/fecha/comercio — es la capa que toca Supabase; el HTTP es puro).
-  Sin React.
+  `attachments` y crea su fila — guarda además `content_hash` SHA-256 del archivo para F2-13),
+  `getAttachment` (resuelve `file_url`/`file_type` desde un `attachment_id`, F2-7), `getAttachmentUrl`
+  (signed URL temporal para mostrarlo/descargarlo), `extractReceiptData` (F2-1/F2-2: saca el access
+  token de la sesión y llama al micro de ingesta vía `lib/ingesta` para precargar monto/fecha/comercio
+  — es la capa que toca Supabase; el HTTP es puro) y `findDuplicateCandidates` (F2-13: busca
+  movimientos del workspace con mismo monto+moneda en la ventana de fecha y/o mismo `content_hash` de
+  comprobante, y delega el motivo a `lib/duplicate-detect`). Sin React.
 - `filters.ts` — `TransactionFilters` (mes, medio, categoría, moneda, persona, texto) y
   `buildTransactionFilterArgs`: función pura que mapea esos filtros a los argumentos de la query
   (rango `[occurredFrom, occurredTo)`, recorte de texto, etc.), sin tocar Supabase.
@@ -33,6 +35,7 @@ texto, **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado, y *
   `filters`, así que cada combinación cachea por separado), `useCreateTransaction`,
   `useUpdateTransaction`, `useDeleteTransaction`, `useUploadAttachment`, `useExtractReceipt`
   (OCR de un comprobante vía `extractReceiptData`/el micro de ingesta, no escribe en la DB — F2-2),
+  `useFindDuplicateCandidates` (F2-13: busca duplicados on-demand al confirmar el alta),
   `useAttachmentUrl(attachmentId, enabled)` (F2-7: pide `getAttachment` + `getAttachmentUrl` solo
   cuando `enabled` es true —al abrir el visor, no al render de la lista—; `staleTime` algo por
   debajo de los 5 min de la signed URL para no servir desde caché una URL ya vencida; `retry: false`
@@ -62,6 +65,10 @@ texto, **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado, y *
   `useGetOrCreateTransferAccount` (`features/accounts`); si no matchea a nadie, lo busca/crea por
   `holder_name`. El medio recién creado se selecciona solo apenas la mutación resuelve.
   Requiere `workspaceId`/`members` (opcionales; sin ellos, no se ofrece la atribución automática).
+  Si recibe `onCheckDuplicates` (F2-13), antes de crear un alta **nueva** calcula el hash del archivo
+  (`lib/file-hash`) y busca candidatos; si los hay, muestra un **aviso suave** ("Ya subiste este
+  comprobante" / "Hay un movimiento parecido") con **"Guardar igual" / "Cancelar"** — nunca bloquea.
+  En **edición** no se chequea. Si el chequeo falla (red), no frena el alta.
 - `components/TransactionForm.test.tsx` — smoke test: monto > 0, moneda de 3 letras, fecha de hoy
   por defecto, precarga de OCR.
 - `components/SummaryCard.tsx` — resumen del período (ingresos/gastos/balance) desglosado por

@@ -25,10 +25,17 @@ import {
   TRANSACTION_TYPES,
   type TransactionFormInput,
 } from '../schema';
-import type { ReceiptExtraction, Transaction, TransactionInput } from '../api';
-import { displayToIsoDate, isoToDisplayDate } from '../format';
+import type {
+  DuplicateCandidateView,
+  DuplicateCriteria,
+  ReceiptExtraction,
+  Transaction,
+  TransactionInput,
+} from '../api';
+import { displayToIsoDate, isoToDisplayDate, formatAmount } from '../format';
 import { suggestCategory } from '@/lib/category-suggest';
 import { isInstitutionalPayee } from '@/lib/payee';
+import { sha256Hex } from '@/lib/file-hash';
 
 /** Debajo de este valor avisamos que la extracción puede ser imprecisa. */
 const LOW_CONFIDENCE = 0.5;
@@ -101,6 +108,11 @@ interface TransactionFormProps {
   workspaceId?: string;
   /** Miembros del workspace, para matchear al titular de una transferencia con su medio. */
   members?: MemberOption[];
+  /**
+   * Busca posibles duplicados antes de crear (F2-13). Si se pasa y devuelve candidatos en un alta
+   * nueva, se muestra un aviso suave y se espera confirmación ("Guardar igual"). En edición no se llama.
+   */
+  onCheckDuplicates?: (criteria: DuplicateCriteria) => Promise<DuplicateCandidateView[]>;
 }
 
 /** Alta/edición rápida de un movimiento (ingreso/gasto) del workspace. */
@@ -114,10 +126,15 @@ export function TransactionForm({
   onExtractReceipt,
   workspaceId,
   members,
+  onCheckDuplicates,
 }: TransactionFormProps) {
   const amountRef = useRef<HTMLInputElement | null>(null);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrApplied, setOcrApplied] = useState(false);
+  // Aviso de duplicado (F2-13): candidatos detectados y el alta en espera de confirmación.
+  const [duplicateCandidates, setDuplicateCandidates] = useState<DuplicateCandidateView[]>([]);
+  const [pendingSave, setPendingSave] = useState<{ input: TransactionInput; file: File | null } | null>(null);
+  const [checkingDuplicates, setCheckingDuplicates] = useState(false);
   // Origen/destino detectados en un comprobante de transferencia (F2-8/F2-9).
   const [transferInfo, setTransferInfo] = useState<TransferPartyInfo | null>(null);
   // null = usar heurística; true/false = override manual del usuario (BUG-5).
@@ -141,6 +158,8 @@ export function TransactionForm({
     setOcrApplied(false);
     setTransferInfo(null);
     setTreatAsInstitutional(null);
+    setDuplicateCandidates([]);
+    setPendingSave(null);
   }, [transaction, reset]);
 
   useEffect(() => {
@@ -273,25 +292,67 @@ export function TransactionForm({
     }
   }
 
+  function buildInput(values: TransactionFormInput): TransactionInput {
+    return {
+      type: values.type,
+      amount: Number(values.amount),
+      currency: values.currency.toUpperCase(),
+      description: values.description || null,
+      categoryId: values.categoryId || null,
+      accountId: values.accountId || null,
+      bank: values.bank || null,
+      occurredOn: displayToIsoDate(values.occurredOn),
+      chargedOn: values.chargedOn ? displayToIsoDate(values.chargedOn) : null,
+      attachmentId: transaction?.attachment_id ?? null,
+      // Si se precargó desde un comprobante, el alta es de origen OCR (FR-14).
+      source: !transaction && ocrApplied ? 'ocr' : undefined,
+    };
+  }
+
   async function handleFormSubmit(values: TransactionFormInput) {
     const file = values.attachment?.[0] ?? null;
-    await onSubmit(
-      {
-        type: values.type,
-        amount: Number(values.amount),
-        currency: values.currency.toUpperCase(),
-        description: values.description || null,
-        categoryId: values.categoryId || null,
-        accountId: values.accountId || null,
-        bank: values.bank || null,
-        occurredOn: displayToIsoDate(values.occurredOn),
-        chargedOn: values.chargedOn ? displayToIsoDate(values.chargedOn) : null,
-        attachmentId: transaction?.attachment_id ?? null,
-        // Si se precargó desde un comprobante, el alta es de origen OCR (FR-14).
-        source: !transaction && ocrApplied ? 'ocr' : undefined,
-      },
-      file,
-    );
+    const input = buildInput(values);
+
+    // Aviso de duplicado (F2-13): solo en ALTA nueva y si el contenedor pasó el chequeo.
+    if (!transaction && onCheckDuplicates) {
+      setCheckingDuplicates(true);
+      try {
+        const contentHash = file ? await sha256Hex(await file.arrayBuffer()) : null;
+        const candidates = await onCheckDuplicates({
+          amount: input.amount,
+          currency: input.currency,
+          occurredOn: input.occurredOn,
+          accountId: input.accountId,
+          description: input.description,
+          contentHash,
+        });
+        if (candidates.length > 0) {
+          setDuplicateCandidates(candidates);
+          setPendingSave({ input, file });
+          return; // se espera "Guardar igual" / "Cancelar"
+        }
+      } catch {
+        // Si el chequeo falla (red, etc.) no bloqueamos el alta: seguimos y guardamos.
+      } finally {
+        setCheckingDuplicates(false);
+      }
+    }
+
+    await onSubmit(input, file);
+  }
+
+  /** El usuario confirmó guardar pese al aviso de duplicado (F2-13). */
+  async function confirmSaveAnyway() {
+    if (!pendingSave) return;
+    const { input, file } = pendingSave;
+    setDuplicateCandidates([]);
+    setPendingSave(null);
+    await onSubmit(input, file);
+  }
+
+  function dismissDuplicateWarning() {
+    setDuplicateCandidates([]);
+    setPendingSave(null);
   }
 
   return (
@@ -503,24 +564,66 @@ export function TransactionForm({
         )}
       </div>
 
-      <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
-        >
-          {transaction ? 'Guardar cambios' : 'Crear movimiento'}
-        </button>
-        {onCancel && (
+      {duplicateCandidates.length > 0 && (
+        <div className="space-y-2 rounded-md border border-amber-400 bg-amber-50 p-3 text-amber-900">
+          <p className="text-sm font-medium">
+            {duplicateCandidates.some((c) => c.reason === 'same-file')
+              ? 'Ya subiste este comprobante'
+              : 'Hay un movimiento parecido'}
+          </p>
+          <ul className="space-y-1 text-sm">
+            {duplicateCandidates.map((c) => (
+              <li key={c.id}>
+                {formatAmount(c.amount, c.currency)} · {isoToDisplayDate(c.occurredOn)}
+                {c.description ? ` · ${c.description}` : ''}
+                {c.accountName ? ` · ${c.accountName}` : ''}
+              </li>
+            ))}
+          </ul>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={confirmSaveAnyway}
+              disabled={isSubmitting}
+              className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+            >
+              Guardar igual
+            </button>
+            <button
+              type="button"
+              onClick={dismissDuplicateWarning}
+              className="rounded-md border border-input px-3 py-1.5 text-sm font-medium hover:bg-accent"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {duplicateCandidates.length === 0 && (
+        <div className="flex gap-2">
           <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-md border border-input px-4 py-2 text-sm font-medium hover:bg-accent"
+            type="submit"
+            disabled={isSubmitting || checkingDuplicates}
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
-            Cancelar
+            {checkingDuplicates
+              ? 'Verificando…'
+              : transaction
+                ? 'Guardar cambios'
+                : 'Crear movimiento'}
           </button>
-        )}
-      </div>
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="rounded-md border border-input px-4 py-2 text-sm font-medium hover:bg-accent"
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
+      )}
     </form>
   );
 }
