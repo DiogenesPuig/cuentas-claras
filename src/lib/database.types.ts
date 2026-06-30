@@ -115,6 +115,7 @@ export type Database = {
       }
       attachments: {
         Row: {
+          content_hash: string | null
           created_at: string
           file_type: string
           file_url: string
@@ -125,6 +126,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          content_hash?: string | null
           created_at?: string
           file_type: string
           file_url: string
@@ -135,6 +137,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          content_hash?: string | null
           created_at?: string
           file_type?: string
           file_url?: string

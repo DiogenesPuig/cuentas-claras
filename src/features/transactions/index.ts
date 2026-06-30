@@ -7,12 +7,15 @@ export {
   getAttachment,
   getAttachmentUrl,
   extractReceiptData,
+  findDuplicateCandidates,
   type Transaction,
   type TransactionType,
   type TransactionInput,
   type TransactionView,
   type Attachment,
   type ReceiptExtraction,
+  type DuplicateCriteria,
+  type DuplicateCandidateView,
 } from './api';
 export {
   useTransactions,
@@ -21,6 +24,7 @@ export {
   useDeleteTransaction,
   useUploadAttachment,
   useExtractReceipt,
+  useFindDuplicateCandidates,
   useAttachmentUrl,
   transactionsKeys,
   type AttachmentUrlResult,

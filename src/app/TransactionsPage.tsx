@@ -14,6 +14,7 @@ import {
   useCreateTransaction,
   useDeleteTransaction,
   useExtractReceipt,
+  useFindDuplicateCandidates,
   useTransactions,
   useUpdateTransaction,
   useUploadAttachment,
@@ -56,6 +57,7 @@ export function TransactionsPage() {
   const deleteTransaction = useDeleteTransaction(workspaceId);
   const uploadAttachment = useUploadAttachment(workspaceId);
   const extractReceipt = useExtractReceipt();
+  const findDuplicates = useFindDuplicateCandidates(workspaceId);
 
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -178,6 +180,7 @@ export function TransactionsPage() {
                 ? (file) => extractReceipt.mutateAsync(file)
                 : undefined
             }
+            onCheckDuplicates={(criteria) => findDuplicates.mutateAsync(criteria)}
           />
         </div>
       )}

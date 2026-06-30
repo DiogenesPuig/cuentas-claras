@@ -280,8 +280,14 @@ create table attachments (
   file_type         text not null,                       -- 'image' | 'pdf'
   kind              attachment_kind not null default 'receipt',
   status            attachment_status not null default 'uploaded',
+  content_hash      text,                                 -- SHA-256 del archivo (F2-13, aviso de duplicado)
   created_at        timestamptz not null default now()
 );
+
+-- F2-13: buscar comprobantes por hash de contenido (no único: aviso suave, no bloqueo).
+create index idx_attachments_ws_hash
+  on attachments (workspace_id, content_hash)
+  where content_hash is not null;
 
 create index idx_attachments_workspace on attachments (workspace_id);
 
