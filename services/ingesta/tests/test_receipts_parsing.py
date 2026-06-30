@@ -213,16 +213,17 @@ def test_transfer_sin_banco_da_none() -> None:
 
 
 # Comprobante con el banco emisor en el ENCABEZADO (logo/título), sin etiqueta "Banco:".
-# Es el caso típico de una transferencia bancaria (ej. Patagonia). Datos inventados.
-TRANSFER_HEADER_BANCO = """Banco Patagonia
-Comprobante de transferencia
-Fecha: 10/06/2026
+# El OCR pega "BANCO" al nombre ("BANCOPATAGONIA"), igual que en los comprobantes reales.
+TRANSFER_HEADER_BANCO = """BANCOPATAGONIA
+TRANSFERENCIA
+Fecha y Hora
+05/06/2026 00:56:07
 Origen
 Gomez Carlos
-CBU: 0070000000000000000000
+CA $ 282-282002772-000
 Destino
 Fernandez Maria
-CBU: 0110000000000000000000
+CBU / CVU: 0110000000000000000000
 Importe
 $ 7.500,00
 """

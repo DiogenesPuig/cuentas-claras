@@ -289,27 +289,31 @@ _BANK_LABEL = re.compile(
 # cuando no hay una etiqueta "Banco:" (caso típico: el banco emisor está en el logo/título).
 # Patrones acotados (evitamos palabras genéricas como "nación"/"provincia"/"ciudad" sueltas
 # para no dar falsos positivos): "mejor vacío que mal". (patrón, nombre canónico)
+# El OCR suele pegar el "BANCO" al nombre ("BANCOPATAGONIA") → NO usamos `\b` antes de
+# los nombres distintivos (pierde el match con el prefijo pegado). Para palabras genéricas
+# (nación/provincia/ciudad/macro) exigimos el prefijo "banco\s*" (tolera 0 espacios) o una
+# sigla inequívoca, para no dar falsos positivos.
 _KNOWN_BANKS: list[tuple[re.Pattern[str], str]] = [
-    (re.compile(r"\bpatagonia\b", re.IGNORECASE), "Banco Patagonia"),
-    (re.compile(r"\bgalicia\b", re.IGNORECASE), "Banco Galicia"),
-    (re.compile(r"\b(?:banco\s+(?:de\s+la\s+)?naci[oó]n|bna)\b", re.IGNORECASE), "Banco Nación"),
-    (re.compile(r"\b(?:banco\s+(?:de\s+la\s+)?provincia|bapro)\b", re.IGNORECASE), "Banco Provincia"),
-    (re.compile(r"\bsantander\b", re.IGNORECASE), "Santander"),
-    (re.compile(r"\b(?:bbva|franc[eé]s)\b", re.IGNORECASE), "BBVA"),
-    (re.compile(r"\bbanco\s+macro\b|\bmacro\b", re.IGNORECASE), "Banco Macro"),
+    (re.compile(r"patagonia", re.IGNORECASE), "Banco Patagonia"),
+    (re.compile(r"galicia", re.IGNORECASE), "Banco Galicia"),
+    (re.compile(r"banco\s*(?:de\s*la\s*)?naci[oó]n|\bbna\b", re.IGNORECASE), "Banco Nación"),
+    (re.compile(r"banco\s*(?:de\s*la\s*)?provincia|\bbapro\b", re.IGNORECASE), "Banco Provincia"),
+    (re.compile(r"santander", re.IGNORECASE), "Santander"),
+    (re.compile(r"\bbbva\b|franc[eé]s", re.IGNORECASE), "BBVA"),
+    (re.compile(r"banco\s*macro|\bmacro\b", re.IGNORECASE), "Banco Macro"),
     (re.compile(r"\bicbc\b", re.IGNORECASE), "ICBC"),
     (re.compile(r"\bhsbc\b", re.IGNORECASE), "HSBC"),
-    (re.compile(r"\bsupervielle\b", re.IGNORECASE), "Banco Supervielle"),
-    (re.compile(r"\bcredicoop\b", re.IGNORECASE), "Banco Credicoop"),
-    (re.compile(r"\bbanco\s+ciudad\b", re.IGNORECASE), "Banco Ciudad"),
-    (re.compile(r"\bcomafi\b", re.IGNORECASE), "Banco Comafi"),
+    (re.compile(r"supervielle", re.IGNORECASE), "Banco Supervielle"),
+    (re.compile(r"credicoop", re.IGNORECASE), "Banco Credicoop"),
+    (re.compile(r"banco\s*ciudad", re.IGNORECASE), "Banco Ciudad"),
+    (re.compile(r"comafi", re.IGNORECASE), "Banco Comafi"),
     (re.compile(r"\bita[uú]\b", re.IGNORECASE), "Itaú"),
-    (re.compile(r"\bbrubank\b", re.IGNORECASE), "Brubank"),
-    (re.compile(r"\bnaranja\s*x\b", re.IGNORECASE), "Naranja X"),
-    (re.compile(r"\bmercado\s*pago\b", re.IGNORECASE), "Mercado Pago"),
+    (re.compile(r"brubank", re.IGNORECASE), "Brubank"),
+    (re.compile(r"naranja\s*x", re.IGNORECASE), "Naranja X"),
+    (re.compile(r"mercado\s*pago", re.IGNORECASE), "Mercado Pago"),
     (re.compile(r"\bual[aá]\b", re.IGNORECASE), "Ualá"),
-    (re.compile(r"\bpersonal\s*pay\b", re.IGNORECASE), "Personal Pay"),
-    (re.compile(r"\bcuenta\s*dni\b", re.IGNORECASE), "Cuenta DNI"),
+    (re.compile(r"personal\s*pay", re.IGNORECASE), "Personal Pay"),
+    (re.compile(r"cuenta\s*dni", re.IGNORECASE), "Cuenta DNI"),
 ]
 
 
