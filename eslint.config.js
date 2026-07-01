@@ -16,6 +16,9 @@ export default tseslint.config(
       'src/lib/database.types.ts',
       // Componentes copiados por shadcn/ui (se mantienen tal cual upstream).
       'src/components/ui',
+      // Microservicio Python (se lintea con ruff en su propio job); su .venv trae
+      // .js vendorizados (urllib3/emscripten) que no son del front.
+      'services/**',
     ],
   },
   js.configs.recommended,
