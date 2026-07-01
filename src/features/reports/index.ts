@@ -36,3 +36,6 @@ export { ConsolidatedTotals } from './components/ConsolidatedTotals';
 export { PersonaBreakdown } from './components/PersonaBreakdown';
 export { GroupBreakdown } from './components/GroupBreakdown';
 export { ReportFilterBar, type ReportFilterOptions } from './components/ReportFilterBar';
+export { ReportsSummarySection } from './components/ReportsSummarySection';
+export { ReportsDetailSection } from './components/ReportsDetailSection';
+export { ReportsTrendsSection } from './components/ReportsTrendsSection';

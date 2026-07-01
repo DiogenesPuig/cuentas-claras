@@ -9,13 +9,10 @@ import {
 } from '@/features/aliases';
 import type { DimensionGroup } from '@/features/reports';
 import {
-  BarChart,
   ConsolidatedTotals,
-  DonutChart,
-  GroupBreakdown,
-  PersonaBreakdown,
-  ReportFilterBar,
-  ReportTabs,
+  ReportsDetailSection,
+  ReportsSummarySection,
+  ReportsTrendsSection,
   aggregateByDimension,
   aggregateByPersonaMembersOnly,
   consolidateTransactions,
@@ -31,7 +28,6 @@ import {
   type ReportFilterOptions,
   type ReportFilters,
 } from '@/features/reports';
-import { formatAmount } from '@/features/transactions/format';
 import { buildRateIndex, lookupRate } from '@/lib/fx';
 import { useActiveMonth, formatMonthLabel, shiftMonth } from '@/hooks/useActiveMonth';
 import { useActiveWorkspace } from '@/hooks/useActiveWorkspace';
@@ -235,93 +231,41 @@ export function ReportsPage() {
           <ConsolidatedTotals consolidated={totals} baseCurrency={base} />
 
           {/* [2] GASTOS (izq) + [3] INGRESOS (der) — donuts de resumen, solo miembros + "Otros". */}
-          <section className="grid gap-6 md:grid-cols-2 md:items-start">
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-sm font-semibold">Gastos</h2>
-                <ReportTabs value={dimension} onChange={setDimension} />
-              </div>
-              <DonutChart
-                groups={expenseGroupsView}
-                baseCurrency={base}
-                metric="expense"
-                complement={{ label: 'Ingresos', value: totals.income }}
-                showLegend={false}
-              />
-              <GroupBreakdown groups={expenseGroupsView} baseCurrency={base} metric="expense" />
-            </div>
-            <div className="space-y-3">
-              <h2 className="text-sm font-semibold">Ingresos por persona</h2>
-              <DonutChart
-                groups={incomeGroupsView}
-                baseCurrency={base}
-                metric="income"
-                complement={{ label: 'Gastos', value: totals.expense }}
-                complementPosition="start"
-                showLegend={false}
-              />
-              <GroupBreakdown groups={incomeGroupsView} baseCurrency={base} metric="income" />
-            </div>
-          </section>
+          <ReportsSummarySection
+            dimension={dimension}
+            onDimensionChange={setDimension}
+            expenseGroups={expenseGroupsView}
+            incomeGroups={incomeGroupsView}
+            totals={totals}
+            baseCurrency={base}
+          />
 
           {/* [4] DETALLE — filtros apilables (persona/banco/medio/categoría). Sin filtro = todo el
               mes (nunca vacío). Acá sí se ven los no-miembros individualmente. */}
-          <section className="space-y-3">
-            <h2 className="text-sm font-semibold">Detalle por filtro</h2>
-            <ReportFilterBar filters={filters} options={filterOptions} onChange={setFilters} />
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm">
-                <span className="text-muted-foreground">{detailLabel} · gasto total: </span>
-                <span className="font-semibold">{formatAmount(detailTotal, base)}</span>
-              </p>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Ver por</span>
-                <ReportTabs value={detailDimension} onChange={setDetailDimension} />
-              </div>
-            </div>
-            <div className="grid gap-6 md:grid-cols-2 md:items-start">
-              <div className="space-y-3">
-                {detailDimension === 'persona' ? (
-                  <PersonaBreakdown people={detailPersonas} baseCurrency={base} aliasing={personaAliasing} />
-                ) : (
-                  <GroupBreakdown groups={detailGroups} baseCurrency={base} />
-                )}
-                {detailDimension === 'persona' && (
-                  <ul className="space-y-1 text-xs text-muted-foreground">
-                    {detailPersonas.map((person) => (
-                      <li key={person.holder}>
-                        <span className="font-medium text-foreground">
-                          {displayPersonaLabel(person.key, person.holder, aliases)}:
-                        </span>{' '}
-                        {(personaInfo.get(person.holder) ?? [])
-                          .map(
-                            (acc) =>
-                              acc.accountName +
-                              (acc.isExtension && acc.titularHolderName
-                                ? ` (ext. de ${acc.titularHolderName})`
-                                : ''),
-                          )
-                          .join(', ') || 'sin medios cargados'}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              <DonutChart groups={detailGroups} baseCurrency={base} showLegend={false} />
-            </div>
-          </section>
+          <ReportsDetailSection
+            filters={filters}
+            onFiltersChange={setFilters}
+            filterOptions={filterOptions}
+            detailDimension={detailDimension}
+            onDetailDimensionChange={setDetailDimension}
+            detailLabel={detailLabel}
+            detailTotal={detailTotal}
+            baseCurrency={base}
+            detailGroups={detailGroups}
+            detailPersonas={detailPersonas}
+            personaInfo={personaInfo}
+            personaAliasing={personaAliasing}
+            aliases={aliases}
+          />
 
-          <section className="space-y-2">
-            <h2 className="text-sm font-semibold">Mes a mes</h2>
-            <BarChart series={series} baseCurrency={base} />
-          </section>
-
-          {/* ANUAL — acumulado del año en curso hasta el mes activo. */}
-          <section className="space-y-2">
-            <h2 className="text-sm font-semibold">Anual — {year} (acumulado a la fecha)</h2>
-            <ConsolidatedTotals consolidated={yearTotals} baseCurrency={base} />
-            <BarChart series={yearSeries} baseCurrency={base} />
-          </section>
+          {/* MES A MES + ANUAL (acumulado del año en curso hasta el mes activo). */}
+          <ReportsTrendsSection
+            series={series}
+            yearSeries={yearSeries}
+            yearTotals={yearTotals}
+            baseCurrency={base}
+            year={year}
+          />
         </>
       )}
     </div>
