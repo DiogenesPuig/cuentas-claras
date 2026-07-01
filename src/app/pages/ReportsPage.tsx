@@ -43,6 +43,14 @@ function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+function distinct(values: (string | null | undefined)[], fallback: string): string[] {
+  return Array.from(new Set(values.map((v) => v ?? fallback))).sort((a, b) => a.localeCompare(b, 'es'));
+}
+
+function aliasGroups(groups: DimensionGroup[], aliases: AliasMap): DimensionGroup[] {
+  return groups.map((g) => ({ ...g, label: displayPersonaLabel(g.key, g.label, aliases) }));
+}
+
 /** Pantalla `/reportes`: desglose por dimensión + comparativa mes a mes (C13). */
 export function ReportsPage() {
   const workspaceId = useActiveWorkspace((state) => state.workspaceId);
@@ -101,43 +109,62 @@ export function ReportsPage() {
     return (currency: string, date: string) => lookupRate(index, currency, date);
   }, [fxRates]);
 
-  if (!workspaceId) return null;
-
   const base = fxSettings?.baseCurrency ?? 'ARS';
-  const allTransactions = transactions ?? [];
-  const monthTransactions = allTransactions.filter((tx) => tx.occurred_on.startsWith(activeMonth));
+  const allTransactions = useMemo(() => transactions ?? [], [transactions]);
+
+  const monthTransactions = useMemo(
+    () => allTransactions.filter((tx) => tx.occurred_on.startsWith(activeMonth)),
+    [allTransactions, activeMonth],
+  );
 
   // RESUMEN del mes (MEJ-5): totales macro + donut de gastos y donut de ingresos separados.
-  const totals = consolidateTransactions(monthTransactions, base, rateFor);
+  const totals = useMemo(
+    () => consolidateTransactions(monthTransactions, base, rateFor),
+    [monthTransactions, base, rateFor],
+  );
   // [2] Gastos por la dimensión elegida; en "persona" se colapsan los no-miembros en "Otros".
-  const expenseGroups =
-    dimension === 'persona'
-      ? aggregateByPersonaMembersOnly(monthTransactions, base, rateFor, memberNameById)
-      : aggregateByDimension(monthTransactions, dimension, base, rateFor, memberNameById);
+  const expenseGroups = useMemo(
+    () =>
+      dimension === 'persona'
+        ? aggregateByPersonaMembersOnly(monthTransactions, base, rateFor, memberNameById)
+        : aggregateByDimension(monthTransactions, dimension, base, rateFor, memberNameById),
+    [dimension, monthTransactions, base, rateFor, memberNameById],
+  );
   // [3] Ingresos por persona, SOLO miembros (los no-miembros caen en "Otros").
-  const incomeGroups = aggregateByPersonaMembersOnly(monthTransactions, base, rateFor, memberNameById);
-  const series = monthlySeries(allTransactions, months, base, rateFor);
+  const incomeGroups = useMemo(
+    () => aggregateByPersonaMembersOnly(monthTransactions, base, rateFor, memberNameById),
+    [monthTransactions, base, rateFor, memberNameById],
+  );
+  const series = useMemo(
+    () => monthlySeries(allTransactions, months, base, rateFor),
+    [allTransactions, months, base, rateFor],
+  );
 
   // Apodos (MEJ-8): pisan el label de cada grupo de persona (display-only; no afecta agrupación).
-  const aliases: AliasMap = aliasData ?? {};
-  const aliasGroups = (groups: DimensionGroup[]): DimensionGroup[] =>
-    groups.map((g) => ({ ...g, label: displayPersonaLabel(g.key, g.label, aliases) }));
+  const aliases: AliasMap = useMemo(() => aliasData ?? {}, [aliasData]);
   // En gastos solo aplica cuando el desglose es por persona; en ingresos siempre es por persona.
-  const expenseGroupsView = dimension === 'persona' ? aliasGroups(expenseGroups) : expenseGroups;
-  const incomeGroupsView = aliasGroups(incomeGroups);
+  const expenseGroupsView = useMemo(
+    () => (dimension === 'persona' ? aliasGroups(expenseGroups, aliases) : expenseGroups),
+    [dimension, expenseGroups, aliases],
+  );
+  const incomeGroupsView = useMemo(
+    () => aliasGroups(incomeGroups, aliases),
+    [incomeGroups, aliases],
+  );
 
   // Opciones del filtro de detalle, a partir de lo que hay en el mes (FR-22).
-  const distinct = (values: (string | null | undefined)[], fallback: string) =>
-    Array.from(new Set(values.map((v) => v ?? fallback))).sort((a, b) => a.localeCompare(b, 'es'));
-  const filterOptions: ReportFilterOptions = {
-    persona: distinct(
-      monthTransactions.map((tx) => dimensionLabelFor('persona', tx, memberNameById)),
-      'Sin medio',
-    ),
-    banco: distinct(monthTransactions.map((tx) => tx.bank ?? tx.account?.bank), 'Sin medio'),
-    medio: distinct(monthTransactions.map((tx) => tx.account?.name), 'Sin medio'),
-    categoria: distinct(monthTransactions.map((tx) => tx.category?.name), 'Sin categoría'),
-  };
+  const filterOptions = useMemo<ReportFilterOptions>(
+    () => ({
+      persona: distinct(
+        monthTransactions.map((tx) => dimensionLabelFor('persona', tx, memberNameById)),
+        'Sin medio',
+      ),
+      banco: distinct(monthTransactions.map((tx) => tx.bank ?? tx.account?.bank), 'Sin medio'),
+      medio: distinct(monthTransactions.map((tx) => tx.account?.name), 'Sin medio'),
+      categoria: distinct(monthTransactions.map((tx) => tx.category?.name), 'Sin categoría'),
+    }),
+    [monthTransactions, memberNameById],
+  );
 
   // [4] DETALLE por filtro: los filtros (apilables) recortan el subconjunto y se ve su desglose
   // por la dimensión elegida. Sin filtro = todo el mes (nunca vacío). A diferencia de los donut
@@ -148,11 +175,28 @@ export function ReportsPage() {
     ...(filters.medio ?? []),
     ...(filters.categoria ?? []),
   ];
-  const detailTxs = filterReportTransactions(monthTransactions, filters, memberNameById);
-  const detailGroups = aggregateByDimension(detailTxs, detailDimension, base, rateFor, memberNameById);
-  const detailTotal = consolidateTransactions(detailTxs, base, rateFor).expense;
-  const detailPersonas = personaSpending(detailTxs, base, rateFor, memberNameById);
-  const personaInfo = personaAccounts(accounts ?? [], memberNameById);
+  const detailTxs = useMemo(
+    () => filterReportTransactions(monthTransactions, filters, memberNameById),
+    [monthTransactions, filters, memberNameById],
+  );
+  const detailGroups = useMemo(
+    () => aggregateByDimension(detailTxs, detailDimension, base, rateFor, memberNameById),
+    [detailTxs, detailDimension, base, rateFor, memberNameById],
+  );
+  const detailTotal = useMemo(
+    () => consolidateTransactions(detailTxs, base, rateFor).expense,
+    [detailTxs, base, rateFor],
+  );
+  // Solo se usa (y se muestra) cuando el detalle se ve "por persona" (JSX más abajo); evitar el
+  // costo de personaSpending (O(miembros × n)) el resto de las veces (REF-1, perf).
+  const detailPersonas = useMemo(
+    () => (detailDimension === 'persona' ? personaSpending(detailTxs, base, rateFor, memberNameById) : []),
+    [detailDimension, detailTxs, base, rateFor, memberNameById],
+  );
+  const personaInfo = useMemo(
+    () => personaAccounts(accounts ?? [], memberNameById),
+    [accounts, memberNameById],
+  );
   const detailLabel = activeFilterValues.join(' · ') || 'Todo el mes';
 
   // Apodos en la lista por persona del detalle (MEJ-8): mostrar + editar inline.
@@ -163,9 +207,20 @@ export function ReportsPage() {
   };
 
   // Vista ANUAL (acumulado del año hasta el mes activo).
-  const yearTransactions = allTransactions.filter((tx) => tx.occurred_on.startsWith(year));
-  const yearTotals = consolidateTransactions(yearTransactions, base, rateFor);
-  const yearSeries = monthlySeries(allTransactions, yearMonths, base, rateFor);
+  const yearTransactions = useMemo(
+    () => allTransactions.filter((tx) => tx.occurred_on.startsWith(year)),
+    [allTransactions, year],
+  );
+  const yearTotals = useMemo(
+    () => consolidateTransactions(yearTransactions, base, rateFor),
+    [yearTransactions, base, rateFor],
+  );
+  const yearSeries = useMemo(
+    () => monthlySeries(allTransactions, yearMonths, base, rateFor),
+    [allTransactions, yearMonths, base, rateFor],
+  );
+
+  if (!workspaceId) return null;
 
   return (
     <div className="space-y-6">
