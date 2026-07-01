@@ -1,0 +1,27 @@
+# SEC-1: bumps automáticos de dependencias (sobre todo por seguridad).
+# Dependabot abre PRs; CI (typecheck/lint/test/build + npm audit) los valida.
+version: 2
+updates:
+  # Front (npm) en la raíz del repo.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Agrupa los bumps menores/patch en un solo PR para reducir ruido.
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  # Microservicio de ingesta (Python).
+  - package-ecosystem: pip
+    directory: /services/ingesta
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  # Workflows de GitHub Actions (versiones de las actions).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

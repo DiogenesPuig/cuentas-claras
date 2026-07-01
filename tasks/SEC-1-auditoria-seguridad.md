@@ -81,6 +81,45 @@ Verificar —y dejar guardas automáticas para que no se rompa a futuro— que:
 3. Agregar las guardas automáticas en un PR aparte (CI + test RLS + Dependabot).
 4. Repetir el `npm audit`/scan de RLS de forma periódica (idealmente en CI, no manual).
 
+## Resultado de la auditoría (2026-07-01)
+
+Auditado contra la DB local (source of truth) + repo. **Sin agujeros de seguridad.**
+
+- **RLS en todas las tablas:** las 10 tablas públicas (`accounts`, `attachments`, `categories`,
+  `fx_rates`, `invitations`, `persona_aliases`, `profiles`, `transactions`, `workspace_members`,
+  `workspaces`) tienen RLS habilitada y ≥1 policy. Aislamiento multi-tenant correcto
+  (`is_member`/`has_role`/`auth.uid()`), con `with check` en los insert/update.
+- **Vista `member_directory`:** expone solo `name`/`avatar_url`/`role` (NO `phone_number`) y filtra por
+  `is_member(workspace_id)`. Privacidad OK.
+- **Funciones SECURITY DEFINER** (`is_member`, `has_role`, `accept_invitation`,
+  `invitation_preview`, `add_owner_on_workspace_create`): todas con `search_path=public`.
+- **Storage:** bucket `attachments` **privado** (`public=false`); policies scopeadas por workspace
+  (folder `{workspace_id}/…` + `is_member`/`has_role`).
+- **service_role key:** no aparece en el front/bundle/repo. Solo la usa la edge function
+  `fx-refresh` leyéndola de env (correcto, server-side).
+- **Secretos:** no hay `.env` reales trackeados (solo `.env.example`); `.gitignore` cubre `.env*`;
+  todas las `VITE_*` son públicas por diseño (URL + anon key). Historial de git sin `.env` filtrados.
+- **`npm audit`:** 0 vulnerabilidades.
+
+### Hallazgo corregido
+- **`db/schema_fase1.sql` estaba desincronizado:** le faltaba la tabla `fx_rates` (creada en la
+  migración `0004`, C12). No era un hueco de seguridad (en la DB sí tiene RLS), pero el esquema de
+  referencia no la documentaba. **Corregido:** se agregó `fx_rates` (tabla + índice + RLS + policy) a
+  `schema_fase1.sql`.
+
+### Guardas automáticas agregadas
+- **Test "RLS en todas las tablas"** (`src/test/rls-coverage.test.ts`): falla si alguna tabla de
+  `schema_fase1.sql` no tiene `enable row level security` o ninguna `create policy`. Corre en la suite
+  (sin DB). Al agregar una tabla, subir el conteo de sanity y reflejarla en el esquema.
+- **`npm audit --audit-level=high`** en CI (`ci.yml`, job `checks`): bloquea ante high/critical.
+- **`pip-audit`** en CI (`ci.yml`, job `ingesta`): audita las deps del micro (Python). Se actualiza
+  `pip` antes para que sus CVEs de herramienta no ensucien el resultado; tras eso, sin vulnerabilidades.
+- **Dependabot** (`.github/dependabot.yml`): bumps semanales de npm (front) + pip (micro) + actions.
+
+### Pendiente / no hecho (fuera de este PR)
+- **CodeQL:** opcional, requiere repo público o GH Advanced Security. No configurado.
+- Usar el subagente `reviewer` / `/security-review` en PRs de riesgo: es proceso, no código.
+
 ## Fuera de alcance
 - Pentest externo / DAST.
 - Hardening de infra de Supabase/Vercel más allá de la config del proyecto.
