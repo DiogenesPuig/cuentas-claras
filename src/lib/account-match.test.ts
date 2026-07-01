@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   accountDefaultsFromHint,
+  accountsToMatchable,
   isResidualHint,
   matchAccount,
   type AccountHint,
+  type AccountLike,
   type MatchableAccount,
 } from './account-match';
 
@@ -152,5 +154,30 @@ describe('isResidualHint (BUG-5: sección de impuestos/cargos al pie)', () => {
 
   it('no es residual si hay titular (tarjeta sin last4, ej. Nativa)', () => {
     expect(isResidualHint({ bank: 'Banco Nación', network: 'mastercard', last4: null, holder: 'Lucas Puig' })).toBe(false);
+  });
+});
+
+describe('accountsToMatchable (REF-1: helper único, antes duplicado en TransactionForm/StatementImport)', () => {
+  it('proyecta la forma DB (snake_case) a MatchableAccount, incluido isExtension', () => {
+    const dbAccounts: AccountLike[] = [
+      {
+        id: 'visa-maria',
+        bank: 'Banco Patagonia',
+        network: 'visa',
+        last4: '5678',
+        holder_name: 'María Gómez',
+        is_extension: true,
+      },
+    ];
+    expect(accountsToMatchable(dbAccounts)).toEqual([
+      {
+        id: 'visa-maria',
+        bank: 'Banco Patagonia',
+        network: 'visa',
+        last4: '5678',
+        holderName: 'María Gómez',
+        isExtension: true,
+      },
+    ]);
   });
 });
