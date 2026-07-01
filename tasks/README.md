@@ -50,6 +50,14 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 - ✅ `BUG-3` El form de alta no se vacía al reintentar con otro comprobante — _hecho (limpia la precarga previa al reintentar, `tasks/done/`)_
 - ✅ `BUG-4` Página de error/404 propia (cuadro centrado) en vez de la default de React Router — _hecho (ErrorPage + errorElement + catch-all `*`, `tasks/done/`)_
 - ✅ `BUG-5` Los impuestos se tratan como persona/medio; manejarlos distinto — _hecho (categoría "Impuestos" + heurística `isInstitutionalPayee`, sección residual del resumen sin medio; `tasks/done/`)_
+- `BUG-6` Donut de "Detalle por filtro" en Reportes no aplica el apodo (MEJ-8) — detectado en
+  revisión REF-1 (2026-07-01), `tasks/BUG-6-donut-detalle-sin-apodo.md`.
+- `BUG-7` Carrera en el alta lazy del medio `'transfer'`: puede asignar el titular equivocado si
+  cambia mientras hay una creación en curso — `tasks/BUG-7-carrera-alta-medio-transfer.md`.
+- `BUG-8` `findTransferAccount` no cae a match fuzzy cuando el titular matchea a un miembro sin
+  cuenta vinculada → duplica medio — `tasks/BUG-8-transfer-account-duplicado-member-match.md`.
+- `BUG-9` Falta guard anti doble-submit real en `TransactionForm`/`StatementImport` (doble
+  click rápido) — `tasks/BUG-9-doble-submit-transacciones.md`.
 
 ## Plantilla de ticket
 
