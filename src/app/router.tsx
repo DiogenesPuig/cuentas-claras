@@ -2,16 +2,16 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { LoginPage, RegisterPage, RequireAuth } from '@/features/auth';
 import { RequireWorkspace } from '@/features/workspaces';
 import { AppLayout } from './layout/AppLayout';
-import { AccountsPage } from './AccountsPage';
-import { CategoriesPage } from './CategoriesPage';
-import { ErrorPage } from './ErrorPage';
-import { GroupPage } from './GroupPage';
-import { HomeGate } from './HomeGate';
-import { InviteAcceptPage } from './InviteAcceptPage';
-import { ReportsPage } from './ReportsPage';
-import { TransactionsPage } from './TransactionsPage';
-import { OnboardingPage } from './OnboardingPage';
-import { ProfilePage } from './ProfilePage';
+import { AccountsPage } from './pages/AccountsPage';
+import { CategoriesPage } from './pages/CategoriesPage';
+import { ErrorPage } from './gates/ErrorPage';
+import { GroupPage } from './pages/GroupPage';
+import { HomeGate } from './gates/HomeGate';
+import { InviteAcceptPage } from './pages/InviteAcceptPage';
+import { ReportsPage } from './pages/ReportsPage';
+import { TransactionsPage } from './pages/TransactionsPage';
+import { OnboardingPage } from './pages/OnboardingPage';
+import { ProfilePage } from './pages/ProfilePage';
 
 const router = createBrowserRouter([
   {

@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useMyWorkspaces } from '@/features/workspaces';
-import { GroupsLanding } from './GroupsLanding';
+import { GroupsLanding } from '../pages/GroupsLanding';
 
 /**
  * Inicio (`/`): decide qué mostrar según cuántos grupos tiene el usuario.
