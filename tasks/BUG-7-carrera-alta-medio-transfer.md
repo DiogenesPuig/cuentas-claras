@@ -2,6 +2,10 @@
 
 **Sprint:** Bugs (prod) · **Modelo sugerido:** Sonnet · **Depende de:** —
 
+> **Nota (chequeo 2026-07-02):** hacer **junto con BUG-8 y BUG-9 en una sola rama/PR** — los
+> tres tocan `TransactionForm.tsx` (7 y 8 el mismo efecto/matcher) y comparten tests; por
+> separado generan conflictos de merge. Ver "Orden de resolución recomendado" en `tasks/README.md`.
+
 ## Objetivo
 Si el titular detectado de una transferencia cambia mientras hay una creación de medio
 `'transfer'` en curso para el titular anterior, el movimiento **no** debe terminar con el medio

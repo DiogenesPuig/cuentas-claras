@@ -17,7 +17,7 @@ desde `main`**, probado en local antes de mergear (regla 2026-06-27):
 2. ~~**MEJ-7**~~ — ✅ editar mi perfil (nombre global) + acceso desde Header y TabBar (PR #42, mergeado).
 3. ~~**MEJ-3**~~ — ✅ saludo "¡Hola, &lt;nombre&gt;!" en Header y landing (PR #43, mergeado).
 4. ~~**MEJ-8**~~ — ✅ apodos privados por usuario en DB con RLS, editables desde Reportes y desde
-   Grupo→miembros (PR #44, mergeado). _Falta `supabase db push` al remoto para activarlo en prod._
+   Grupo→miembros (PR #44, mergeado). Migración 0015 aplicada en remoto (verificado 2026-07-02).
 5. **MEJ-4** — identidad de persona (alias + personas sin cuenta). El más grande; hacerlo **último**:
    - 4a. **Parte A (alias)**: diseño cerrado → implementar (migración `holder_aliases`).
    - 4b. **Parte B (personas sin cuenta)**: **cerrar diseño con Opus** (modelo de datos/RLS, promoción
@@ -76,7 +76,8 @@ aprobar) siguen pendientes y de baja prioridad.
 ### ~~MEJ-8~~ — ✅ Apodos privados: renombrar a otras personas solo para mí (por usuario) — _hecho (PR #44, `tasks/done/`)_
 - Apodos por `(usuario, workspace, personaKey)` en la base con RLS (privados, sincronizan entre
   dispositivos). Tabla `persona_aliases` (migración 0015). Feature `aliases` + edición inline desde
-  Reportes (detalle por persona) y Grupo→lista de miembros. _Pendiente: `supabase db push` al remoto._
+  Reportes (detalle por persona) y Grupo→lista de miembros. Migración aplicada en remoto
+  (verificado con `supabase migration list --linked`, 2026-07-02).
 
 ### ~~MEJ-5~~ — ✅ Reportes: separar ingresos/gastos + donut de ingresos solo miembros — _hecho (PR #41, `tasks/done/`)_
 - Reordenó `/reportes` → [1] ingresos vs gastos (macro), [2] donut gastos + [3] donut ingresos por
@@ -84,3 +85,12 @@ aprobar) siguen pendientes y de baja prioridad.
   por filtro. Lumping no-miembro→"Otros" y `aggregateByPersonaMembersOnly` en `aggregate.ts` (puro).
 
 ### ~~MEJ-6~~ — ✅ Aviso de "baja confianza" más vistoso — _hecho (toasts Sonner, PR #39)_
+
+### MEJ-9 — Ingesta: clave HMAC de test demasiado corta (warning de PyJWT)
+- **Qué:** los tests de `services/ingesta` emiten `InsecureKeyLengthWarning` porque la clave
+  HMAC del fixture (`tests/conftest.py`) tiene 12 bytes (recomendado ≥32 para HS256). Fix de una
+  línea: usar una clave de test de 32+ bytes.
+- **Contexto:** detectado en el chequeo general del proyecto (2026-07-02). Solo afecta el
+  fixture de test, no producción. Sin urgencia; saldar de paso en el próximo ticket que toque
+  la ingesta (ej. BUG-10).
+- **Origen:** chequeo de salud del proyecto (2026-07-02).

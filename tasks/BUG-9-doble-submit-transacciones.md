@@ -2,6 +2,10 @@
 
 **Sprint:** Bugs (prod) · **Modelo sugerido:** Sonnet · **Depende de:** —
 
+> **Nota (chequeo 2026-07-02):** conviene hacerlo **en la misma rama/PR que BUG-7 y BUG-8**
+> (comparte `TransactionForm.tsx` y sus tests; es ortogonal pero evita conflictos de merge).
+> Ver "Orden de resolución recomendado" en `tasks/README.md`.
+
 ## Objetivo
 Un doble click rápido (o Enter repetido) antes de que React refleje el estado "deshabilitado"
 no debe poder disparar dos altas/importaciones concurrentes para la misma acción.

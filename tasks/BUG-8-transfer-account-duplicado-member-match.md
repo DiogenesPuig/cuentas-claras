@@ -2,6 +2,10 @@
 
 **Sprint:** Bugs (prod) · **Modelo sugerido:** Sonnet · **Depende de:** —
 
+> **Nota (chequeo 2026-07-02):** hacer **junto con BUG-7 y BUG-9 en una sola rama/PR** (mismo
+> archivo/matcher/tests). Ver "Orden de resolución recomendado" en `tasks/README.md`. Quien haga
+> MEJ-4 Parte A después debe leer este fix primero para unificar el matcher, no duplicarlo.
+
 ## Objetivo
 Cuando el titular de una transferencia matchea a un miembro del workspace pero ese miembro
 todavía no tiene un medio `'transfer'` con `owner_member_id` seteado (ej. se había creado antes

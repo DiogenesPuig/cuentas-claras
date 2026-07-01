@@ -62,6 +62,26 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
   Naranja X, BNA y Mercado Pago — reportado probando en local (2026-07-01),
   `tasks/BUG-10-ocr-origen-destino-transferencia.md`.
 
+## Orden de resolución recomendado (chequeo general 2026-07-02)
+
+Del chequeo de salud del proyecto (typecheck/lint/tests todos verdes, 16 migraciones aplicadas,
+fronteras de arquitectura OK). Orden sugerido para lo pendiente:
+
+1. **BUG-6** solo (quick win: ~1 línea en `ReportsPage`, independiente del resto).
+2. **BUG-7 + BUG-8 + BUG-9 juntos, en una sola rama/PR**: los tres tocan
+   `TransactionForm.tsx` (7 y 8 tocan exactamente el mismo efecto/matcher y comparten tests;
+   9 agrega el guard de re-entrancia ahí y en `StatementImport`). Hacerlos por separado
+   garantiza conflictos de merge. En el mismo PR, cerrar la pasada corta que le queda a
+   `REF-1` (ver ese ticket) ya que se va a estar en esos archivos.
+3. **Triage Dependabot — tanda de bajo riesgo**: mergear (con CI verde) #48/#49/#50
+   (GitHub Actions del CI) y #51 (grupo minor-and-patch de npm).
+4. **BUG-10** cuando el usuario provea texto real (anonimizado) de los comprobantes de
+   Naranja X, BNA y Mercado Pago — hoy está bloqueado en eso.
+5. **Triage Dependabot — majors (decisión + prueba local, uno por uno)**: #53 (**React
+   18→19**: decisión de arquitectura, el stack aprobado en `CLAUDE.md` dice React 18 →
+   escalar a Opus), #54 (tailwind-merge 2→3), #52 (@types/node 20→26). Si no conviene
+   actualizar todavía, se cierran y Dependabot los re-abre más adelante.
+
 ## Plantilla de ticket
 
 ```
