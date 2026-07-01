@@ -179,6 +179,12 @@ export function ReportsPage() {
     () => aggregateByDimension(detailTxs, detailDimension, base, rateFor, memberNameById),
     [detailTxs, detailDimension, base, rateFor, memberNameById],
   );
+  // Apodos en el donut del detalle (BUG-6): solo cuando el desglose es por persona, igual que
+  // `expenseGroupsView`. Sin esto, la lista mostraba el apodo pero el donut el nombre real.
+  const detailGroupsView = useMemo(
+    () => (detailDimension === 'persona' ? aliasGroups(detailGroups, aliases) : detailGroups),
+    [detailDimension, detailGroups, aliases],
+  );
   const detailTotal = useMemo(
     () => consolidateTransactions(detailTxs, base, rateFor).expense,
     [detailTxs, base, rateFor],
@@ -251,7 +257,7 @@ export function ReportsPage() {
             detailLabel={detailLabel}
             detailTotal={detailTotal}
             baseCurrency={base}
-            detailGroups={detailGroups}
+            detailGroups={detailGroupsView}
             detailPersonas={detailPersonas}
             personaInfo={personaInfo}
             personaAliasing={personaAliasing}
