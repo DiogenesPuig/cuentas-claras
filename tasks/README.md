@@ -58,6 +58,9 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
   cuenta vinculada → duplica medio — `tasks/BUG-8-transfer-account-duplicado-member-match.md`.
 - `BUG-9` Falta guard anti doble-submit real en `TransactionForm`/`StatementImport` (doble
   click rápido) — `tasks/BUG-9-doble-submit-transacciones.md`.
+- `BUG-10` OCR de comprobantes: origen/destino de transferencia invertidos o incompletos en
+  Naranja X, BNA y Mercado Pago — reportado probando en local (2026-07-01),
+  `tasks/BUG-10-ocr-origen-destino-transferencia.md`.
 
 ## Plantilla de ticket
 
