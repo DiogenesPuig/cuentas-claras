@@ -1,7 +1,20 @@
+import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import type { Tables, TablesInsert } from '@/lib/database.types';
 
 export type Profile = Tables<'profiles'>;
+
+/** Sesión actual, si existe (para el arranque de `AuthProvider`). */
+export async function getSession(): Promise<Session | null> {
+  const { data } = await supabase.auth.getSession();
+  return data.session;
+}
+
+/** Se suscribe a cambios de sesión; devuelve la función para cancelar la suscripción. */
+export function onAuthStateChange(callback: (session: Session | null) => void): () => void {
+  const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => callback(session));
+  return () => listener.subscription.unsubscribe();
+}
 
 export async function signInWithPassword(email: string, password: string) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });

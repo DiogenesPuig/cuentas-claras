@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
-import { signOut as signOutApi } from './api';
+import { getSession, onAuthStateChange, signOut as signOutApi } from './api';
 import { AuthContext, type AuthContextValue } from './context';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -9,17 +8,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
+    getSession().then((session) => {
+      setSession(session);
       setLoading(false);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    return onAuthStateChange((newSession) => {
       setSession(newSession);
       setLoading(false);
     });
-
-    return () => listener.subscription.unsubscribe();
   }, []);
 
   const value: AuthContextValue = {
