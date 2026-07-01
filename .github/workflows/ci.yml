@@ -54,10 +54,21 @@ jobs:
           python-version: '3.12'
 
       - name: Install (dev)
-        run: pip install -e ".[dev]"
+        # Actualizamos pip primero: sus propios CVEs (herramienta, no runtime) ensucian
+        # el audit; con pip al día, `pip-audit` se enfoca en las deps reales del micro.
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
 
       - name: Ruff
         run: ruff check .
 
       - name: Pytest
         run: pytest -q
+
+      # SEC-1: audita las dependencias del micro (equivalente a `npm audit`, para Python).
+      # Si aparece un CVE de tooling sin fix, se puede ignorar puntual: `--ignore-vuln <ID>`.
+      - name: Audit (pip)
+        run: |
+          pip install pip-audit
+          pip-audit

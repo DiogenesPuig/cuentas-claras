@@ -112,11 +112,12 @@ Auditado contra la DB local (source of truth) + repo. **Sin agujeros de segurida
   `schema_fase1.sql` no tiene `enable row level security` o ninguna `create policy`. Corre en la suite
   (sin DB). Al agregar una tabla, subir el conteo de sanity y reflejarla en el esquema.
 - **`npm audit --audit-level=high`** en CI (`ci.yml`, job `checks`): bloquea ante high/critical.
+- **`pip-audit`** en CI (`ci.yml`, job `ingesta`): audita las deps del micro (Python). Se actualiza
+  `pip` antes para que sus CVEs de herramienta no ensucien el resultado; tras eso, sin vulnerabilidades.
 - **Dependabot** (`.github/dependabot.yml`): bumps semanales de npm (front) + pip (micro) + actions.
 
 ### Pendiente / no hecho (fuera de este PR)
 - **CodeQL:** opcional, requiere repo público o GH Advanced Security. No configurado.
-- **`pip-audit`** del micro en CI: no agregado (se puede sumar al job `ingesta`).
 - Usar el subagente `reviewer` / `/security-review` en PRs de riesgo: es proceso, no código.
 
 ## Fuera de alcance
