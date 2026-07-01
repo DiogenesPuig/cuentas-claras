@@ -10,7 +10,7 @@ import {
 } from '@/features/accounts';
 // Valor (no barrel) para no arrastrar Supabase al test del form (ver memoria del barrel).
 import { accountLabel } from '@/features/accounts/format';
-import { matchAccount, type MatchableAccount } from '@/lib/account-match';
+import { accountsToMatchable, matchAccount } from '@/lib/account-match';
 import { matchMember } from '@/lib/member-match';
 import {
   bankFor,
@@ -74,13 +74,7 @@ function findTransferAccount(
   if (matchedMemberId) {
     return transferAccounts.find((a) => a.owner_member_id === matchedMemberId) ?? null;
   }
-  const matchable: MatchableAccount[] = transferAccounts.map((a) => ({
-    id: a.id,
-    bank: a.bank,
-    network: a.network,
-    last4: a.last4,
-    holderName: a.holder_name,
-  }));
+  const matchable = accountsToMatchable(transferAccounts);
   const result = matchAccount(
     { bank: null, network: null, last4: null, holder },
     matchable,

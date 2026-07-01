@@ -33,6 +33,28 @@ export interface MatchableAccount {
   isExtension?: boolean;
 }
 
+/** Forma mínima de un medio como lo devuelve la DB (snake_case), para `accountsToMatchable`. */
+export interface AccountLike {
+  id: string;
+  bank: string | null;
+  network: string | null;
+  last4: string | null;
+  holder_name: string | null;
+  is_extension: boolean;
+}
+
+/** `accounts` (forma DB) → `MatchableAccount[]` para el match (F2-5/F2-11). */
+export function accountsToMatchable(accounts: readonly AccountLike[]): MatchableAccount[] {
+  return accounts.map((a) => ({
+    id: a.id,
+    bank: a.bank,
+    network: a.network,
+    last4: a.last4,
+    holderName: a.holder_name,
+    isExtension: a.is_extension,
+  }));
+}
+
 export interface AccountMatchResult<T> {
   /** Único medio que matchea con confianza → se asocia directo. */
   matched: T | null;

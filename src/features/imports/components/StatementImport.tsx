@@ -7,7 +7,7 @@ import {
   type AccountFormInput,
 } from '@/features/accounts';
 import { useCategories } from '@/features/categories';
-import { accountDefaultsFromHint, isResidualHint, matchAccount } from '@/lib/account-match';
+import { accountDefaultsFromHint, accountsToMatchable, isResidualHint, matchAccount } from '@/lib/account-match';
 import { IngestaError, type StatementAccountHint } from '@/lib/ingesta';
 import { useConfirmImport, useFindExistingHashes, useParseStatement } from '../hooks';
 import {
@@ -19,18 +19,6 @@ import {
 } from '../staging';
 import { AccountQuickCreate } from './AccountQuickCreate';
 import { StagingRow } from './StagingRow';
-
-/** `accounts` → forma mínima para el match de medios (F2-5). */
-function toMatchable(accounts: Account[]) {
-  return accounts.map((a) => ({
-    id: a.id,
-    bank: a.bank,
-    network: a.network,
-    last4: a.last4,
-    holderName: a.holder_name,
-    isExtension: a.is_extension,
-  }));
-}
 
 /** Mapea las pistas del resumen a los valores iniciales del alta de medios (B7). */
 function defaultsFromHint(hint: StatementAccountHint): Partial<AccountFormInput> {
@@ -107,7 +95,7 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
       // Precargar categoría sugerida por comercio (F2-6) — solo gastos.
       const built = buildStagingModel(result, existing, expenseCategories);
       // Asociar cada tarjeta al medio que matchea (F2-5, FR-16b); si no hay, queda en ''.
-      const matchable = toMatchable(accounts ?? []);
+      const matchable = accountsToMatchable(accounts ?? []);
       const open = new Set<number>();
       built.cards.forEach((card, i) => {
         // Sección de impuestos/cargos al pie (BUG-5): no es una tarjeta, no lleva medio.
