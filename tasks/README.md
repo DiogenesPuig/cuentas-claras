@@ -41,7 +41,7 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 **Sprint D — Mantenimiento / Calidad**
 - ✅ `D16` Saneamiento de dependencias (npm audit + ESLint EOL) — depende de A1. _No bloquea features (son avisos de tooling de dev); saldar en un cambio controlado._
 - ✅ `D17` CI en GitHub Actions (typecheck/lint/test/build en cada PR) — depende de A1.
-- `SEC-1` Auditoría de seguridad (RLS/multi-tenant, secretos, deps) + guardas automáticas — `tasks/SEC-1-auditoria-seguridad.md`. _Transversal; correr periódicamente._
+- ✅ `SEC-1` Auditoría de seguridad (RLS/multi-tenant, secretos, deps) + guardas automáticas — _hecho (auditoría limpia; guardas: test RLS + npm/pip audit en CI + Dependabot; PR #47, `tasks/done/`). Repetir periódicamente._
 - `REF-1` Revisión de refactor / estructura / performance (sin cambiar comportamiento) — `tasks/REF-1-revision-refactor.md`. _Transversal._
 
 **Bugs (detectados en producción)**
