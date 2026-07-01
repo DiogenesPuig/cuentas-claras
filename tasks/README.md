@@ -67,12 +67,14 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 Del chequeo de salud del proyecto (typecheck/lint/tests todos verdes, 16 migraciones aplicadas,
 fronteras de arquitectura OK). Orden sugerido para lo pendiente:
 
-1. **BUG-6** solo (quick win: ~1 línea en `ReportsPage`, independiente del resto).
+1. ✅ **BUG-6** — hecho, **PR #60** (aplica el apodo al donut del detalle por persona).
+   ✅ **REF-1 código muerto (`Fab.tsx`)** — hecho, **PR #61**. Ambos esperando prueba local + merge.
 2. **BUG-7 + BUG-8 + BUG-9 juntos, en una sola rama/PR**: los tres tocan
    `TransactionForm.tsx` (7 y 8 tocan exactamente el mismo efecto/matcher y comparten tests;
    9 agrega el guard de re-entrancia ahí y en `StatementImport`). Hacerlos por separado
-   garantiza conflictos de merge. En el mismo PR, cerrar la pasada corta que le queda a
-   `REF-1` (ver ese ticket) ya que se va a estar en esos archivos.
+   garantiza conflictos de merge. En el mismo PR va el refactor que le queda a **REF-1**:
+   extraer `useTransferAttribution` de `TransactionForm` (ver `tasks/BUG-7-...md` y `REF-1`).
+   Al mergear este PR se cierra REF-1 (mover a `tasks/done/`).
 3. **Triage Dependabot — tanda de bajo riesgo**: mergear (con CI verde) #48/#49/#50
    (GitHub Actions del CI) y #51 (grupo minor-and-patch de npm).
 4. **BUG-10** cuando el usuario provea texto real (anonimizado) de los comprobantes de

@@ -22,10 +22,24 @@ Lo grueso ya está mergeado: memoización de la pipeline de `ReportsPage` (PR #5
 componentes (PR #59), y `getSession`/`onAuthStateChange` movidos a `api.ts` (PR #56). La revisión
 también destapó BUG-6/7/8/9 (registrados como tickets propios).
 
-**Queda una pasada corta** (revisar tamaño de `TransactionForm`/`StatementImport`, código muerto,
-READMEs al día, keys de listas) — conviene cerrarla **en el mismo PR que BUG-7+8+9** (se va a
-estar en esos archivos; ver "Orden de resolución recomendado" en `tasks/README.md`) y después
-mover este ticket a `tasks/done/`.
+**Pasada corta ya revisada (2026-07-02).** Resultado y estado de cada hallazgo:
+
+- ✅ **Código muerto `Fab.tsx`**: era huérfano (no lo usaba nadie; su README lo daba como "usado en
+  `DashboardPage`", página que ya no existe). Borrado en PR #61.
+- ⏳ **`TransactionForm.tsx` (623 líneas, varias responsabilidades)**: extraer la lógica de
+  transferencia a un hook `useTransferAttribution` — **se hace dentro del PR de BUG-7+8+9** (mismo
+  código; ver nota en `tasks/BUG-7-...md`). No refactorizar antes.
+- 🔎 **`StatementImport.tsx` (341 líneas)**: cohesivo (un solo wizard). Único candidato: extraer el
+  bloque JSX que renderiza cada tarjeta (líneas ~226-313) a un `StatementCard`. Beneficio moderado,
+  **prioridad baja**; evaluar de paso con BUG-9 o dejar.
+- ✅ **Fronteras Supabase**: limpias (ningún `hooks`/componente/`lib`/`schema` importa `supabase`/
+  `database.types` fuera de `api.ts`).
+- ✅ **Barrels**: los "sin uso" que marca `ts-prune` son re-exports de `index.ts` (API pública de
+  cada feature) → falsos positivos, no tocar.
+
+**Cierre:** este ticket ya no justifica un PR de refactor propio. Se cierra (mover a `tasks/done/`)
+cuando mergee el PR de BUG-7+8+9 (que trae el `useTransferAttribution`). El único refactor
+independiente (Fab muerto) ya salió en PR #61.
 
 ## Áreas a revisar (con candidatos ya detectados)
 ### Estructura / arquitectura

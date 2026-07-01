@@ -5,6 +5,13 @@
 > **Nota (chequeo 2026-07-02):** hacer **junto con BUG-8 y BUG-9 en una sola rama/PR** — los
 > tres tocan `TransactionForm.tsx` (7 y 8 el mismo efecto/matcher) y comparten tests; por
 > separado generan conflictos de merge. Ver "Orden de resolución recomendado" en `tasks/README.md`.
+>
+> **Refactor de REF-1 a incluir en este mismo PR (revisión 2026-07-02):** al reescribir el efecto
+> de alta lazy para el fix, extraer la lógica de transferencia de `TransactionForm.tsx` (los dos
+> `useEffect` de alta lazy/banco + los derivados `ownerHolder`/`ownerBank`/`transferMatch`/
+> `matchedMember` + `findTransferAccount`) a un hook `useTransferAttribution`. La página quedó de
+> 623 líneas con varias responsabilidades; conviene hacerlo acá porque el fix ya toca ese código
+> (refactorizar antes sería trabajo tirado). Mantener comportamiento salvo lo que corrige el bug.
 
 ## Objetivo
 Si el titular detectado de una transferencia cambia mientras hay una creación de medio
