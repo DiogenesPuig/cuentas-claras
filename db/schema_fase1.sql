@@ -473,6 +473,33 @@ create trigger trg_ws_add_owner
   for each row execute function add_owner_on_workspace_create();
 
 -- ============================================================================
+-- FX_RATES (C12): cotizaciones cacheadas (migración 0004). Reference/global; la
+--   escribe la edge function `fx-refresh` con service_role (bypassa RLS); el front
+--   solo lee. RLS: lectura para usuarios autenticados; sin policy de escritura.
+-- ============================================================================
+create table fx_rates (
+  id          uuid primary key default gen_random_uuid(),
+  date        date  not null,                 -- día de la cotización
+  source      text  not null,                 -- 'dolarapi' | 'bcra' | 'manual'
+  quote       text  not null,                 -- 'oficial' | 'blue' | 'mep' | ...
+  currency    char(3) not null,               -- ISO-4217, ej. 'USD'
+  buy         numeric(18, 4),                 -- compra (puede faltar según la fuente)
+  sell        numeric(18, 4),                 -- venta
+  created_at  timestamptz not null default now(),
+  unique (date, source, quote, currency)      -- idempotencia del upsert diario
+);
+
+create index idx_fx_rates_lookup on fx_rates (currency, source, quote, date desc);
+
+alter table fx_rates enable row level security;
+
+-- Lectura para usuarios autenticados (no `anon`). Escritura: solo service_role (edge function).
+create policy fx_rates_select on fx_rates
+  for select
+  to authenticated
+  using (true);
+
+-- ============================================================================
 -- PERSONA_ALIASES (MEJ-8): apodos PRIVADOS por usuario para "personas" del reporte
 --   Cada usuario le pone un nombre alternativo a una persona (miembro o titular ajeno)
 --   que solo ve él. persona_key = `member:<owner_member_id>` o `name:<holder normalizado>`.

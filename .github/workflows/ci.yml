@@ -34,6 +34,11 @@ jobs:
       - name: Build
         run: npm run build
 
+      # SEC-1: falla si hay vulnerabilidades high/critical en dependencias del front.
+      # (Dependabot abre PRs de bump proactivos; ver .github/dependabot.yml.)
+      - name: Audit (npm)
+        run: npm audit --audit-level=high
+
   # Microservicio de ingesta (Python/FastAPI, F2-1). Lint + tests de la lógica
   # pura y el contrato. No instala el extra `ocr` (Tesseract) para que sea rápido.
   ingesta:
