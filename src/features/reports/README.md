@@ -63,6 +63,12 @@ mes a mes, con consolidado multi-moneda. Implementa **FR-20, FR-21, FR-22, FR-24
 - `components/ReportFilterBar.tsx` — filtros combinables y removibles (persona/banco/medio/categoría)
   que alimentan el bloque de detalle. Cada select **agrega** un valor y cada elegido queda como
   **chip con "×"**; se pueden apilar varios por dimensión (OR) y combinarlas (AND). "Limpiar" saca todos.
+- `components/ReportsSummarySection.tsx` (REF-1) — bloque **[2]/[3]** de `ReportsPage`: donut de
+  gastos por dimensión (con tabs) + donut de ingresos por persona, en espejo. Presentacional (recibe
+  los grupos ya agregados/con alias); `ReportsPage` solo arma los datos.
+- `components/ReportsDetailSection.tsx` (REF-1) — bloque **[4]** "Detalle por filtro": filtros
+  apilables + "ver por" + desglose del subconjunto filtrado. Presentacional, igual criterio que arriba.
+- `components/ReportsTrendsSection.tsx` (REF-1) — bloques "Mes a mes" y "Anual". Presentacional.
 
 ## Layout de la pantalla (C13)
 
