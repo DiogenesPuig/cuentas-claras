@@ -235,6 +235,7 @@ create table accounts (
   -- movimiento se deduce de acá; no se elige en cada alta.
   owner_member_id   uuid references workspace_members (id) on delete set null, -- si usa la app
   holder_name       text not null,                         -- nombre del que la usa (ej. "Pepito")
+  holder_aliases    text[] not null default '{}',          -- MEJ-4: nombres alternativos p/ matching (medio transfer)
   -- Extensiones: cada extensión es su propio medio; opcionalmente apunta a la titular
   is_extension      boolean not null default false,
   parent_account_id uuid references accounts (id) on delete set null,

@@ -3,16 +3,19 @@ import { useMyRole, type MemberRole } from '@/features/workspaces';
 import { useAccounts, useCreateAccount, useMembersForHolder, useUpdateAccount } from '../hooks';
 import type { Account, AccountInput } from '../api';
 import { AccountForm } from './AccountForm';
+import { HolderAliasesEditor } from './HolderAliasesEditor';
 
 const CAN_MANAGE_ROLES: readonly MemberRole[] = ['owner', 'admin'];
 
 function AccountRow({
   account,
   canManage,
+  workspaceId,
   onEdit,
 }: {
   account: Account;
   canManage: boolean;
+  workspaceId: string;
   onEdit: (account: Account) => void;
 }) {
   // TODO(B8/reportes): cuando `owner_member_id` exista, mostrar el nombre vivo del miembro
@@ -23,32 +26,38 @@ function AccountRow({
     .join(' · ');
 
   return (
-    <li className="flex items-center justify-between gap-4 px-3 py-2 text-sm">
-      <div className="space-y-0.5">
-        <p className="font-medium">
-          {account.name}
-          {account.is_extension && (
-            <span className="ml-2 rounded bg-accent px-1.5 py-0.5 text-xs font-normal text-accent-foreground">
-              extensión
-            </span>
-          )}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {details || 'Sin detalles'}
-          {account.last4 && ` · ••${account.last4}`}
-          {' · '}
-          {account.currency}
-          {account.billing_close_day && ` · cierre día ${account.billing_close_day}`}
-        </p>
+    <li className="px-3 py-2 text-sm">
+      <div className="flex items-center justify-between gap-4">
+        <div className="space-y-0.5">
+          <p className="font-medium">
+            {account.name}
+            {account.is_extension && (
+              <span className="ml-2 rounded bg-accent px-1.5 py-0.5 text-xs font-normal text-accent-foreground">
+                extensión
+              </span>
+            )}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {details || 'Sin detalles'}
+            {account.last4 && ` · ••${account.last4}`}
+            {' · '}
+            {account.currency}
+            {account.billing_close_day && ` · cierre día ${account.billing_close_day}`}
+          </p>
+        </div>
+        {canManage && (
+          <button
+            type="button"
+            onClick={() => onEdit(account)}
+            className="shrink-0 text-xs font-medium text-primary hover:underline"
+          >
+            Editar
+          </button>
+        )}
       </div>
-      {canManage && (
-        <button
-          type="button"
-          onClick={() => onEdit(account)}
-          className="shrink-0 text-xs font-medium text-primary hover:underline"
-        >
-          Editar
-        </button>
+      {/* Alias de titular: solo tiene sentido en el medio 'transfer' (uno por persona, MEJ-4). */}
+      {canManage && account.type === 'transfer' && (
+        <HolderAliasesEditor account={account} workspaceId={workspaceId} />
       )}
     </li>
   );
@@ -110,6 +119,7 @@ export function AccountList({ workspaceId }: AccountListProps) {
             key={account.id}
             account={account}
             canManage={canManage}
+            workspaceId={workspaceId}
             onEdit={setEditing}
           />
         ))}

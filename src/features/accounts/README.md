@@ -9,12 +9,16 @@ tipo, moneda, últimos 4 dígitos, holder (miembro o nombre) y, si es extensión
 - `api.ts` — Supabase: `listAccounts` (no archivados del workspace), `listMembersForHolder`
   (miembros del workspace para el selector de holder, vía `workspace_members` + la vista
   `member_directory` — `profiles` solo es legible por su propio dueño), `createAccount` y
-  `updateAccount` (RLS exige rol owner/admin), `getOrCreateTransferAccount(workspaceId, holder)`
-  (F2-11: busca el medio `type='transfer'` de una persona —por `owner_member_id` o `holder_name`—
-  y, si no existe, lo crea lazy; un único medio "Transferencia" por persona, sin banco). Sin React.
+  `updateAccount` (RLS exige rol owner/admin), `updateHolderAliases(id, aliases)` (MEJ-4: setea
+  los nombres alternativos del titular de un medio `'transfer'`; recorta/deduplica), y
+  `getOrCreateTransferAccount(workspaceId, holder)` (F2-11: busca el medio `type='transfer'` de una
+  persona y, si no existe, lo crea lazy; un único medio "Transferencia" por persona, sin banco).
+  MEJ-4: el buscar/crear ahora delega en el matcher puro `findTransferAccount` (`lib/transfer-account`)
+  —mismo criterio que el pre-match del front, incluyendo `holder_aliases`— en vez del match exacto
+  por `holder_name` que duplicaba ante variantes de orden/tildes/apodos. Sin React.
 - `hooks.ts` — react-query: `useAccounts(workspaceId)` (se reutilizará en el alta de movimientos,
-  B8), `useMembersForHolder`, `useCreateAccount`, `useUpdateAccount` y
-  `useGetOrCreateTransferAccount` (F2-11, invalida `accounts` al crear).
+  B8), `useMembersForHolder`, `useCreateAccount`, `useUpdateAccount`, `useUpdateHolderAliases`
+  (MEJ-4) y `useGetOrCreateTransferAccount` (F2-11, invalida `accounts` al crear).
 - `schema.ts` — zod del form: `name`, `bank`, `network`, `type` (incluye `'transfer'`, F2-11),
   `currency`, `last4`, `holderKind` (`member` | `name`) + `ownerMemberId`/`holderName` según
   corresponda, `isExtension` + `parentAccountId` si aplica, `billingCloseDay`.

@@ -30,6 +30,7 @@ function makeAccount(overrides: Partial<Account>): Account {
     currency: 'ARS',
     last4: null,
     holder_name: 'Titular',
+    holder_aliases: [],
     owner_member_id: null,
     is_extension: false,
     is_archived: false,

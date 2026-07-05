@@ -14,7 +14,7 @@
  * 3. Coincidencias parciales → `candidates` para que el usuario elija; nada → crear.
  */
 
-import { nameTokenOverlap, normalizeName } from './name-match';
+import { nameTokenOverlap, normalizeName, normalizeNameKey } from './name-match';
 
 export interface AccountHint {
   bank: string | null;
@@ -30,6 +30,8 @@ export interface MatchableAccount {
   network: string | null;
   last4: string | null;
   holderName: string | null;
+  /** Nombres alternativos del titular (MEJ-4): el match por titular los considera además del principal. */
+  holderAliases?: string[];
   isExtension?: boolean;
 }
 
@@ -40,6 +42,7 @@ export interface AccountLike {
   network: string | null;
   last4: string | null;
   holder_name: string | null;
+  holder_aliases?: string[] | null;
   is_extension: boolean;
 }
 
@@ -51,6 +54,7 @@ export function accountsToMatchable(accounts: readonly AccountLike[]): Matchable
     network: a.network,
     last4: a.last4,
     holderName: a.holder_name,
+    holderAliases: a.holder_aliases ?? [],
     isExtension: a.is_extension,
   }));
 }
@@ -64,6 +68,29 @@ export interface AccountMatchResult<T> {
 
 /** Cuántos tokens de nombre comparten dos titulares (apellido/nombre), sin importar el orden. */
 const holderOverlap = nameTokenOverlap;
+
+/**
+ * Mejor overlap del titular del `hint` contra el nombre principal del medio **o cualquiera de
+ * sus alias** (MEJ-4). Así un nombre alternativo cargado a mano (ej. "Pepito" para "José Pérez")
+ * también matchea, no solo variantes de orden/tildes del nombre principal.
+ */
+function bestHolderOverlap(account: MatchableAccount, hintHolder: string | null): number {
+  const names = [account.holderName, ...(account.holderAliases ?? [])];
+  return names.reduce((best, name) => Math.max(best, holderOverlap(name, hintHolder)), 0);
+}
+
+/**
+ * ¿El titular del `hint` coincide EXACTAMENTE (clave orden/tildes-indistinta) con el nombre
+ * principal o algún alias del medio? Un alias es una afirmación explícita de identidad del
+ * usuario, así que un match exacto es autoritativo aunque sea de una sola palabra (ej. "Pepito"),
+ * donde el overlap de tokens (≥2) no alcanzaría. Ignora claves vacías (nombres sin tokens ≥3).
+ */
+function hasExactHolderKey(account: MatchableAccount, hintHolder: string | null): boolean {
+  const hintKey = normalizeNameKey(hintHolder);
+  if (!hintKey) return false;
+  const names = [account.holderName, ...(account.holderAliases ?? [])];
+  return names.some((name) => normalizeNameKey(name) === hintKey);
+}
 
 /** Compatibles si coinciden o si falta el dato de algún lado (no descarta por ausencia). */
 function networkCompatible(a: string | null, b: string | null): boolean {
@@ -137,17 +164,17 @@ export function matchAccount<T extends MatchableAccount>(
         : bankPositivelyCompatible(a.bank, hint.bank);
     const strong = accounts.filter(
       (a) =>
-        holderOverlap(a.holderName, hint.holder) >= 2 &&
+        (bestHolderOverlap(a, hint.holder) >= 2 || hasExactHolderKey(a, hint.holder)) &&
         bankOkForStrong(a) &&
         networkCompatible(a.network, hint.network),
     );
     if (strong.length === 1) return { matched: strong[0], candidates: [] };
     if (strong.length > 1) return { matched: null, candidates: strong };
 
-    // Candidatos débiles: comparten al menos un token de nombre y el banco NO entra en
-    // conflicto (banco desconocido de algún lado → candidato, nunca auto-match cruzado).
+    // Candidatos débiles: comparten al menos un token de nombre (principal o alias) y el banco
+    // NO entra en conflicto (banco desconocido de algún lado → candidato, nunca auto-match cruzado).
     const weak = accounts.filter(
-      (a) => holderOverlap(a.holderName, hint.holder) >= 1 && !bankConflicts(a.bank, hint.bank),
+      (a) => bestHolderOverlap(a, hint.holder) >= 1 && !bankConflicts(a.bank, hint.bank),
     );
     if (weak.length > 0) return { matched: null, candidates: weak };
   }

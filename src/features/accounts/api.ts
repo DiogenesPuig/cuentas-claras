@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import type { Database, Tables, TablesInsert, TablesUpdate } from '@/lib/database.types';
+import { findTransferAccount } from '@/lib/transfer-account';
 
 export type Account = Tables<'accounts'>;
 export type AccountType = Database['public']['Enums']['account_type'];
@@ -97,6 +98,30 @@ export async function updateAccount(id: string, input: AccountInput): Promise<Ac
   return data;
 }
 
+/**
+ * Actualiza solo los alias de titular de un medio (MEJ-4). Normaliza: recorta, descarta vacíos
+ * y duplica-insensible (por si el usuario repite un nombre). RLS exige rol owner/admin.
+ */
+export async function updateHolderAliases(id: string, aliases: string[]): Promise<Account> {
+  const cleaned = Array.from(
+    new Map(
+      aliases
+        .map((a) => a.trim())
+        .filter((a) => a.length > 0)
+        .map((a) => [a.toLowerCase(), a]),
+    ).values(),
+  );
+  const payload: TablesUpdate<'accounts'> = { holder_aliases: cleaned };
+  const { data, error } = await supabase
+    .from('accounts')
+    .update(payload)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 export interface TransferAccountHolder {
   /** Si el titular matchea a un miembro, su `workspace_members.id`. */
   ownerMemberId: string | null;
@@ -107,23 +132,28 @@ export interface TransferAccountHolder {
  * Busca el medio `'transfer'` de una persona y, si no existe, lo crea (F2-11): un
  * único medio "Transferencia" por persona (titular o miembro), sin banco —el banco
  * del comprobante va a `transactions.bank`. Lazy: no se pre-crean medios vacíos.
+ *
+ * MEJ-4: usa el **mismo** matcher puro que el pre-match del front (`findTransferAccount`):
+ * por `owner_member_id`, y si no, fuzzy por titular incluyendo `holder_aliases`. Antes esta
+ * capa buscaba por `holder_name` EXACTO y creaba duplicados ante variantes de orden/tildes/apodos.
  */
 export async function getOrCreateTransferAccount(
   workspaceId: string,
   holder: TransferAccountHolder,
 ): Promise<Account> {
-  let query = supabase
+  const { data: transferAccounts, error: selectError } = await supabase
     .from('accounts')
     .select('*')
     .eq('workspace_id', workspaceId)
     .eq('type', 'transfer');
-  query = holder.ownerMemberId
-    ? query.eq('owner_member_id', holder.ownerMemberId)
-    : query.is('owner_member_id', null).eq('holder_name', holder.holderName);
-
-  const { data: existing, error: selectError } = await query.limit(1);
   if (selectError) throw selectError;
-  if (existing && existing[0]) return existing[0];
+
+  const existing = findTransferAccount(
+    holder.holderName,
+    holder.ownerMemberId,
+    transferAccounts ?? [],
+  );
+  if (existing) return existing;
 
   const payload: TablesInsert<'accounts'> = {
     workspace_id: workspaceId,
