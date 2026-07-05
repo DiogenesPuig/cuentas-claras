@@ -35,15 +35,16 @@ export function HolderAliasesEditor({
   }
 
   return (
-    <div className="mt-2 space-y-1 border-t border-border pt-2">
-      <p className="text-xs text-muted-foreground">
-        Otros nombres de esta persona (para no duplicar el medio al importar transferencias):
+    <div className="space-y-1.5">
+      <p className="text-xs font-medium text-muted-foreground">
+        Otros nombres de esta persona{' '}
+        <span className="font-normal">(para no duplicar el medio al importar transferencias)</span>
       </p>
-      <div className="flex flex-wrap items-center gap-1">
+      <div className="flex flex-wrap items-center gap-1.5">
         {aliases.map((alias) => (
           <span
             key={alias}
-            className="inline-flex items-center gap-1 rounded bg-accent px-1.5 py-0.5 text-xs text-accent-foreground"
+            className="inline-flex items-center gap-1 rounded-full border border-border bg-background py-0.5 pl-2.5 pr-1 text-xs shadow-sm"
           >
             {alias}
             <button
@@ -51,13 +52,15 @@ export function HolderAliasesEditor({
               onClick={() => void save(aliases.filter((a) => a !== alias))}
               disabled={update.isPending}
               aria-label={`Quitar ${alias}`}
-              className="text-muted-foreground hover:text-foreground disabled:opacity-50"
+              className="flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
             >
               ×
             </button>
           </span>
         ))}
-        {aliases.length === 0 && <span className="text-xs text-muted-foreground">Sin alias.</span>}
+        {aliases.length === 0 && (
+          <span className="text-xs italic text-muted-foreground">Sin nombres alternativos.</span>
+        )}
       </div>
       <div className="flex items-center gap-1">
         <input
@@ -78,7 +81,7 @@ export function HolderAliasesEditor({
           type="button"
           onClick={addAlias}
           disabled={update.isPending || !value.trim()}
-          className="rounded-md border border-input px-2 py-1 text-xs font-medium hover:bg-accent disabled:opacity-50"
+          className="rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
           Agregar
         </button>
