@@ -50,8 +50,8 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 - ✅ `BUG-3` El form de alta no se vacía al reintentar con otro comprobante — _hecho (limpia la precarga previa al reintentar, `tasks/done/`)_
 - ✅ `BUG-4` Página de error/404 propia (cuadro centrado) en vez de la default de React Router — _hecho (ErrorPage + errorElement + catch-all `*`, `tasks/done/`)_
 - ✅ `BUG-5` Los impuestos se tratan como persona/medio; manejarlos distinto — _hecho (categoría "Impuestos" + heurística `isInstitutionalPayee`, sección residual del resumen sin medio; `tasks/done/`)_
-- `BUG-6` Donut de "Detalle por filtro" en Reportes no aplica el apodo (MEJ-8) — detectado en
-  revisión REF-1 (2026-07-01), `tasks/BUG-6-donut-detalle-sin-apodo.md`.
+- ✅ `BUG-6` Donut de "Detalle por filtro" en Reportes no aplica el apodo (MEJ-8) — _hecho (PR #60,
+  `detailGroupsView` aplica el apodo cuando el detalle es por persona, `tasks/done/`)_
 - `BUG-7` Carrera en el alta lazy del medio `'transfer'`: puede asignar el titular equivocado si
   cambia mientras hay una creación en curso — `tasks/BUG-7-carrera-alta-medio-transfer.md`.
 - `BUG-8` `findTransferAccount` no cae a match fuzzy cuando el titular matchea a un miembro sin
@@ -61,25 +61,30 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 - `BUG-10` OCR de comprobantes: origen/destino de transferencia invertidos o incompletos en
   Naranja X, BNA y Mercado Pago — reportado probando en local (2026-07-01),
   `tasks/BUG-10-ocr-origen-destino-transferencia.md`.
+- `BUG-11` El modal "Nuevo grupo" se posiciona mal (pegado arriba/recortado) al abrirlo desde el
+  "+" del Header, por el `backdrop-blur` del header (containing block para `fixed`). Fix: portal a
+  `document.body`. Reportado en local (2026-07-05), `tasks/BUG-11-dialogo-nuevo-grupo-mal-posicionado.md`.
 
 ## Orden de resolución recomendado (chequeo general 2026-07-02)
 
 Del chequeo de salud del proyecto (typecheck/lint/tests todos verdes, 16 migraciones aplicadas,
 fronteras de arquitectura OK). Orden sugerido para lo pendiente:
 
-1. ✅ **BUG-6** — hecho, **PR #60** (aplica el apodo al donut del detalle por persona).
-   ✅ **REF-1 código muerto (`Fab.tsx`)** — hecho, **PR #61**. Ambos esperando prueba local + merge.
-2. **BUG-7 + BUG-8 + BUG-9 juntos, en una sola rama/PR**: los tres tocan
+1. ✅ **BUG-6** — hecho y **mergeado** (PR #60, apodo en el donut del detalle por persona).
+   ✅ **REF-1 código muerto (`Fab.tsx`)** — hecho y **mergeado** (PR #61).
+2. **BUG-11** — quick win independiente (portal a `document.body` en `CreateWorkspaceDialog`).
+   Se puede hacer solo o junto con BUG-7+8+9 si querés agrupar UI/forms.
+3. **BUG-7 + BUG-8 + BUG-9 juntos, en una sola rama/PR**: los tres tocan
    `TransactionForm.tsx` (7 y 8 tocan exactamente el mismo efecto/matcher y comparten tests;
    9 agrega el guard de re-entrancia ahí y en `StatementImport`). Hacerlos por separado
    garantiza conflictos de merge. En el mismo PR va el refactor que le queda a **REF-1**:
    extraer `useTransferAttribution` de `TransactionForm` (ver `tasks/BUG-7-...md` y `REF-1`).
    Al mergear este PR se cierra REF-1 (mover a `tasks/done/`).
-3. **Triage Dependabot — tanda de bajo riesgo**: mergear (con CI verde) #48/#49/#50
+4. **Triage Dependabot — tanda de bajo riesgo**: mergear (con CI verde) #48/#49/#50
    (GitHub Actions del CI) y #51 (grupo minor-and-patch de npm).
-4. **BUG-10** cuando el usuario provea texto real (anonimizado) de los comprobantes de
+5. **BUG-10** cuando el usuario provea texto real (anonimizado) de los comprobantes de
    Naranja X, BNA y Mercado Pago — hoy está bloqueado en eso.
-5. **Triage Dependabot — majors (decisión + prueba local, uno por uno)**: #53 (**React
+6. **Triage Dependabot — majors (decisión + prueba local, uno por uno)**: #53 (**React
    18→19**: decisión de arquitectura, el stack aprobado en `CLAUDE.md` dice React 18 →
    escalar a Opus), #54 (tailwind-merge 2→3), #52 (@types/node 20→26). Si no conviene
    actualizar todavía, se cierran y Dependabot los re-abre más adelante.
