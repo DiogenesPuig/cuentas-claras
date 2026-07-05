@@ -42,7 +42,10 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 - ✅ `D16` Saneamiento de dependencias (npm audit + ESLint EOL) — depende de A1. _No bloquea features (son avisos de tooling de dev); saldar en un cambio controlado._
 - ✅ `D17` CI en GitHub Actions (typecheck/lint/test/build en cada PR) — depende de A1.
 - ✅ `SEC-1` Auditoría de seguridad (RLS/multi-tenant, secretos, deps) + guardas automáticas — _hecho (auditoría limpia; guardas: test RLS + npm/pip audit en CI + Dependabot; PR #47, `tasks/done/`). Repetir periódicamente._
-- `REF-1` Revisión de refactor / estructura / performance (sin cambiar comportamiento) — `tasks/REF-1-revision-refactor.md`. _Transversal._
+- ✅ `REF-1` Revisión de refactor / estructura / performance — _hecho (memoización #57, dedupe #58,
+  extracción de componentes de ReportsPage #59, auth→api #56, `Fab` muerto #61, `findTransferAccount`
+  a `lib/` #62; `tasks/done/`). La extracción del hook `useTransferAttribution` quedó como idea
+  menor en `tasks/MEJORAS.md` (bajo valor / alta rotación)._
 
 **Bugs (detectados en producción)**
 - ✅ `BUG-1` Selector de grupo muestra el mismo workspace duplicado (uno por miembro) — _hecho (filtro por usuario en `listMyWorkspaces`, `tasks/done/`)_
@@ -52,12 +55,12 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 - ✅ `BUG-5` Los impuestos se tratan como persona/medio; manejarlos distinto — _hecho (categoría "Impuestos" + heurística `isInstitutionalPayee`, sección residual del resumen sin medio; `tasks/done/`)_
 - ✅ `BUG-6` Donut de "Detalle por filtro" en Reportes no aplica el apodo (MEJ-8) — _hecho (PR #60,
   `detailGroupsView` aplica el apodo cuando el detalle es por persona, `tasks/done/`)_
-- `BUG-7` Carrera en el alta lazy del medio `'transfer'`: puede asignar el titular equivocado si
-  cambia mientras hay una creación en curso — `tasks/BUG-7-carrera-alta-medio-transfer.md`.
-- `BUG-8` `findTransferAccount` no cae a match fuzzy cuando el titular matchea a un miembro sin
-  cuenta vinculada → duplica medio — `tasks/BUG-8-transfer-account-duplicado-member-match.md`.
-- `BUG-9` Falta guard anti doble-submit real en `TransactionForm`/`StatementImport` (doble
-  click rápido) — `tasks/BUG-9-doble-submit-transacciones.md`.
+- ✅ `BUG-7` Carrera en el alta lazy del medio `'transfer'` — _hecho (PR #62, token de corrida +
+  flag `cancelled` por invocación, `tasks/done/`)_
+- ✅ `BUG-8` `findTransferAccount` no caía a match fuzzy con miembro sin cuenta vinculada → duplicaba
+  medio — _hecho (PR #62, movida a `lib/` + fallback fuzzy, `tasks/done/`)_
+- ✅ `BUG-9` Falta guard anti doble-submit en `TransactionForm`/`StatementImport` — _hecho (PR #62,
+  guard `useRef` en los handlers, `tasks/done/`)_
 - `BUG-10` OCR de comprobantes: origen/destino de transferencia invertidos o incompletos en
   Naranja X, BNA y Mercado Pago — reportado probando en local (2026-07-01),
   `tasks/BUG-10-ocr-origen-destino-transferencia.md`.
@@ -65,29 +68,22 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
   "+" del Header, por el `backdrop-blur` del header (containing block para `fixed`). Fix: portal a
   `document.body`. Reportado en local (2026-07-05), `tasks/BUG-11-dialogo-nuevo-grupo-mal-posicionado.md`.
 
-## Orden de resolución recomendado (chequeo general 2026-07-02)
+## Orden de resolución recomendado (actualizado 2026-07-05)
 
-Del chequeo de salud del proyecto (typecheck/lint/tests todos verdes, 16 migraciones aplicadas,
-fronteras de arquitectura OK). Orden sugerido para lo pendiente:
+Ya hechos y mergeados: **BUG-6** (#60), **REF-1**/`Fab` muerto (#61) y **BUG-7+8+9** (#62).
+Pendiente, en orden sugerido:
 
-1. ✅ **BUG-6** — hecho y **mergeado** (PR #60, apodo en el donut del detalle por persona).
-   ✅ **REF-1 código muerto (`Fab.tsx`)** — hecho y **mergeado** (PR #61).
-2. **BUG-11** — quick win independiente (portal a `document.body` en `CreateWorkspaceDialog`).
-   Se puede hacer solo o junto con BUG-7+8+9 si querés agrupar UI/forms.
-3. **BUG-7 + BUG-8 + BUG-9 juntos, en una sola rama/PR**: los tres tocan
-   `TransactionForm.tsx` (7 y 8 tocan exactamente el mismo efecto/matcher y comparten tests;
-   9 agrega el guard de re-entrancia ahí y en `StatementImport`). Hacerlos por separado
-   garantiza conflictos de merge. En el mismo PR va el refactor que le queda a **REF-1**:
-   extraer `useTransferAttribution` de `TransactionForm` (ver `tasks/BUG-7-...md` y `REF-1`).
-   Al mergear este PR se cierra REF-1 (mover a `tasks/done/`).
-4. **Triage Dependabot — tanda de bajo riesgo**: mergear (con CI verde) #48/#49/#50
+1. **BUG-11** — quick win independiente (portal a `document.body` en `CreateWorkspaceDialog`).
+2. **Triage Dependabot — tanda de bajo riesgo**: mergear (con CI verde) #48/#49/#50
    (GitHub Actions del CI) y #51 (grupo minor-and-patch de npm).
-5. **BUG-10** cuando el usuario provea texto real (anonimizado) de los comprobantes de
+3. **BUG-10** cuando el usuario provea texto real (anonimizado) de los comprobantes de
    Naranja X, BNA y Mercado Pago — hoy está bloqueado en eso.
-6. **Triage Dependabot — majors (decisión + prueba local, uno por uno)**: #53 (**React
+4. **Triage Dependabot — majors (decisión + prueba local, uno por uno)**: #53 (**React
    18→19**: decisión de arquitectura, el stack aprobado en `CLAUDE.md` dice React 18 →
    escalar a Opus), #54 (tailwind-merge 2→3), #52 (@types/node 20→26). Si no conviene
    actualizar todavía, se cierran y Dependabot los re-abre más adelante.
+5. **Mejoras post-Fase 2** (`tasks/MEJORAS.md`): MEJ-4 (identidad de persona, la más grande),
+   MEJ-1/MEJ-2 (necesitan aprobar deps nuevas). Baja prioridad.
 
 ## Plantilla de ticket
 

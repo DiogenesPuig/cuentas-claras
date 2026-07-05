@@ -86,6 +86,16 @@ aprobar) siguen pendientes y de baja prioridad.
 
 ### ~~MEJ-6~~ — ✅ Aviso de "baja confianza" más vistoso — _hecho (toasts Sonner, PR #39)_
 
+### MEJ-10 — Extraer `useTransferAttribution` de `TransactionForm` (refactor menor)
+- **Qué:** mover la lógica de atribución de transferencia de `TransactionForm.tsx` (los dos
+  `useEffect` de alta lazy/banco + los derivados `ownerHolder`/`ownerBank`/`transferMatch`/
+  `matchedMember`) a un hook `useTransferAttribution`, para achicar el componente (~630 líneas).
+- **Contexto:** surgió en REF-1. La parte pura (`findTransferAccount`) ya se movió a
+  `lib/transfer-account.ts` con tests (PR #62); esto es solo la envoltura presentacional.
+- **A tener en cuenta:** bajo valor / alta rotación (toca un área de riesgo: dinero/transferencias).
+  Sin cambios de comportamiento; cubierto por los tests de `TransactionForm`. No urgente.
+- **Origen:** revisión REF-1 (2026-07-05).
+
 ### MEJ-9 — Ingesta: clave HMAC de test demasiado corta (warning de PyJWT)
 - **Qué:** los tests de `services/ingesta` emiten `InsecureKeyLengthWarning` porque la clave
   HMAC del fixture (`tests/conftest.py`) tiene 12 bytes (recomendado ≥32 para HS256). Fix de una
