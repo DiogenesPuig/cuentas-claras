@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCreateWorkspace } from '../hooks';
@@ -48,7 +49,11 @@ export function CreateWorkspaceDialog({ open, onClose, onCreated }: CreateWorksp
     onClose();
   }
 
-  return (
+  // Portal a `document.body` (BUG-11): el overlay `fixed inset-0` debe medirse contra el
+  // viewport. Si el diálogo se monta dentro de un ancestro con `backdrop-filter`/`transform`
+  // (ej. el Header con `backdrop-blur`, desde donde lo abre el WorkspaceSwitcher), ese
+  // ancestro crea un containing block para los `fixed` y el modal queda pegado arriba/recortado.
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -113,6 +118,7 @@ export function CreateWorkspaceDialog({ open, onClose, onCreated }: CreateWorksp
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
