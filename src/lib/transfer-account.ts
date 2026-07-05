@@ -6,6 +6,8 @@
  * Lógica PURA y testeable: no conoce React ni el `TransactionType` de la DB.
  */
 
+import { accountsToMatchable, matchAccount, type AccountLike } from './account-match';
+
 export type TransferType = 'expense' | 'income';
 export type TransferSide = 'origin' | 'dest';
 
@@ -32,6 +34,46 @@ export function bankFor(info: TransferPartyInfo, side: TransferSide): string | n
 /** El otro lado de `side`: sirve como descripción sugerida del movimiento. */
 export function counterpartyFor(info: TransferPartyInfo, side: TransferSide): string | null {
   return side === 'origin' ? info.destHolder : info.originHolder;
+}
+
+/** Forma mínima de un medio `'transfer'` para buscarlo por miembro o por titular. */
+export interface TransferAccountLike extends AccountLike {
+  owner_member_id: string | null;
+}
+
+/**
+ * Medio `'transfer'` de una persona entre los medios del workspace (F2-11): un único
+ * medio por persona, no por persona+banco.
+ *
+ * Prioridad:
+ * 1. Por `owner_member_id`, si el titular matchea a un miembro (vínculo fuerte).
+ * 2. **BUG-8:** si el miembro todavía no tiene un medio vinculado por `owner_member_id`
+ *    (ej. el medio se creó por nombre antes de que esa persona fuera miembro), NO se
+ *    devuelve `null`: se cae al match fuzzy por `holder_name` para **reusar** ese medio
+ *    en vez de duplicarlo.
+ * 3. Si no hay member match, directamente el match fuzzy por `holder_name`.
+ *
+ * Pura y testeable: opera sobre una forma mínima (no conoce el `Account` de la DB).
+ */
+export function findTransferAccount<T extends TransferAccountLike>(
+  holder: string | null,
+  matchedMemberId: string | null,
+  transferAccounts: readonly T[],
+): T | null {
+  if (!holder) return null;
+  if (matchedMemberId) {
+    const byMember = transferAccounts.find((a) => a.owner_member_id === matchedMemberId);
+    if (byMember) return byMember;
+    // Sin medio vinculado al miembro → seguir al match fuzzy por titular (BUG-8).
+  }
+  const matchable = accountsToMatchable(transferAccounts);
+  const result = matchAccount(
+    { bank: null, network: null, last4: null, holder },
+    matchable,
+    { allowHolderOnlyMatch: true },
+  );
+  if (!result.matched) return null;
+  return transferAccounts.find((a) => a.id === result.matched!.id) ?? null;
 }
 
 export interface TransferAccountDefaults {

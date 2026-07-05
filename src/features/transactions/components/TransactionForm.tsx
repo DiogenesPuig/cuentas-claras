@@ -10,11 +10,11 @@ import {
 } from '@/features/accounts';
 // Valor (no barrel) para no arrastrar Supabase al test del form (ver memoria del barrel).
 import { accountLabel } from '@/features/accounts/format';
-import { accountsToMatchable, matchAccount } from '@/lib/account-match';
 import { matchMember } from '@/lib/member-match';
 import {
   bankFor,
   counterpartyFor,
+  findTransferAccount,
   holderFor,
   ownerSideFor,
   type TransferPartyInfo,
@@ -58,30 +58,6 @@ function defaultValuesFor(transaction?: Transaction): TransactionFormInput {
     occurredOn: isoToDisplayDate(transaction.occurred_on),
     chargedOn: isoToDisplayDate(transaction.charged_on),
   };
-}
-
-/**
- * Medio `'transfer'` de una persona entre los medios del workspace (F2-11): por
- * `owner_member_id` si el titular matchea a un miembro, o por `holder_name` si no
- * (para reutilizar el medio de un titular no-miembro entre comprobantes).
- */
-function findTransferAccount(
-  holder: string | null,
-  matchedMemberId: string | null,
-  transferAccounts: Account[],
-): Account | null {
-  if (!holder) return null;
-  if (matchedMemberId) {
-    return transferAccounts.find((a) => a.owner_member_id === matchedMemberId) ?? null;
-  }
-  const matchable = accountsToMatchable(transferAccounts);
-  const result = matchAccount(
-    { bank: null, network: null, last4: null, holder },
-    matchable,
-    { allowHolderOnlyMatch: true },
-  );
-  if (!result.matched) return null;
-  return transferAccounts.find((a) => a.id === result.matched!.id) ?? null;
 }
 
 interface TransactionFormProps {
@@ -134,6 +110,12 @@ export function TransactionForm({
   // null = usar heurística; true/false = override manual del usuario (BUG-5).
   const [treatAsInstitutional, setTreatAsInstitutional] = useState<boolean | null>(null);
   const [creatingTransferAccount, setCreatingTransferAccount] = useState(false);
+  // Token de la creación de medio 'transfer' vigente (BUG-7): identifica cada corrida
+  // para descartar respuestas de un titular que ya cambió.
+  const transferRunRef = useRef(0);
+  // Guard de re-entrancia del submit (BUG-9): evita disparar dos altas con doble click
+  // rápido antes de que React refleje `disabled`.
+  const submittingRef = useRef(false);
   const getOrCreateTransferAccount = useGetOrCreateTransferAccount(workspaceId);
   const {
     register,
@@ -200,14 +182,30 @@ export function TransactionForm({
     if (accountId || !ownerHolder) return;
     if (transferMatch) {
       setValue('accountId', transferMatch.id);
+      setCreatingTransferAccount(false);
       return;
     }
-    if (creatingTransferAccount || !workspaceId) return;
+    if (!workspaceId) return;
+
+    // Guard de carrera (BUG-7): cada creación toma un token y un flag `cancelled` propio.
+    // Si el titular cambia (el efecto se re-ejecuta) o el componente se desmonta antes de
+    // que resuelva, `cancelled` bloquea el `setValue` para no pisar el medio del titular
+    // actual con el de una creación vieja. El spinner solo lo apaga la corrida vigente.
+    const runId = (transferRunRef.current += 1);
+    let cancelled = false;
     setCreatingTransferAccount(true);
     getOrCreateTransferAccount
       .mutateAsync({ ownerMemberId: matchedMember?.id ?? null, holderName: ownerHolder })
-      .then((account) => setValue('accountId', account.id))
-      .finally(() => setCreatingTransferAccount(false));
+      .then((account) => {
+        if (!cancelled) setValue('accountId', account.id);
+      })
+      .finally(() => {
+        if (transferRunRef.current === runId) setCreatingTransferAccount(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transferMatch?.id, ownerHolder, matchedMember?.id, effectiveIsInstitutional]);
 
@@ -304,44 +302,57 @@ export function TransactionForm({
   }
 
   async function handleFormSubmit(values: TransactionFormInput) {
-    const file = values.attachment?.[0] ?? null;
-    const input = buildInput(values);
+    // Guard anti doble-submit (BUG-9): ignora reentradas mientras la anterior no terminó,
+    // por si un doble click rápido dispara el handler antes de que se refleje `disabled`.
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    try {
+      const file = values.attachment?.[0] ?? null;
+      const input = buildInput(values);
 
-    // Aviso de duplicado (F2-13): solo en ALTA nueva y si el contenedor pasó el chequeo.
-    if (!transaction && onCheckDuplicates) {
-      setCheckingDuplicates(true);
-      try {
-        const contentHash = file ? await sha256Hex(await file.arrayBuffer()) : null;
-        const candidates = await onCheckDuplicates({
-          amount: input.amount,
-          currency: input.currency,
-          occurredOn: input.occurredOn,
-          accountId: input.accountId,
-          description: input.description,
-          contentHash,
-        });
-        if (candidates.length > 0) {
-          setDuplicateCandidates(candidates);
-          setPendingSave({ input, file });
-          return; // se espera "Guardar igual" / "Cancelar"
+      // Aviso de duplicado (F2-13): solo en ALTA nueva y si el contenedor pasó el chequeo.
+      if (!transaction && onCheckDuplicates) {
+        setCheckingDuplicates(true);
+        try {
+          const contentHash = file ? await sha256Hex(await file.arrayBuffer()) : null;
+          const candidates = await onCheckDuplicates({
+            amount: input.amount,
+            currency: input.currency,
+            occurredOn: input.occurredOn,
+            accountId: input.accountId,
+            description: input.description,
+            contentHash,
+          });
+          if (candidates.length > 0) {
+            setDuplicateCandidates(candidates);
+            setPendingSave({ input, file });
+            return; // se espera "Guardar igual" / "Cancelar"
+          }
+        } catch {
+          // Si el chequeo falla (red, etc.) no bloqueamos el alta: seguimos y guardamos.
+        } finally {
+          setCheckingDuplicates(false);
         }
-      } catch {
-        // Si el chequeo falla (red, etc.) no bloqueamos el alta: seguimos y guardamos.
-      } finally {
-        setCheckingDuplicates(false);
       }
-    }
 
-    await onSubmit(input, file);
+      await onSubmit(input, file);
+    } finally {
+      submittingRef.current = false;
+    }
   }
 
   /** El usuario confirmó guardar pese al aviso de duplicado (F2-13). */
   async function confirmSaveAnyway() {
-    if (!pendingSave) return;
-    const { input, file } = pendingSave;
-    setDuplicateCandidates([]);
-    setPendingSave(null);
-    await onSubmit(input, file);
+    if (submittingRef.current || !pendingSave) return;
+    submittingRef.current = true;
+    try {
+      const { input, file } = pendingSave;
+      setDuplicateCandidates([]);
+      setPendingSave(null);
+      await onSubmit(input, file);
+    } finally {
+      submittingRef.current = false;
+    }
   }
 
   function dismissDuplicateWarning() {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   accountLabel,
   CARD_NETWORKS,
@@ -66,6 +66,10 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
   /** Índices de tarjetas con el "crear medio" inline abierto (FR-16b). Las que no
    * matchean con un medio existente arrancan abiertas para crearlo directamente. */
   const [createOpen, setCreateOpen] = useState<ReadonlySet<number>>(new Set());
+  // Guards anti doble-submit (BUG-9): evitan disparar dos parseos/importaciones con un
+  // doble click rápido antes de que React refleje `disabled`.
+  const parsingRef = useRef(false);
+  const confirmingRef = useRef(false);
 
   function toggleCreate(cardIdx: number, open?: boolean) {
     setCreateOpen((prev) => {
@@ -80,10 +84,12 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
   const expenseCategories = (categories ?? []).filter((c) => c.kind === 'expense');
 
   async function handleParse() {
+    if (parsingRef.current) return;
     if (!file) {
       setError('Elegí un archivo PDF del resumen.');
       return;
     }
+    parsingRef.current = true;
     setError(null);
     setDone(null);
     try {
@@ -109,6 +115,8 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
       setModel(built);
     } catch (err) {
       setError(parseErrorMessage(err));
+    } finally {
+      parsingRef.current = false;
     }
   }
 
@@ -141,12 +149,13 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
   }
 
   async function handleConfirm() {
-    if (!model || !file) return;
+    if (confirmingRef.current || !model || !file) return;
     const rows = toImportRows(model);
     if (rows.length === 0) {
       setError('No hay movimientos seleccionados para importar.');
       return;
     }
+    confirmingRef.current = true;
     setError(null);
     try {
       const created = await confirmImport.mutateAsync({
@@ -160,6 +169,8 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
       setPassword('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudieron crear los movimientos.');
+    } finally {
+      confirmingRef.current = false;
     }
   }
 

@@ -32,7 +32,9 @@ revisan/editan en memoria y se confirman **todas de una**, creando los `transact
   (elegir/crear medio, editar/destildar filas) → confirmar. Al cargar, asocia cada tarjeta al medio
   que matchea (`lib/account-match`); si no hay, ofrece crearlo. La sección de impuestos/cargos al pie
   (`isResidualHint`, BUG-5) se muestra como grupo sin medio: no ofrece ni autoabre el alta de medio.
-  Mapea errores del micro (401/422/sin URL).
+  Mapea errores del micro (401/422/sin URL). Guards anti doble-submit en `handleParse`/`handleConfirm`
+  (BUG-9).
+- `components/StatementImport.test.tsx` — verifica el guard anti doble-submit del parseo (BUG-9).
 - `components/StagingRow.tsx` — fila editable (incluir, fecha, descripción, monto, categoría;
   muestra cuota y marca pago/devolución).
 - `components/AccountQuickCreate.tsx` — alta inline de un medio (F2-5, FR-16b): reusa el
