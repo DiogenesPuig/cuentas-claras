@@ -46,6 +46,23 @@ function renderWithQueryClient(ui: ReactElement) {
   return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
 }
 
+/** Promesa que se resuelve manualmente, para orquestar carreras en los tests. */
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
+
+const TRANSFER_RECEIPT = {
+  amount: 1000,
+  currency: 'ARS',
+  date: '2026-05-21',
+  merchant: null,
+  confidence: 0.9,
+};
+
 describe('TransactionForm', () => {
   it('exige un monto mayor a 0 antes de enviar', async () => {
     const onSubmit = vi.fn();
@@ -294,5 +311,86 @@ describe('TransactionForm', () => {
         holderName: 'María Gómez',
       });
     });
+  });
+
+  it('si el titular cambia durante la creación del medio, la creación vieja no pisa el medio actual (BUG-7)', async () => {
+    // Titular A (Juan): no hay medio → dispara una creación que queda PENDIENTE.
+    const pendingJuan = deferred<Account>();
+    getOrCreateTransferAccountMock.mockReturnValueOnce(pendingJuan.promise);
+    // Titular B (María): ya tiene un medio existente → se asocia solo, sin crear.
+    const mariaAccount = makeAccount({
+      id: 'acc-maria',
+      type: 'transfer',
+      holder_name: 'María Gómez',
+    });
+
+    const onExtractReceipt = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ...TRANSFER_RECEIPT,
+        origin_holder: 'Juan Pérez',
+        origin_bank: 'Banco Patagonia',
+        dest_holder: 'Otro',
+        dest_bank: null,
+      })
+      .mockResolvedValueOnce({
+        ...TRANSFER_RECEIPT,
+        origin_holder: 'María Gómez',
+        origin_bank: 'Banco Galicia',
+        dest_holder: 'Otro',
+        dest_bank: null,
+      });
+
+    renderWithQueryClient(
+      <TransactionForm
+        categories={[]}
+        accounts={[mariaAccount]}
+        onSubmit={vi.fn()}
+        onExtractReceipt={onExtractReceipt}
+        workspaceId="ws-1"
+      />,
+    );
+
+    const fileInput = screen.getByLabelText('Comprobante (opcional)');
+    const extractButton = screen.getByRole('button', { name: 'Extraer datos del comprobante' });
+
+    // 1er comprobante (Juan): dispara la creación pendiente.
+    await userEvent.upload(fileInput, new File(['a'], 'juan.jpg', { type: 'image/jpeg' }));
+    await userEvent.click(extractButton);
+    await waitFor(() => {
+      expect(getOrCreateTransferAccountMock).toHaveBeenCalledWith({
+        ownerMemberId: null,
+        holderName: 'Juan Pérez',
+      });
+    });
+
+    // 2do comprobante (María): cambia el titular mientras la creación de Juan sigue en curso.
+    // María ya tiene medio → se asocia acc-maria de inmediato.
+    await userEvent.upload(fileInput, new File(['b'], 'maria.jpg', { type: 'image/jpeg' }));
+    await userEvent.click(extractButton);
+    await waitFor(() => {
+      expect(screen.getByLabelText('Medio (opcional)')).toHaveValue('acc-maria');
+    });
+
+    // Ahora resuelve (tarde) la creación de Juan: NO debe pisar el medio de María.
+    pendingJuan.resolve(makeAccount({ id: 'acc-juan', type: 'transfer', holder_name: 'Juan Pérez' }));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(screen.getByLabelText('Medio (opcional)')).toHaveValue('acc-maria');
+  });
+
+  it('un doble click rápido en guardar no dispara dos altas (BUG-9)', async () => {
+    const pending = deferred<void>();
+    const onSubmit = vi.fn().mockReturnValueOnce(pending.promise);
+    render(<TransactionForm categories={[]} accounts={[]} onSubmit={onSubmit} />);
+
+    await userEvent.type(screen.getByLabelText('Monto'), '1000');
+    const submit = screen.getByRole('button', { name: 'Crear movimiento' });
+    // Dos clicks seguidos antes de que la primera promesa (pendiente) resuelva.
+    await userEvent.click(submit);
+    await userEvent.click(submit);
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    pending.resolve();
   });
 });
