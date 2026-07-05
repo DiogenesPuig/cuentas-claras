@@ -64,16 +64,18 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 - `BUG-10` OCR de comprobantes: origen/destino de transferencia invertidos o incompletos en
   Naranja X, BNA y Mercado Pago — reportado probando en local (2026-07-01),
   `tasks/BUG-10-ocr-origen-destino-transferencia.md`.
-- `BUG-11` El modal "Nuevo grupo" se posiciona mal (pegado arriba/recortado) al abrirlo desde el
-  "+" del Header, por el `backdrop-blur` del header (containing block para `fixed`). Fix: portal a
-  `document.body`. Reportado en local (2026-07-05), `tasks/BUG-11-dialogo-nuevo-grupo-mal-posicionado.md`.
+- ✅ `BUG-11` El modal "Nuevo grupo" se posicionaba mal al abrirlo desde el "+" del Header
+  (`backdrop-blur` = containing block para `fixed`) — _hecho (PR #63, portal a `document.body`,
+  `tasks/done/`)_
 
 ## Orden de resolución recomendado (actualizado 2026-07-05)
 
-Ya hechos y mergeados: **BUG-6** (#60), **REF-1**/`Fab` muerto (#61) y **BUG-7+8+9** (#62).
-Pendiente, en orden sugerido:
+Ya hechos y mergeados: **BUG-6** (#60), **REF-1**/`Fab` muerto (#61), **BUG-7+8+9** (#62) y
+**BUG-11** (#63). Pendiente, en orden sugerido:
 
-1. **BUG-11** — quick win independiente (portal a `document.body` en `CreateWorkspaceDialog`).
+1. **MEJ-4 Parte A** (alias de titulares) — **PR #64 abierto**, esperando prueba local + merge.
+   Al mergear: `supabase db push` de la migración 0017 al remoto. Queda pendiente el **slice 2**
+   (prompt inline al dar de alta, AC3 del ticket) como follow-up.
 2. **Triage Dependabot — tanda de bajo riesgo**: mergear (con CI verde) #48/#49/#50
    (GitHub Actions del CI) y #51 (grupo minor-and-patch de npm).
 3. **BUG-10** cuando el usuario provea texto real (anonimizado) de los comprobantes de
@@ -82,8 +84,9 @@ Pendiente, en orden sugerido:
    18→19**: decisión de arquitectura, el stack aprobado en `CLAUDE.md` dice React 18 →
    escalar a Opus), #54 (tailwind-merge 2→3), #52 (@types/node 20→26). Si no conviene
    actualizar todavía, se cierran y Dependabot los re-abre más adelante.
-5. **Mejoras post-Fase 2** (`tasks/MEJORAS.md`): MEJ-4 (identidad de persona, la más grande),
-   MEJ-1/MEJ-2 (necesitan aprobar deps nuevas). Baja prioridad.
+5. **Otras mejoras post-Fase 2** (`tasks/MEJORAS.md`): MEJ-4 Parte B (personas sin cuenta,
+   requiere cerrar diseño), MEJ-1/MEJ-2 (necesitan aprobar deps nuevas), MEJ-10 (refactor menor).
+   Baja prioridad.
 
 ## Plantilla de ticket
 
