@@ -117,6 +117,21 @@ casos que la heurística no puede adivinar (apodos, "José" vs "Pepito", "Perez 
 > el concepto de **"miembro/persona del grupo sin cuenta de usuario"**. Por eso vive acá, junto a la
 > identidad de persona, y NO se improvisa: **Opus cierra el diseño con el usuario antes de codear.**
 
+## Casos de uso que lo motivan (observaciones del usuario, 2026-07-06)
+Estos tres pedidos concretos caen todos sobre este mismo modelo de identidad y **se diseñan juntos**:
+1. **Efectivo por defecto (seed).** Hoy no se seedea ningún medio (solo categorías, B6); el usuario
+   tiene que crear "Efectivo" a mano. Se quiere que exista por defecto.
+2. **Dueño del efectivo.** El efectivo, como cualquier medio, deduce la persona de su titular/owner.
+   Que tenga dueño implica decidir si es **uno por persona** (seed por miembro) o uno genérico cuyo
+   dueño se elige.
+3. **Cargar efectivo (o cualquier gasto) de alguien que NO es miembro.** Hoy no hay forma → el
+   movimiento queda **sin persona**. Este es exactamente el núcleo de la Parte B (persona sin cuenta).
+
+> Nota: (1) y (2) con dueño = **un miembro existente** se pueden hacer sin la Parte B completa (seed
+> de un "Efectivo" por miembro con `owner_member_id`). Pero (3) —y "efectivo de un no-miembro"—
+> necesitan el modelo de persona sin cuenta. Decidir al cerrar el diseño si se parte en dos (seed de
+> efectivo primero, persona sin cuenta después) o se hace junto.
+
 ## Decisiones ya tomadas
 - **Alcance: a nivel GRUPO** (persistido en DB, lo ven todos). El equivalente "solo para mí" es el
   apodo de MEJ-8; esto es distinto.
@@ -151,6 +166,13 @@ casos que la heurística no puede adivinar (apodos, "José" vs "Pepito", "Perez 
    no-miembro (`name:<normalizado>`) en persona del grupo (`member:<id>`), hay que **remapear** las
    filas de `persona_aliases` de esa clave vieja a la nueva (migración/handler pequeño dentro de B),
    para no "perder" el apodo. Anotado como dependencia inversa MEJ-8 → MEJ-4.
+7. **Efectivo por defecto (2026-07-06).** ¿Se seedea un "Efectivo" por miembro al unirse (con
+   `owner_member_id`) o uno genérico por workspace? ¿Migración/trigger de seed? ¿Y cómo se ata al
+   flujo de "cargar efectivo de un no-miembro" (que necesita persona sin cuenta)? Decidir si el seed
+   de efectivo por-miembro se adelanta como paso independiente.
+8. **Cargar movimiento de una persona sin cuenta desde el alta.** Hoy el form deduce la persona del
+   medio y no hay selector de persona. Definir la UX para atribuir un movimiento (efectivo o no) a una
+   persona del grupo sin cuenta al darlo de alta (crear la persona en el momento, elegirla, etc.).
 
 ## Criterios de aceptación (Parte B — preliminares, afinar al cerrar diseño)
 - [ ] El usuario puede marcar/crear una "persona del grupo sin cuenta" y asociarle titulares/medios.

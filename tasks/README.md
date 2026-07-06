@@ -67,24 +67,55 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 - ✅ `BUG-11` El modal "Nuevo grupo" se posicionaba mal al abrirlo desde el "+" del Header
   (`backdrop-blur` = containing block para `fixed`) — _hecho (PR #63, portal a `document.body`,
   `tasks/done/`)_
+- `BUG-12` Editar un movimiento lleva al tope de la página (form arriba + foco en monto). Fix: form
+  de edición en modal. Reportado 2026-07-06, `tasks/BUG-12-editar-movimiento-scroll-al-tope.md`.
+- `BUG-13` Los movimientos **sin medio** no se pueden encontrar (filtro por persona `!inner` +
+  búsqueda solo por `description`). Reportado 2026-07-06,
+  `tasks/BUG-13-movimientos-sin-medio-no-buscables.md`.
+- `BUG-14` Editar el banco de un medio no se refleja en su nombre mostrado (`name` congelado del alta
+  por resumen; las listas muestran `name`, no `accountLabel`). Reportado 2026-07-06,
+  `tasks/BUG-14-medio-nombre-congelado-no-refleja-banco.md`.
+
+**Mejoras / ingesta (nuevas, 2026-07-06)**
+- `MEJ-11` Reportes: desglose de categorías al ver por persona — `tasks/MEJ-11-reportes-categorias-por-persona.md`.
+- `F2-14` Parser del resumen de Banco Nación (BNA) + banco no reconocido (bloqueado en el texto real
+  anonimizado; helper `samples/resumenes-privados/extract_text.py`) — `tasks/F2-14-parser-resumen-bna.md`.
+
+## Observaciones de uso (2026-07-06) — agrupadas, ORDEN A DECIDIR
+
+Lote de cosas notadas usando la app. Se agrupan por naturaleza; **el orden de trabajo se decide con
+el usuario** (no fijado todavía).
+
+- **Grupo A — arreglos chicos e independientes (sin diseño):** `BUG-12` (editar en modal),
+  `BUG-13` (buscar movimientos sin medio), `BUG-14` (banco editado no se ve), `MEJ-11` (categorías
+  por persona en reportes).
+- **Grupo B — ingesta, bloqueado en sample:** `F2-14` (parser BNA + banco), se junta con `BUG-10`
+  (ambos esperan texto real anonimizado de resúmenes/comprobantes).
+- **Grupo C — identidad/efectivo/persona sin cuenta (DISEÑO):** efectivo por defecto + dueño +
+  cargar movimiento de un no-miembro → todo dentro de **MEJ-4 Parte B** (ver "Casos de uso que lo
+  motivan" y "Decisiones pendientes 7-8" en `tasks/MEJ-4-alias-titulares.md`). Requiere sesión de
+  diseño con Opus antes de codear.
 
 ## Orden de resolución recomendado (actualizado 2026-07-05)
 
 Ya hechos y mergeados: **BUG-6** (#60), **REF-1**/`Fab` muerto (#61), **BUG-7+8+9** (#62),
-**BUG-11** (#63) y **MEJ-4 Parte A** (#64, migración 0017 aplicada en remoto). Pendiente, en
-orden sugerido:
+**BUG-11** (#63) y **MEJ-4 Parte A** (#64, migración 0017 aplicada en remoto).
 
-1. **MEJ-4 Parte A — slice 2**: prompt inline al dar de alta ("¿es la misma persona que X?",
-   AC3 del ticket). Follow-up de la feature ya mergeada. Ver `tasks/MEJ-4-alias-titulares.md`.
-2. **Triage Dependabot — tanda de bajo riesgo**: mergear (con CI verde) #48/#49/#50
+> **Sin mergear:** `PR #65` — MEJ-4 Parte A **slice 2** (prompt inline "¿es la misma persona que
+> X?"). CI verde; espera prueba local del usuario + merge. Es lo que quedó "a medias".
+
+> El lote nuevo de "Observaciones de uso (2026-07-06)" (Grupos A/B/C, arriba) todavía **no tiene
+> orden asignado** — se decide con el usuario. Lo de abajo es el orden previo (pre-observaciones).
+
+1. **Triage Dependabot — tanda de bajo riesgo**: mergear (con CI verde) #48/#49/#50
    (GitHub Actions del CI) y #51 (grupo minor-and-patch de npm).
-3. **BUG-10** cuando el usuario provea texto real (anonimizado) de los comprobantes de
+2. **BUG-10** cuando el usuario provea texto real (anonimizado) de los comprobantes de
    Naranja X, BNA y Mercado Pago — hoy está bloqueado en eso.
-4. **Triage Dependabot — majors (decisión + prueba local, uno por uno)**: #53 (**React
+3. **Triage Dependabot — majors (decisión + prueba local, uno por uno)**: #53 (**React
    18→19**: decisión de arquitectura, el stack aprobado en `CLAUDE.md` dice React 18 →
    escalar a Opus), #54 (tailwind-merge 2→3), #52 (@types/node 20→26). Si no conviene
    actualizar todavía, se cierran y Dependabot los re-abre más adelante.
-5. **Otras mejoras post-Fase 2** (`tasks/MEJORAS.md`): MEJ-4 Parte B (personas sin cuenta,
+4. **Otras mejoras post-Fase 2** (`tasks/MEJORAS.md`): MEJ-4 Parte B (personas sin cuenta,
    requiere cerrar diseño), MEJ-1/MEJ-2 (necesitan aprobar deps nuevas), MEJ-10 (refactor menor).
    Baja prioridad.
 
