@@ -35,7 +35,7 @@ app/
     llm_extract.py   prompt + parseo/validación/merge del fallback por visión (F2-12), agnóstico de proveedor
     statements.py    parse_statement_text(text) → StatementParse: dispatcher por plantilla (F2-3)
     patagonia.py     parser tabular Patagonia (Visa/Master/CR): filas por tarjeta, cuotas, pagos (F2-3)
-    nativa_nacion.py parser Nativa-Nación (Mastercard, Banco Nación): grupos por titular/adicional (F2-3b)
+    nativa_nacion.py parser Banco Nación Mastercard (Nativa Internacional + MasterCard Black): grupos por titular/adicional (F2-3b/F2-14)
 tests/               pytest: health, auth, contrato, límite, comprobantes (F2-2) y resúmenes (F2-3/F2-3b)
   fixtures/          textos ANONIMIZADOS de resúmenes para los tests (nunca PDFs reales)
 Dockerfile           Python 3.12 + Tesseract (es/en)

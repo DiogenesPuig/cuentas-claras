@@ -1,4 +1,9 @@
-"""Parser del resumen de Nativa Internacional (Banco Nación, Mastercard).
+"""Parser del resumen de Banco Nación, Mastercard (Nativa Internacional y MasterCard Black).
+
+Mismo layout y misma entidad (CUIT 30-50001091-2); la única diferencia observada es el
+encabezado del detalle: "DETALLE DEL MES" (Nativa) vs "DETALLES DEL MES" (MasterCard Black,
+F2-14). Se aceptan ambos vía `_DETAIL_HEADER`.
+
 
 Lógica PURA sobre el texto ya extraído (sin pdfplumber/IO): se testea con un
 fixture de texto anonimizado. A diferencia de lo previsto en F2-3b, la capa de
@@ -43,6 +48,10 @@ _TOTAL = re.compile(
     r"^TOTAL\s+(?:TITULAR|ADICIONAL)\s+(?P<holder>.+?)\s+-?\d+,\d{2}\s+-?\d+,\d{2}\s*$",
     re.IGNORECASE,
 )
+# Encabezado que abre el detalle por tarjeta. Banco Nación lo imprime en singular
+# ("DETALLE DEL MES", Nativa Internacional) o en plural ("DETALLES DEL MES", MasterCard
+# Black BNA) — mismo layout, misma entidad (F2-14). Aceptamos ambos.
+_DETAIL_HEADER = re.compile(r"DETALLES?\s+DEL\s+MES", re.IGNORECASE)
 _CLOSE = re.compile(
     r"Estado\s+de\s+cuenta\s+al\s*:?\s*(\d{1,2})-([A-Za-z]{3})-(\d{2})", re.IGNORECASE
 )
@@ -70,8 +79,8 @@ def _normalize_holder(raw: str) -> str:
 
 
 def matches(text: str) -> bool:
-    """¿El texto parece un resumen de Nativa-Nación (Mastercard)?"""
-    return "DETALLE DEL MES" in text and "NRO CUPON" in text
+    """¿El texto parece un resumen de Banco Nación (Nativa Internacional o MasterCard Black)?"""
+    return bool(_DETAIL_HEADER.search(text)) and "NRO CUPON" in text
 
 
 def _parse_amount(token: str) -> float | None:
@@ -167,7 +176,7 @@ def parse(text: str) -> StatementParse:
         # El detalle por tarjeta empieza después de este encabezado; antes está el
         # consolidado (con SU PAGO), que no se imputa a ninguna tarjeta.
         if not in_detail:
-            if "DETALLE DEL MES" in line:
+            if _DETAIL_HEADER.search(line):
                 in_detail = True
             continue
 
