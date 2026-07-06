@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import type { Category } from '@/features/categories';
 import {
   useGetOrCreateTransferAccount,
+  useUpdateHolderAliases,
   type Account,
   type MemberOption,
 } from '@/features/accounts';
@@ -14,8 +15,8 @@ import { matchMember } from '@/lib/member-match';
 import {
   bankFor,
   counterpartyFor,
-  findTransferAccount,
   holderFor,
+  matchTransferAccount,
   ownerSideFor,
   type TransferPartyInfo,
 } from '@/lib/transfer-account';
@@ -110,6 +111,9 @@ export function TransactionForm({
   // null = usar heurística; true/false = override manual del usuario (BUG-5).
   const [treatAsInstitutional, setTreatAsInstitutional] = useState<boolean | null>(null);
   const [creatingTransferAccount, setCreatingTransferAccount] = useState(false);
+  // MEJ-4A: titular para el que el usuario descartó el prompt "¿es la misma persona?" (dijo "no
+  // es la misma") → deja de sugerir y se crea el medio nuevo como siempre.
+  const [aliasDismissedFor, setAliasDismissedFor] = useState<string | null>(null);
   // Token de la creación de medio 'transfer' vigente (BUG-7): identifica cada corrida
   // para descartar respuestas de un titular que ya cambió.
   const transferRunRef = useRef(0);
@@ -117,6 +121,7 @@ export function TransactionForm({
   // rápido antes de que React refleje `disabled`.
   const submittingRef = useRef(false);
   const getOrCreateTransferAccount = useGetOrCreateTransferAccount(workspaceId);
+  const updateHolderAliases = useUpdateHolderAliases(workspaceId);
   const {
     register,
     handleSubmit,
@@ -134,6 +139,7 @@ export function TransactionForm({
     setOcrApplied(false);
     setTransferInfo(null);
     setTreatAsInstitutional(null);
+    setAliasDismissedFor(null);
     setDuplicateCandidates([]);
     setPendingSave(null);
   }, [transaction, reset]);
@@ -169,7 +175,17 @@ export function TransactionForm({
   // busca/crea SU medio `'transfer'` (uno por persona, no por persona+banco).
   const matchedMember = ownerHolder ? matchMember(ownerHolder, members ?? []) : null;
   const transferAccounts = accounts.filter((a) => a.type === 'transfer');
-  const transferMatch = findTransferAccount(ownerHolder, matchedMember?.id ?? null, transferAccounts);
+  const transferResult = matchTransferAccount(ownerHolder, matchedMember?.id ?? null, transferAccounts);
+  const transferMatch = transferResult.matched;
+  // MEJ-4A: candidato parecido (overlap parcial) cuando no hubo match fuerte → se ofrece unir.
+  const transferCandidate = transferMatch ? null : (transferResult.candidates[0] ?? null);
+  // ¿Mostrar el prompt "¿es la misma persona que <X>?" en vez de crear un medio nuevo?
+  const showAliasPrompt =
+    !effectiveIsInstitutional &&
+    !!ownerHolder &&
+    !accountId &&
+    !!transferCandidate &&
+    aliasDismissedFor !== ownerHolder;
 
   // Si el medio `'transfer'` de la persona ya existe, se asocia solo. Si no, se crea
   // lazy (sin pedirle al usuario que lo cree a mano) y se asocia el recién creado.
@@ -185,6 +201,9 @@ export function TransactionForm({
       setCreatingTransferAccount(false);
       return;
     }
+    // MEJ-4A: hay un titular parecido y el usuario todavía no decidió → esperar su respuesta al
+    // prompt "¿es la misma persona?" antes de crear un medio nuevo (evita el duplicado).
+    if (transferCandidate && aliasDismissedFor !== ownerHolder) return;
     if (!workspaceId) return;
 
     // Guard de carrera (BUG-7): cada creación toma un token y un flag `cancelled` propio.
@@ -207,7 +226,7 @@ export function TransactionForm({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transferMatch?.id, ownerHolder, matchedMember?.id, effectiveIsInstitutional]);
+  }, [transferMatch?.id, transferCandidate?.id, aliasDismissedFor, ownerHolder, matchedMember?.id, effectiveIsInstitutional]);
 
   // Banco del comprobante (F2-11): vive en el movimiento, no en el medio (el
   // usuario sigue pudiendo cambiarlo o borrarlo).
@@ -234,7 +253,23 @@ export function TransactionForm({
     setValue('accountId', d.accountId);
     setTransferInfo(null);
     setTreatAsInstitutional(null);
+    setAliasDismissedFor(null);
     setOcrApplied(false);
+  }
+
+  // MEJ-4A prompt "¿es la misma persona que <X>?": si confirma, asocia el medio existente y
+  // guarda el nombre detectado como alias (matching futuro; no mueve movimientos viejos).
+  function confirmAliasSuggestion() {
+    if (!transferCandidate || !ownerHolder) return;
+    setValue('accountId', transferCandidate.id);
+    updateHolderAliases.mutate(
+      { id: transferCandidate.id, aliases: [...transferCandidate.holder_aliases, ownerHolder] },
+      { onError: () => toast.error('No se pudo guardar el alias, pero el medio quedó asociado.') },
+    );
+  }
+
+  function dismissAliasSuggestion() {
+    if (ownerHolder) setAliasDismissedFor(ownerHolder);
   }
 
   async function handleExtract() {
@@ -481,6 +516,32 @@ export function TransactionForm({
               {creatingTransferAccount && ' Creando su medio "Transferencia"…'}
               {!workspaceId && !accountId && ' Falta el workspace activo para asignar el medio.'}
             </p>
+          )}
+          {/* MEJ-4A: titular parecido a uno existente → ofrecer unir antes de crear un medio nuevo. */}
+          {showAliasPrompt && transferCandidate && (
+            <div className="space-y-2 rounded-md border border-primary/40 bg-primary/5 p-2 text-xs">
+              <p>
+                <span className="font-medium">{ownerHolder}</span> se parece a{' '}
+                <span className="font-medium">{transferCandidate.holder_name}</span>, que ya tiene
+                medio. ¿Es la misma persona?
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={confirmAliasSuggestion}
+                  className="rounded-md bg-primary px-2.5 py-1 font-medium text-primary-foreground hover:opacity-90"
+                >
+                  Sí, es la misma
+                </button>
+                <button
+                  type="button"
+                  onClick={dismissAliasSuggestion}
+                  className="rounded-md border border-input px-2.5 py-1 font-medium hover:bg-accent"
+                >
+                  No, es otra persona
+                </button>
+              </div>
+            </div>
           )}
           {transferInfo && (
             <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">

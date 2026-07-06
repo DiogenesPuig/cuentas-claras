@@ -55,15 +55,27 @@ export interface TransferAccountLike extends AccountLike {
  *
  * Pura y testeable: opera sobre una forma mínima (no conoce el `Account` de la DB).
  */
-export function findTransferAccount<T extends TransferAccountLike>(
+export interface TransferAccountMatch<T> {
+  /** Único medio que matchea con confianza → se asocia directo. */
+  matched: T | null;
+  /** Medios parecidos (overlap parcial de titular) → candidatos a "¿es la misma persona?" (MEJ-4A). */
+  candidates: T[];
+}
+
+/**
+ * Igual que `findTransferAccount` pero devolviendo también los **candidatos** parecidos cuando no
+ * hay match fuerte (MEJ-4A): sirve para ofrecer el prompt inline "¿es la misma persona que <X>?"
+ * antes de crear un medio nuevo, y sumar el nombre detectado como alias si el usuario confirma.
+ */
+export function matchTransferAccount<T extends TransferAccountLike>(
   holder: string | null,
   matchedMemberId: string | null,
   transferAccounts: readonly T[],
-): T | null {
-  if (!holder) return null;
+): TransferAccountMatch<T> {
+  if (!holder) return { matched: null, candidates: [] };
   if (matchedMemberId) {
     const byMember = transferAccounts.find((a) => a.owner_member_id === matchedMemberId);
-    if (byMember) return byMember;
+    if (byMember) return { matched: byMember, candidates: [] };
     // Sin medio vinculado al miembro → seguir al match fuzzy por titular (BUG-8).
   }
   const matchable = accountsToMatchable(transferAccounts);
@@ -72,8 +84,19 @@ export function findTransferAccount<T extends TransferAccountLike>(
     matchable,
     { allowHolderOnlyMatch: true },
   );
-  if (!result.matched) return null;
-  return transferAccounts.find((a) => a.id === result.matched!.id) ?? null;
+  const byId = (id: string): T | null => transferAccounts.find((a) => a.id === id) ?? null;
+  return {
+    matched: result.matched ? byId(result.matched.id) : null,
+    candidates: result.candidates.map((c) => byId(c.id)).filter((a): a is T => a != null),
+  };
+}
+
+export function findTransferAccount<T extends TransferAccountLike>(
+  holder: string | null,
+  matchedMemberId: string | null,
+  transferAccounts: readonly T[],
+): T | null {
+  return matchTransferAccount(holder, matchedMemberId, transferAccounts).matched;
 }
 
 export interface TransferAccountDefaults {

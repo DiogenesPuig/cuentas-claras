@@ -10,6 +10,7 @@ const toastMock = vi.hoisted(() => ({ error: vi.fn(), warning: vi.fn(), success:
 vi.mock('sonner', () => ({ toast: toastMock }));
 
 const getOrCreateTransferAccountMock = vi.fn();
+const updateHolderAliasesMock = vi.fn();
 
 // Mockeamos el barrel completo (no `vi.importActual`: el barrel re-exporta `api.ts`, que
 // importa `lib/supabase` y rompe en CI sin las env vars — ver memoria del barrel). El único
@@ -17,6 +18,7 @@ const getOrCreateTransferAccountMock = vi.fn();
 // (se borran en compilación, no hace falta mockearlos).
 vi.mock('@/features/accounts', () => ({
   useGetOrCreateTransferAccount: () => ({ mutateAsync: getOrCreateTransferAccountMock }),
+  useUpdateHolderAliases: () => ({ mutate: updateHolderAliasesMock }),
 }));
 
 function makeAccount(overrides: Partial<Account>): Account {
@@ -378,6 +380,95 @@ describe('TransactionForm', () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(screen.getByLabelText('Medio (opcional)')).toHaveValue('acc-maria');
+  });
+
+  it('ofrece unir a un titular parecido y, al confirmar, asocia su medio + guarda el alias (MEJ-4A)', async () => {
+    const juanAccount = makeAccount({
+      id: 'acc-juan',
+      type: 'transfer',
+      holder_name: 'Juan Pérez',
+      holder_aliases: [],
+    });
+    updateHolderAliasesMock.mockClear();
+    const onExtractReceipt = vi.fn().mockResolvedValue({
+      ...TRANSFER_RECEIPT,
+      origin_holder: 'Juan Gómez',
+      origin_bank: 'Banco X',
+      dest_holder: 'Otro',
+      dest_bank: null,
+    });
+    renderWithQueryClient(
+      <TransactionForm
+        categories={[]}
+        accounts={[juanAccount]}
+        onSubmit={vi.fn()}
+        onExtractReceipt={onExtractReceipt}
+        workspaceId="ws-1"
+      />,
+    );
+
+    await userEvent.upload(
+      screen.getByLabelText('Comprobante (opcional)'),
+      new File(['x'], 'transf.jpg', { type: 'image/jpeg' }),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Extraer datos del comprobante' }));
+
+    // Aparece el prompt "¿es la misma persona?" (Juan Gómez ~ Juan Pérez).
+    await screen.findByText(/¿Es la misma persona\?/i);
+    await userEvent.click(screen.getByRole('button', { name: 'Sí, es la misma' }));
+
+    // Asocia el medio existente y persiste "Juan Gómez" como alias (matching futuro).
+    await waitFor(() => {
+      expect(screen.getByLabelText('Medio (opcional)')).toHaveValue('acc-juan');
+    });
+    expect(updateHolderAliasesMock).toHaveBeenCalledWith(
+      { id: 'acc-juan', aliases: ['Juan Gómez'] },
+      expect.anything(),
+    );
+  });
+
+  it('si el usuario dice "no es la misma persona", crea el medio nuevo (MEJ-4A)', async () => {
+    const juanAccount = makeAccount({
+      id: 'acc-juan',
+      type: 'transfer',
+      holder_name: 'Juan Pérez',
+      holder_aliases: [],
+    });
+    getOrCreateTransferAccountMock.mockClear();
+    getOrCreateTransferAccountMock.mockResolvedValueOnce(
+      makeAccount({ id: 'acc-nuevo', type: 'transfer', holder_name: 'Juan Gómez' }),
+    );
+    const onExtractReceipt = vi.fn().mockResolvedValue({
+      ...TRANSFER_RECEIPT,
+      origin_holder: 'Juan Gómez',
+      origin_bank: 'Banco X',
+      dest_holder: 'Otro',
+      dest_bank: null,
+    });
+    renderWithQueryClient(
+      <TransactionForm
+        categories={[]}
+        accounts={[juanAccount]}
+        onSubmit={vi.fn()}
+        onExtractReceipt={onExtractReceipt}
+        workspaceId="ws-1"
+      />,
+    );
+
+    await userEvent.upload(
+      screen.getByLabelText('Comprobante (opcional)'),
+      new File(['x'], 'transf.jpg', { type: 'image/jpeg' }),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Extraer datos del comprobante' }));
+    await screen.findByText(/¿Es la misma persona\?/i);
+    await userEvent.click(screen.getByRole('button', { name: 'No, es otra persona' }));
+
+    await waitFor(() => {
+      expect(getOrCreateTransferAccountMock).toHaveBeenCalledWith({
+        ownerMemberId: null,
+        holderName: 'Juan Gómez',
+      });
+    });
   });
 
   it('un doble click rápido en guardar no dispara dos altas (BUG-9)', async () => {
