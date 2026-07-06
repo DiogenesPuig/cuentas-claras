@@ -79,8 +79,8 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 **Mejoras / ingesta (nuevas, 2026-07-06)**
 - `MEJ-11` Reportes: desglose de categorías al ver por persona — `tasks/MEJ-11-reportes-categorias-por-persona.md`.
 - ✅ `F2-14` Parser del resumen de Banco Nación (BNA MasterCard Black) + banco no reconocido — _hecho
-  (PR #66: el header venía en plural "DETALLES DEL MES"; `tasks/done/`). **Pendiente: redeploy del
-  micro al Space de Hugging Face** para que corra en prod (el fix es del micro, no del front)._
+  (PR #66: el header venía en plural "DETALLES DEL MES"; `tasks/done/`). **Micro redeployado al Space
+  de Hugging Face y verificado en prod (2026-07-07): reconoce el banco.**_
 
 ## Observaciones de uso (2026-07-06) — agrupadas, ORDEN A DECIDIR
 
