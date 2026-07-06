@@ -43,7 +43,7 @@ function parseErrorMessage(err: unknown): string {
   if (err instanceof IngestaError) {
     if (err.status === 401) return 'Sesión inválida para el servicio de ingesta. Reingresá y reintentá.';
     if (err.status === 422)
-      return 'No pudimos leer el resumen: contraseña incorrecta o formato no soportado (por ahora: Banco Patagonia Visa/Master).';
+      return 'No pudimos leer el resumen: contraseña incorrecta o formato no soportado (por ahora: Banco Patagonia Visa/Master y Banco Nación Mastercard).';
     if (!err.status) return err.message; // falta URL del micro / red
     return `El servicio respondió ${err.status}.`;
   }

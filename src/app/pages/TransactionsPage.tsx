@@ -152,8 +152,8 @@ export function TransactionsPage() {
             </button>
           </div>
           <p className="text-sm text-muted-foreground">
-            Subí el PDF del resumen de tarjeta (Banco Patagonia Visa/Master), revisá los movimientos
-            detectados y confirmalos en bloque.
+            Subí el PDF del resumen de tarjeta (Banco Patagonia Visa/Master o Banco Nación
+            Mastercard), revisá los movimientos detectados y confirmalos en bloque.
           </p>
           <StatementImport workspaceId={workspaceId} />
         </div>

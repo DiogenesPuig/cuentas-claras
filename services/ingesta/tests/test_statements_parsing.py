@@ -17,6 +17,7 @@ from app.parsing.statements import UnsupportedStatementError, parse_statement_te
 
 FIXTURE = (Path(__file__).parent / "fixtures" / "patagonia_tabular.txt").read_text(encoding="utf-8")
 NATIVA = (Path(__file__).parent / "fixtures" / "nativa_nacion.txt").read_text(encoding="utf-8")
+BNA = (Path(__file__).parent / "fixtures" / "bna_mastercard.txt").read_text(encoding="utf-8")
 
 
 def test_matches_patagonia() -> None:
@@ -146,6 +147,45 @@ def test_nativa_rows_adicional_with_refund() -> None:
     assert devol.kind == "refund"  # importe negativo en el origen
     assert devol.amount == 5000.0  # magnitud positiva; el signo lo aplica el front
     assert devol.ref == "01122"
+
+
+# --- Banco Nación MasterCard Black: mismo layout que Nativa pero header "DETALLES" (F2-14) ---
+
+
+def test_matches_bna_and_dispatch() -> None:
+    # El encabezado del detalle viene en PLURAL ("DETALLES DEL MES"); antes esto no se
+    # reconocía y el resumen quedaba como formato no soportado (sin banco → medio vacío).
+    assert nativa_nacion.matches(BNA) is True
+    assert patagonia.matches(BNA) is False
+    # No debe romper el otro formato (singular).
+    assert nativa_nacion.matches(NATIVA) is True
+
+
+def test_bna_cards_bank_and_close() -> None:
+    res = parse_statement_text(BNA)
+    assert res.statement_close_on == "2026-06-25"
+    # Titular + dos adicionales (uno sin consumos).
+    assert len(res.cards) == 3
+    for c in res.cards:
+        assert c.account_hint.bank == "Banco Nación"  # el bug era este: quedaba sin banco
+        assert c.account_hint.network == "mastercard"
+        assert c.account_hint.last4 is None
+        assert c.account_hint.holder  # el titular se extrae (nombre imperfecto, ver limitación)
+
+
+def test_bna_rows_and_refund() -> None:
+    res = parse_statement_text(BNA)
+    titular = res.cards[0]
+    assert len(titular.rows) == 2
+    assert round(sum(r.amount for r in titular.rows), 2) == 26070.00  # == TOTAL TITULAR
+
+    tercero = res.cards[2]
+    cuota = tercero.rows[1]
+    assert cuota.description == "AEROLINEA EJEMPLO"
+    assert (cuota.installment.n, cuota.installment.total) == (6, 6)
+    devol = tercero.rows[-1]
+    assert devol.kind == "refund"
+    assert devol.amount == 3000.0
 
 
 # --- Route (mockeando la extracción del PDF) -------------------------------
