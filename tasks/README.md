@@ -76,8 +76,12 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
   por resumen; las listas muestran `name`, no `accountLabel`). Reportado 2026-07-06,
   `tasks/BUG-14-medio-nombre-congelado-no-refleja-banco.md`.
 
-**Mejoras / ingesta (nuevas, 2026-07-06)**
+**Mejoras / ingesta (nuevas, 2026-07-06/07)**
 - `MEJ-11` Reportes: desglose de categorías al ver por persona — `tasks/MEJ-11-reportes-categorias-por-persona.md`.
+- `MEJ-12` Efectivo por defecto: un medio "Efectivo" por miembro con dueño (Etapa 1 de identidad/efectivo,
+  diseño cerrado 2026-07-07) — `tasks/MEJ-12-efectivo-por-miembro.md`.
+- `MEJ-1` Date-picker con calendario — **dep `react-day-picker` APROBADA (2026-07-07)**, lista para implementar (`tasks/MEJORAS.md`).
+- `MEJ-2` Reordenar secciones de Reportes (drag & drop) — **dep `@dnd-kit` APROBADA (2026-07-07)**, versión DnD (`tasks/MEJORAS.md`).
 - ✅ `F2-14` Parser del resumen de Banco Nación (BNA MasterCard Black) + banco no reconocido — _hecho
   (PR #66: el header venía en plural "DETALLES DEL MES"; `tasks/done/`). **Micro redeployado al Space
   de Hugging Face y verificado en prod (2026-07-07): reconoce el banco.**_
@@ -92,33 +96,31 @@ el usuario** (no fijado todavía).
   por persona en reportes).
 - **Grupo B — ingesta, bloqueado en sample:** `F2-14` (parser BNA + banco), se junta con `BUG-10`
   (ambos esperan texto real anonimizado de resúmenes/comprobantes).
-- **Grupo C — identidad/efectivo/persona sin cuenta (DISEÑO):** efectivo por defecto + dueño +
-  cargar movimiento de un no-miembro → todo dentro de **MEJ-4 Parte B** (ver "Casos de uso que lo
-  motivan" y "Decisiones pendientes 7-8" en `tasks/MEJ-4-alias-titulares.md`). Requiere sesión de
-  diseño con Opus antes de codear.
+- **Grupo C — identidad/efectivo/persona sin cuenta — DISEÑO CERRADO (2026-07-07).** Se parte en 2:
+  - **Etapa 1 → `MEJ-12`**: efectivo por miembro (dueño = miembro existente). No toca el modelo de
+    identidad; lista para implementar.
+  - **Etapa 2 → `MEJ-4` Parte B**: persona sin cuenta = **miembro placeholder** (`user_id NULL`) +
+    selector de persona en el alta + promoción a cuenta real. Migración en `workspace_members` + RLS.
+    Decisiones cerradas en `tasks/MEJ-4-alias-titulares.md`; quedan detalles a afinar al implementar.
 
 ## Orden de resolución recomendado (actualizado 2026-07-05)
 
 Ya hechos y mergeados: **BUG-6** (#60), **REF-1**/`Fab` muerto (#61), **BUG-7+8+9** (#62),
-**BUG-11** (#63) y **MEJ-4 Parte A** (#64, migración 0017 aplicada en remoto).
+**BUG-11** (#63), **MEJ-4 Parte A** completa (#64 + #65 slice 2, migración 0017 en remoto) y
+**F2-14** (#66, micro redeployado a HF).
 
-> **Sin mergear:** `PR #65` — MEJ-4 Parte A **slice 2** (prompt inline "¿es la misma persona que
-> X?"). CI verde; espera prueba local del usuario + merge. Es lo que quedó "a medias".
+**Decisiones de dependencias (cerradas 2026-07-07):**
+- **React se mantiene en 18** → PR #53 (React 19) **cerrado**. Subir a 19 solo con un ticket dedicado.
+- **tailwind-merge 2→3 (#54) y @types/node 20→26 (#52): se aguantan** → PRs **cerrados**.
+- **`react-day-picker` (MEJ-1) y `@dnd-kit` (MEJ-2): APROBADAS** → ambas mejoras quedan implementables.
 
-> El lote nuevo de "Observaciones de uso (2026-07-06)" (Grupos A/B/C, arriba) todavía **no tiene
-> orden asignado** — se decide con el usuario. Lo de abajo es el orden previo (pre-observaciones).
-
-1. **Triage Dependabot — tanda de bajo riesgo**: mergear (con CI verde) #48/#49/#50
-   (GitHub Actions del CI) y #51 (grupo minor-and-patch de npm).
+1. **Triage Dependabot — tanda de bajo riesgo** (pendiente, no decisión): mergear (con CI verde)
+   #48/#49/#50 (GitHub Actions del CI) y #51 (grupo minor-and-patch de npm).
 2. **BUG-10** cuando el usuario provea texto real (anonimizado) de los comprobantes de
    Naranja X, BNA y Mercado Pago — hoy está bloqueado en eso.
-3. **Triage Dependabot — majors (decisión + prueba local, uno por uno)**: #53 (**React
-   18→19**: decisión de arquitectura, el stack aprobado en `CLAUDE.md` dice React 18 →
-   escalar a Opus), #54 (tailwind-merge 2→3), #52 (@types/node 20→26). Si no conviene
-   actualizar todavía, se cierran y Dependabot los re-abre más adelante.
-4. **Otras mejoras post-Fase 2** (`tasks/MEJORAS.md`): MEJ-4 Parte B (personas sin cuenta,
-   requiere cerrar diseño), MEJ-1/MEJ-2 (necesitan aprobar deps nuevas), MEJ-10 (refactor menor).
-   Baja prioridad.
+3. **Todo lo demás con diseño/decisión ya cerrado y listo para ejecutar** (orden fino a acordar):
+   Grupo A (`BUG-12/13/14`, `MEJ-11`), `MEJ-12` (efectivo etapa 1), `MEJ-1`/`MEJ-2` (deps aprobadas),
+   luego `MEJ-4` Parte B (etapa 2, la más grande) y `MEJ-10` (refactor menor).
 
 ## Plantilla de ticket
 

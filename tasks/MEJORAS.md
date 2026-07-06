@@ -37,6 +37,7 @@ aprobar) siguen pendientes y de baja prioridad.
   del locale del navegador, no forzable) a input de texto con conversión a ISO vía
   `isoToDisplayDate`/`displayToIsoDate` (`src/features/transactions/format.ts`). El trade-off
   fue **perder el calendario nativo**.
+- **Dependencia APROBADA (2026-07-07):** `react-day-picker` habilitada (falta instalarla al trabajar el ticket). Ya se puede implementar.
 - **A tener en cuenta:** el `Calendar` de shadcn requiere la dependencia `react-day-picker`,
   que **no está en el stack aprobado** de `CLAUDE.md` → hay que aprobar la dependencia antes
   (regla "no agregar deps sin justificar"). La conversión ISO↔display ya existe y se reutiliza;
@@ -49,10 +50,10 @@ aprobar) siguen pendientes y de baja prioridad.
   (localStorage o preferencia por usuario).
 - **Contexto:** pedido del usuario (2026-06-23) junto con el rediseño general/detalle + anual.
   El layout actual es fijo (orden: general → detalle → mes a mes → anual).
-- **A tener en cuenta:** requiere una librería de drag & drop (ej. `@dnd-kit/*`) que **no está
-  en el stack aprobado** de `CLAUDE.md` → aprobar la dependencia antes (regla "no agregar deps
-  sin justificar"). Alternativa sin dep: botones "subir/bajar" por sección (más barato, sin DnD).
-- **Origen:** pedido del usuario, marcado por él mismo como **opcional**.
+- **Dependencia APROBADA (2026-07-07):** `@dnd-kit/*` habilitada → se implementa la versión con
+  **drag & drop** (falta instalarla al trabajar el ticket). La alternativa sin dep (botones
+  subir/bajar) queda descartada.
+- **Origen:** pedido del usuario, marcado por él mismo como **opcional** (baja prioridad).
 
 ### ~~MEJ-3~~ — ✅ Mensaje de bienvenida "¡Hola, &lt;nombre&gt;!" — _hecho (PR #43)_
 - Componente `WelcomeGreeting` (nombre del perfil con fallback al email) en el `Header` y en

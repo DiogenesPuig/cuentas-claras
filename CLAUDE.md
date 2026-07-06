@@ -20,6 +20,10 @@ Ante cualquier duda de alcance o diseño, estos documentos mandan sobre suposici
 
 Vite + React 18 + **TypeScript (strict)** · Supabase (Postgres + Auth + Storage + **RLS**) · TanStack Query · Zustand (mínimo) · react-router-dom · Tailwind + shadcn/ui · react-hook-form + zod · Recharts · date-fns · Vitest + Testing Library.
 
+**Aprobadas (2026-07-07), aún sin instalar hasta que se trabaje su ticket:** `react-day-picker` (MEJ-1, date-picker calendario) y `@dnd-kit/*` (MEJ-2, reordenar secciones de Reportes).
+
+React **se mantiene en 18** (decisión 2026-07-07): no subir a 19 salvo un ticket dedicado de upgrade.
+
 No agregar dependencias fuera de esta lista sin justificarlo y escalar la decisión (ver "Política de modelos").
 
 ## Estructura

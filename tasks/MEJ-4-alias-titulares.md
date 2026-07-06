@@ -139,7 +139,22 @@ Estos tres pedidos concretos caen todos sobre este mismo modelo de identidad y *
   que un caso común es que esa persona **se una a la app más adelante**. Al hacerlo, debe **conservar
   toda su historia** (medios, movimientos, apodos) sin migrar datos. Esto inclina el modelo a (a).
 
-## Decisiones de diseño PENDIENTES (cerrar con Opus + usuario)
+## Decisiones CERRADAS (2026-07-07, con Opus + usuario)
+- **Modelo de datos → (a) miembro placeholder** en `workspace_members` con `user_id NULL` + un nombre
+  propio (los placeholders no tienen `profile`). Verificado que es viable: `user_id` es hoy NOT NULL y
+  `is_member()` compara contra `auth.uid()`, así que un placeholder (`user_id NULL`) **nunca da acceso**.
+  Migración: `user_id` → nullable + columna de nombre (ej. `placeholder_name`); revisar `member_directory`
+  (surface del nombre del placeholder) y todo lo que asuma `user_id` no nulo. Promoción = setear `user_id`
+  en la misma fila.
+- **Efectivo → uno por persona con dueño**: seed de un medio "Efectivo" por miembro (owner = ese miembro).
+- **Alcance → en 2 etapas.** **Etapa 1** (ticket propio, ver `tasks/MEJ-12-efectivo-por-miembro.md`):
+  efectivo con dueño = **miembro existente** (seed), sin tocar el modelo de identidad. **Etapa 2** = esta
+  Parte B (persona sin cuenta / placeholder), que habilita "efectivo (o gasto) de un no-miembro".
+- **Alta → con selector de persona**: el form podrá **elegir/crear** la "persona del grupo" cuando el
+  medio no la determine (efectivo genérico, gasto sin medio). Cambia el form (hoy la persona se deduce
+  del medio).
+
+## Decisiones de diseño que quedan por afinar (al implementar la Etapa 2)
 1. **Modelo de datos.** Dos caminos:
    - (a) **`workspace_members` con `user_id` NULL** (miembro "placeholder" sin cuenta): reusa toda la
      maquinaria de persona (los reportes ya agrupan por `owner_member_id`, F2-10). **Promoción trivial:**
