@@ -40,6 +40,7 @@ export type Database = {
           billing_close_day: number | null
           created_at: string
           currency: string
+          holder_aliases: string[]
           holder_name: string
           id: string
           is_archived: boolean
@@ -58,6 +59,7 @@ export type Database = {
           billing_close_day?: number | null
           created_at?: string
           currency?: string
+          holder_aliases?: string[]
           holder_name: string
           id?: string
           is_archived?: boolean
@@ -76,6 +78,7 @@ export type Database = {
           billing_close_day?: number | null
           created_at?: string
           currency?: string
+          holder_aliases?: string[]
           holder_name?: string
           id?: string
           is_archived?: boolean

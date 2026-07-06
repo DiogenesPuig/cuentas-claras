@@ -3,6 +3,7 @@ export {
   listMembersForHolder,
   createAccount,
   updateAccount,
+  updateHolderAliases,
   getOrCreateTransferAccount,
   type Account,
   type AccountType,
@@ -16,6 +17,7 @@ export {
   useMembersForHolder,
   useCreateAccount,
   useUpdateAccount,
+  useUpdateHolderAliases,
   useGetOrCreateTransferAccount,
   accountsKeys,
 } from './hooks';

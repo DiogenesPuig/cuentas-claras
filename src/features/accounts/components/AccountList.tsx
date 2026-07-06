@@ -3,16 +3,19 @@ import { useMyRole, type MemberRole } from '@/features/workspaces';
 import { useAccounts, useCreateAccount, useMembersForHolder, useUpdateAccount } from '../hooks';
 import type { Account, AccountInput } from '../api';
 import { AccountForm } from './AccountForm';
+import { HolderAliasesEditor } from './HolderAliasesEditor';
 
 const CAN_MANAGE_ROLES: readonly MemberRole[] = ['owner', 'admin'];
 
 function AccountRow({
   account,
   canManage,
+  workspaceId,
   onEdit,
 }: {
   account: Account;
   canManage: boolean;
+  workspaceId: string;
   onEdit: (account: Account) => void;
 }) {
   // TODO(B8/reportes): cuando `owner_member_id` exista, mostrar el nombre vivo del miembro
@@ -22,33 +25,49 @@ function AccountRow({
     .filter(Boolean)
     .join(' · ');
 
+  const isTransfer = account.type === 'transfer';
+
   return (
-    <li className="flex items-center justify-between gap-4 px-3 py-2 text-sm">
-      <div className="space-y-0.5">
-        <p className="font-medium">
-          {account.name}
-          {account.is_extension && (
-            <span className="ml-2 rounded bg-accent px-1.5 py-0.5 text-xs font-normal text-accent-foreground">
-              extensión
-            </span>
-          )}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {details || 'Sin detalles'}
-          {account.last4 && ` · ••${account.last4}`}
-          {' · '}
-          {account.currency}
-          {account.billing_close_day && ` · cierre día ${account.billing_close_day}`}
-        </p>
+    <li className="overflow-hidden rounded-lg border border-border bg-card text-sm shadow-sm transition-colors hover:border-primary/50 focus-within:border-primary/60">
+      <div className="flex items-center justify-between gap-4 px-3 py-2.5">
+        <div className="space-y-0.5">
+          <p className="flex flex-wrap items-center gap-2 font-medium">
+            {account.name}
+            {account.is_extension && (
+              <span className="rounded bg-accent px-1.5 py-0.5 text-xs font-normal text-accent-foreground">
+                extensión
+              </span>
+            )}
+            {isTransfer && (
+              <span className="rounded bg-primary/10 px-1.5 py-0.5 text-xs font-normal text-primary">
+                transferencia
+              </span>
+            )}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {details || 'Sin detalles'}
+            {account.last4 && ` · ••${account.last4}`}
+            {' · '}
+            {account.currency}
+            {account.billing_close_day && ` · cierre día ${account.billing_close_day}`}
+          </p>
+        </div>
+        {canManage && (
+          <button
+            type="button"
+            onClick={() => onEdit(account)}
+            className="shrink-0 text-xs font-medium text-primary hover:underline"
+          >
+            Editar
+          </button>
+        )}
       </div>
-      {canManage && (
-        <button
-          type="button"
-          onClick={() => onEdit(account)}
-          className="shrink-0 text-xs font-medium text-primary hover:underline"
-        >
-          Editar
-        </button>
+      {/* Alias de titular: solo tiene sentido en el medio 'transfer' (uno por persona, MEJ-4).
+          Sub-sección tintada dentro de la misma tarjeta para que se lea como parte de este medio. */}
+      {canManage && isTransfer && (
+        <div className="border-t border-border bg-muted/40 px-3 py-2">
+          <HolderAliasesEditor account={account} workspaceId={workspaceId} />
+        </div>
       )}
     </li>
   );
@@ -104,17 +123,20 @@ export function AccountList({ workspaceId }: AccountListProps) {
 
   return (
     <div className="space-y-4">
-      <ul className="divide-y divide-border rounded-md border border-border">
+      <ul className="space-y-2">
         {accountList.map((account) => (
           <AccountRow
             key={account.id}
             account={account}
             canManage={canManage}
+            workspaceId={workspaceId}
             onEdit={setEditing}
           />
         ))}
         {accountList.length === 0 && (
-          <li className="px-3 py-2 text-sm text-muted-foreground">Sin medios todavía.</li>
+          <li className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">
+            Sin medios todavía.
+          </li>
         )}
       </ul>
 

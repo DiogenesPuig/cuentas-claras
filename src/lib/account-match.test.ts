@@ -123,6 +123,33 @@ describe('matchAccount con allowHolderOnlyMatch (transferencias F2-9)', () => {
   });
 });
 
+describe('matchAccount con holder_aliases (MEJ-4)', () => {
+  it('un alias exacto de una sola palabra ("Pepito") resuelve el match', () => {
+    const accounts: MatchableAccount[] = [
+      { id: 'tr-jose', bank: null, network: null, last4: null, holderName: 'José Pérez', holderAliases: ['Pepito'] },
+    ];
+    const hint: AccountHint = { bank: null, network: null, last4: null, holder: 'Pepito' };
+    const res = matchAccount(hint, accounts, { allowHolderOnlyMatch: true });
+    expect(res.matched?.id).toBe('tr-jose');
+  });
+
+  it('variante de orden/tildes del nombre principal colapsa sola (sin alias)', () => {
+    const accounts: MatchableAccount[] = [
+      { id: 'tr-jose', bank: null, network: null, last4: null, holderName: 'José Pérez' },
+    ];
+    const hint: AccountHint = { bank: null, network: null, last4: null, holder: 'perez jose' };
+    expect(matchAccount(hint, accounts, { allowHolderOnlyMatch: true }).matched?.id).toBe('tr-jose');
+  });
+
+  it('una persona distinta NO matchea aunque el medio tenga alias', () => {
+    const accounts: MatchableAccount[] = [
+      { id: 'tr-jose', bank: null, network: null, last4: null, holderName: 'José Pérez', holderAliases: ['Pepito'] },
+    ];
+    const hint: AccountHint = { bank: null, network: null, last4: null, holder: 'María Gómez' };
+    expect(matchAccount(hint, accounts, { allowHolderOnlyMatch: true }).matched).toBeNull();
+  });
+});
+
 describe('accountDefaultsFromHint', () => {
   it('arma valores precargados para el alta inline', () => {
     const hint: AccountHint = { bank: 'Banco Patagonia', network: 'visa', last4: '1234', holder: 'JUAN PEREZ' };
@@ -176,6 +203,7 @@ describe('accountsToMatchable (REF-1: helper único, antes duplicado en Transact
         network: 'visa',
         last4: '5678',
         holderName: 'María Gómez',
+        holderAliases: [],
         isExtension: true,
       },
     ]);
