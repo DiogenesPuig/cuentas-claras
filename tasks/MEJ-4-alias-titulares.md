@@ -21,7 +21,17 @@
    solo él — eso lo confirmó el usuario el 2026-06-29; el apodo local es MEJ-8).
 
 ---
-# PARTE A — Alias de titulares (diseño cerrado, lista para implementar)
+# PARTE A — Alias de titulares (✅ implementada y mergeada — PR #64, 2026-07-06)
+
+> **Estado:** hecho salvo el **slice 2 (prompt inline, paso 6 / AC3)**, que queda como follow-up.
+> Entregado: migración 0017 `accounts.holder_aliases` (aplicada local + **remoto**), tipos y
+> `schema_fase1.sql` al día; matcher `account-match` con alias (overlap ≥2 **o** clave exacta);
+> `getOrCreateTransferAccount` unificado con `findTransferAccount` (auto-dedup base); UI de gestión
+> `HolderAliasesEditor` en Medios (con el rediseño de tarjetas). Tests verdes.
+> **Pendiente (slice 2):** el prompt inline "¿es la misma persona que X?" al detectar un titular
+> nuevo parecido a uno existente en el alta por comprobante (guardar alias + reusar el medio).
+
+## Diseño original (referencia)
 
 ## Causa raíz encontrada (2026-06-29)
 La lógica de nombres ya existe y es pura (`src/lib/name-match.ts`: `nameTokenOverlap` orden-indistinto,

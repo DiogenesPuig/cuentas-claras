@@ -70,12 +70,12 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 
 ## Orden de resolución recomendado (actualizado 2026-07-05)
 
-Ya hechos y mergeados: **BUG-6** (#60), **REF-1**/`Fab` muerto (#61), **BUG-7+8+9** (#62) y
-**BUG-11** (#63). Pendiente, en orden sugerido:
+Ya hechos y mergeados: **BUG-6** (#60), **REF-1**/`Fab` muerto (#61), **BUG-7+8+9** (#62),
+**BUG-11** (#63) y **MEJ-4 Parte A** (#64, migración 0017 aplicada en remoto). Pendiente, en
+orden sugerido:
 
-1. **MEJ-4 Parte A** (alias de titulares) — **PR #64 abierto**, esperando prueba local + merge.
-   Al mergear: `supabase db push` de la migración 0017 al remoto. Queda pendiente el **slice 2**
-   (prompt inline al dar de alta, AC3 del ticket) como follow-up.
+1. **MEJ-4 Parte A — slice 2**: prompt inline al dar de alta ("¿es la misma persona que X?",
+   AC3 del ticket). Follow-up de la feature ya mergeada. Ver `tasks/MEJ-4-alias-titulares.md`.
 2. **Triage Dependabot — tanda de bajo riesgo**: mergear (con CI verde) #48/#49/#50
    (GitHub Actions del CI) y #51 (grupo minor-and-patch de npm).
 3. **BUG-10** cuando el usuario provea texto real (anonimizado) de los comprobantes de
