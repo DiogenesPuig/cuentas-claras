@@ -126,6 +126,19 @@ micro igual valida el JWT de Supabase en cada request.
    El Space necesita escuchar en el puerto `7860`: agregá `app_port: 7860` en el
    frontmatter YAML del `README.md` del Space, o exponé ese puerto. El `CMD` ya lee
    `$PORT`, así que con `app_port: 7860` (HF setea `PORT=7860`) levanta solo.
+   > ⚠️ **Al actualizar el Space, NO sobreescribas su `README.md`**: la config del Space
+   > (SDK Docker, `app_port`) vive en el frontmatter YAML de ESE README, que este repo no
+   > tiene. Sincronizá todo MENOS el README, ej.:
+   > `rsync -a --delete --exclude .git --exclude README.md services/ingesta/ <clon-del-space>/`.
+   > Si ya lo pisaste, volvé a poner el frontmatter arriba del README del Space:
+   > ```
+   > ---
+   > title: Cuentas Claras Ingesta
+   > sdk: docker
+   > app_port: 7860
+   > pinned: false
+   > ---
+   > ```
 3. En **Settings → Variables and secrets** del Space:
    - Secret `SUPABASE_JWT_SECRET=<tu JWT secret de Supabase>` (o `SUPABASE_URL` para JWKS).
    - Variable `WEB_ORIGIN=http://localhost:5173` (sumá el dominio de tu web cuando lo tengas).
