@@ -64,6 +64,10 @@ texto, **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado, y *
   pedirle al usuario que lo cree a mano) **su** medio `'transfer'` vía
   `useGetOrCreateTransferAccount` (`features/accounts`); si no matchea a nadie, lo busca/crea por
   `holder_name`. El medio recién creado se selecciona solo apenas la mutación resuelve.
+  **MEJ-4A:** si no hay match fuerte pero hay un titular **parecido** (`matchTransferAccount`), en
+  vez de crear un medio nuevo ofrece un prompt inline "¿es la misma persona que &lt;X&gt;?"; al
+  confirmar, asocia ese medio y guarda el nombre detectado como **alias** (`useUpdateHolderAliases`,
+  matching futuro, no mueve movimientos); al descartar, crea el medio nuevo como siempre.
   Requiere `workspaceId`/`members` (opcionales; sin ellos, no se ofrece la atribución automática).
   Si recibe `onCheckDuplicates` (F2-13), antes de crear un alta **nueva** calcula el hash del archivo
   (`lib/file-hash`) y busca candidatos; si los hay, muestra un **aviso suave** ("Ya subiste este

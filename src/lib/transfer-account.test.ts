@@ -4,6 +4,7 @@ import {
   counterpartyFor,
   findTransferAccount,
   holderFor,
+  matchTransferAccount,
   ownerSideFor,
   transferAccountDefaults,
   type TransferAccountLike,
@@ -80,6 +81,42 @@ describe('findTransferAccount', () => {
   it('devuelve null si no hay ningún medio del titular', () => {
     const maria = acc({ id: 'acc-maria', holder_name: 'María Gómez' });
     expect(findTransferAccount('Juan Pérez', 'member-juan', [maria])).toBeNull();
+  });
+});
+
+describe('matchTransferAccount (MEJ-4A: candidatos)', () => {
+  function acc(overrides: Partial<TransferAccountLike>): TransferAccountLike {
+    return {
+      id: 'acc-1',
+      bank: null,
+      network: null,
+      last4: null,
+      holder_name: null,
+      is_extension: false,
+      owner_member_id: null,
+      ...overrides,
+    };
+  }
+
+  it('sin match fuerte, devuelve el titular parecido como candidato', () => {
+    const juan = acc({ id: 'acc-juan', holder_name: 'Juan Pérez' });
+    const res = matchTransferAccount('Juan Gómez', null, [juan]);
+    expect(res.matched).toBeNull();
+    expect(res.candidates.map((c) => c.id)).toEqual(['acc-juan']);
+  });
+
+  it('con match fuerte (orden/tildes) no ofrece candidatos', () => {
+    const juan = acc({ id: 'acc-juan', holder_name: 'Juan Pérez' });
+    const res = matchTransferAccount('Perez Juan', null, [juan]);
+    expect(res.matched?.id).toBe('acc-juan');
+    expect(res.candidates).toEqual([]);
+  });
+
+  it('sin ningún parecido, ni match ni candidatos', () => {
+    const juan = acc({ id: 'acc-juan', holder_name: 'Juan Pérez' });
+    const res = matchTransferAccount('María Gómez', null, [juan]);
+    expect(res.matched).toBeNull();
+    expect(res.candidates).toEqual([]);
   });
 });
 
