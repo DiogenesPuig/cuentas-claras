@@ -75,6 +75,8 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 - `BUG-14` Editar el banco de un medio no se refleja en su nombre mostrado (`name` congelado del alta
   por resumen; las listas muestran `name`, no `accountLabel`). Reportado 2026-07-06,
   `tasks/BUG-14-medio-nombre-congelado-no-refleja-banco.md`.
+- `BUG-15` Editar un medio abre el form al pie de toda la lista (debería ir pegado a la tarjeta).
+  Reportado 2026-07-07, `tasks/BUG-15-editar-medio-form-al-pie.md`.
 
 **Mejoras / ingesta (nuevas, 2026-07-06/07)**
 - `MEJ-11` Reportes: desglose de categorías al ver por persona — `tasks/MEJ-11-reportes-categorias-por-persona.md`.
