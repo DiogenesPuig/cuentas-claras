@@ -27,7 +27,10 @@ tipo, moneda, últimos 4 dígitos, holder (miembro o nombre) y, si es extensión
   (banco · red · ••últimos4 · (primeras 5 letras del dueño); cae al nombre si no hay datos de
   tarjeta, ej. efectivo), para distinguir tarjetas y titular/extensión. Excepción (F2-11): el medio
   `'transfer'` también agrega el dueño sin tener datos de tarjeta —si no, varias personas verían el
-  mismo "Transferencia" en el combo, sin forma de distinguirlas—. Pura.
+  mismo "Transferencia" en el combo, sin forma de distinguirlas—. También `accountDisplayName({name,
+  bank})` (BUG-14): para listas/filtros que muestran el `name` crudo, antepone el banco si está
+  seteado y el nombre no lo incluye (así un banco editado se ve aunque el `name` haya quedado
+  congelado del alta por resumen; no pisa nombres que ya lo contienen). Pura.
 - `components/AccountList.tsx` — lista plana de medios (extensiones como fila propia, marcadas);
   muestra el form de alta/edición solo si el usuario es owner/admin (`useMyRole`).
 - `components/AccountForm.tsx` — alta/edición de un medio: resuelve `owner_member_id` (si el

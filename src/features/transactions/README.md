@@ -28,7 +28,9 @@ texto, **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado, y *
   comprobante, y delega el motivo a `lib/duplicate-detect`). Sin React.
 - `filters.ts` — `TransactionFilters` (mes, medio, categoría, moneda, persona, texto) y
   `buildTransactionFilterArgs`: función pura que mapea esos filtros a los argumentos de la query
-  (rango `[occurredFrom, occurredTo)`, recorte de texto, etc.), sin tocar Supabase.
+  (rango `[occurredFrom, occurredTo)`, recorte de texto, etc.), sin tocar Supabase. El centinela
+  `NO_ACCOUNT_FILTER` ("Sin medio") mapea a `accountIsNull` → `account_id IS NULL` en la query, para
+  poder listar los movimientos sin medio (BUG-13, que si no quedaban inencontrables por el `!inner`).
 - `filters.test.ts` — tests de `buildTransactionFilterArgs`: mes→rango (incl. cruce de año),
   combinación con el resto de filtros, recorte/omisión de texto vacío.
 - `hooks.ts` — react-query: `useTransactions(workspaceId, filters?)` (la query key incluye
@@ -83,7 +85,8 @@ texto, **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado, y *
   medio), medio y fecha (B9). Link "Ver todos" a `/movimientos`.
 - `components/FilterBar.tsx` — filtros combinables de `/movimientos`: persona, medio y categoría
   (selects a partir de `accounts`/`categories`) y moneda (texto libre de 3 letras, igual que en
-  `TransactionForm`), con botón "Limpiar filtros" (B10).
+  `TransactionForm`), con botón "Limpiar filtros" (B10). El select de medio tiene la opción **"Sin
+  medio"** (`NO_ACCOUNT_FILTER`, BUG-13) y muestra los medios con `accountDisplayName` (BUG-14).
 - `components/SearchBar.tsx` — input de búsqueda por motivo; el debounce lo maneja quien la usa
   (`TransactionsPage`), el componente queda simple y controlado (B10).
 - `components/TransactionList.tsx` — lista de movimientos ya filtrados con el total arriba y el
