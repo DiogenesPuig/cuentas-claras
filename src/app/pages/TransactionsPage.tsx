@@ -4,6 +4,7 @@ import { useCategories } from '@/features/categories';
 import { useAccounts, useMembersForHolder } from '@/features/accounts';
 import { useMyRole, type MemberRole } from '@/features/workspaces';
 import { StatementImport } from '@/features/imports';
+import { Modal } from '@/components/Modal';
 import {
   EMPTY_FIELD_FILTERS,
   ExportButton,
@@ -159,31 +160,35 @@ export function TransactionsPage() {
         </div>
       )}
 
-      {isFormOpen && (
-        <div className="space-y-2 rounded-md border border-border p-4">
-          {formError && <p className="text-sm text-destructive">{formError}</p>}
-          <TransactionForm
-            transaction={editing ?? undefined}
-            categories={categories ?? []}
-            accounts={accounts ?? []}
-            workspaceId={workspaceId}
-            members={members ?? []}
-            onSubmit={handleSubmit}
-            onCancel={closeForm}
-            isSubmitting={
-              createTransaction.isPending ||
-              updateTransaction.isPending ||
-              uploadAttachment.isPending
-            }
-            onExtractReceipt={
-              import.meta.env.VITE_INGESTA_URL
-                ? (file) => extractReceipt.mutateAsync(file)
-                : undefined
-            }
-            onCheckDuplicates={(criteria) => findDuplicates.mutateAsync(criteria)}
-          />
-        </div>
-      )}
+      {/* Alta/edición en modal (BUG-12): así editar una fila de la lista no te tira al tope
+          de la página ni pierde el scroll; se puede modificar varios campos en contexto. */}
+      <Modal
+        open={isFormOpen}
+        onClose={closeForm}
+        title={editing ? 'Editar movimiento' : 'Nuevo movimiento'}
+      >
+        {formError && <p className="mb-2 text-sm text-destructive">{formError}</p>}
+        <TransactionForm
+          transaction={editing ?? undefined}
+          categories={categories ?? []}
+          accounts={accounts ?? []}
+          workspaceId={workspaceId}
+          members={members ?? []}
+          onSubmit={handleSubmit}
+          onCancel={closeForm}
+          isSubmitting={
+            createTransaction.isPending ||
+            updateTransaction.isPending ||
+            uploadAttachment.isPending
+          }
+          onExtractReceipt={
+            import.meta.env.VITE_INGESTA_URL
+              ? (file) => extractReceipt.mutateAsync(file)
+              : undefined
+          }
+          onCheckDuplicates={(criteria) => findDuplicates.mutateAsync(criteria)}
+        />
+      </Modal>
 
       <div className="space-y-2">
         <SearchBar value={searchInput} onChange={setSearchInput} />
