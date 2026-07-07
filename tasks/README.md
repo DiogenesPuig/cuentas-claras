@@ -67,8 +67,8 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 - ✅ `BUG-11` El modal "Nuevo grupo" se posicionaba mal al abrirlo desde el "+" del Header
   (`backdrop-blur` = containing block para `fixed`) — _hecho (PR #63, portal a `document.body`,
   `tasks/done/`)_
-- `BUG-12` Editar un movimiento lleva al tope de la página (form arriba + foco en monto). Fix: form
-  de edición en modal. Reportado 2026-07-06, `tasks/BUG-12-editar-movimiento-scroll-al-tope.md`.
+- ✅ `BUG-12` Editar un movimiento llevaba al tope de la página — _hecho (PR #67, alta/edición en
+  modal + componente `Modal` reutilizable, `tasks/done/`)_
 - `BUG-13` Los movimientos **sin medio** no se pueden encontrar (filtro por persona `!inner` +
   búsqueda solo por `description`). Reportado 2026-07-06,
   `tasks/BUG-13-movimientos-sin-medio-no-buscables.md`.
