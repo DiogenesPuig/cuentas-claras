@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useMyRole, type MemberRole } from '@/features/workspaces';
 import { useAccounts, useCreateAccount, useMembersForHolder, useUpdateAccount } from '../hooks';
 import type { Account, AccountInput } from '../api';
@@ -12,11 +12,14 @@ function AccountRow({
   canManage,
   workspaceId,
   onEdit,
+  editForm,
 }: {
   account: Account;
   canManage: boolean;
   workspaceId: string;
   onEdit: (account: Account) => void;
+  /** Si se está editando ESTE medio, el form va acá adentro (pegado a la tarjeta, BUG-15). */
+  editForm?: ReactNode;
 }) {
   // TODO(B8/reportes): cuando `owner_member_id` exista, mostrar el nombre vivo del miembro
   // (vía member_directory) en lugar de `holder_name`, que queda denormalizado si el miembro
@@ -52,7 +55,7 @@ function AccountRow({
             {account.billing_close_day && ` · cierre día ${account.billing_close_day}`}
           </p>
         </div>
-        {canManage && (
+        {canManage && !editForm && (
           <button
             type="button"
             onClick={() => onEdit(account)}
@@ -62,9 +65,12 @@ function AccountRow({
           </button>
         )}
       </div>
+      {/* Edición inline (BUG-15): el form aparece DENTRO de la tarjeta que tocaste, no al pie
+          de toda la lista, así no hay que scrollear para editar el medio de más arriba. */}
+      {editForm && <div className="border-t border-border bg-muted/30 px-3 py-3">{editForm}</div>}
       {/* Alias de titular: solo tiene sentido en el medio 'transfer' (uno por persona, MEJ-4).
           Sub-sección tintada dentro de la misma tarjeta para que se lea como parte de este medio. */}
-      {canManage && isTransfer && (
+      {canManage && !editForm && isTransfer && (
         <div className="border-t border-border bg-muted/40 px-3 py-2">
           <HolderAliasesEditor account={account} workspaceId={workspaceId} />
         </div>
@@ -121,6 +127,20 @@ export function AccountList({ workspaceId }: AccountListProps) {
     (a) => !a.is_extension && a.id !== editing?.id,
   );
 
+  const accountForm = (account: Account | undefined) => (
+    <>
+      {formError && <p className="mb-2 text-sm text-destructive">{formError}</p>}
+      <AccountForm
+        account={account}
+        members={members ?? []}
+        parentOptions={parentOptions}
+        onSubmit={handleSubmit}
+        onCancel={closeForm}
+        isSubmitting={createAccount.isPending || updateAccount.isPending}
+      />
+    </>
+  );
+
   return (
     <div className="space-y-4">
       <ul className="space-y-2">
@@ -131,6 +151,7 @@ export function AccountList({ workspaceId }: AccountListProps) {
             canManage={canManage}
             workspaceId={workspaceId}
             onEdit={setEditing}
+            editForm={editing?.id === account.id ? accountForm(account) : undefined}
           />
         ))}
         {accountList.length === 0 && (
@@ -150,18 +171,10 @@ export function AccountList({ workspaceId }: AccountListProps) {
         </button>
       )}
 
-      {canManage && isFormOpen && (
-        <div className="space-y-2 rounded-md border border-border p-4">
-          {formError && <p className="text-sm text-destructive">{formError}</p>}
-          <AccountForm
-            account={editing ?? undefined}
-            members={members ?? []}
-            parentOptions={parentOptions}
-            onSubmit={handleSubmit}
-            onCancel={closeForm}
-            isSubmitting={createAccount.isPending || updateAccount.isPending}
-          />
-        </div>
+      {/* Alta de un medio nuevo: al pie (el botón "+ Nuevo medio" está acá). La EDICIÓN, en
+          cambio, va inline dentro de su tarjeta (BUG-15). */}
+      {canManage && isCreating && (
+        <div className="space-y-2 rounded-md border border-border p-4">{accountForm(undefined)}</div>
       )}
     </div>
   );
