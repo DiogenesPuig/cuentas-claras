@@ -37,7 +37,6 @@ describe('buildTransactionFilterArgs', () => {
         accountId: 'acc-1',
         categoryId: 'cat-1',
         currency: 'ARS',
-        holderName: 'Diogenes',
         search: 'super',
       }),
     ).toEqual({
@@ -46,7 +45,6 @@ describe('buildTransactionFilterArgs', () => {
       accountId: 'acc-1',
       categoryId: 'cat-1',
       currency: 'ARS',
-      holderName: 'Diogenes',
       search: 'super',
     });
   });
@@ -64,7 +62,7 @@ describe('buildTransactionFilterArgs', () => {
 
   it('omite strings vacíos en los demás filtros', () => {
     expect(
-      buildTransactionFilterArgs({ accountId: '', categoryId: '', currency: '', holderName: '' }),
+      buildTransactionFilterArgs({ accountId: '', categoryId: '', currency: '' }),
     ).toEqual({});
   });
 

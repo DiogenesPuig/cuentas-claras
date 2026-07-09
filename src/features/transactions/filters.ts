@@ -1,12 +1,15 @@
 import { shiftMonth } from '@/hooks/useActiveMonth';
 
-/** Filtros de la pantalla de movimientos (FR-11): mes, persona, tarjeta, categoría, moneda y texto. */
+/**
+ * Filtros de la pantalla de movimientos que se aplican en la query de Supabase (FR-11): mes, medio,
+ * categoría, moneda y texto. El filtro por **persona** NO va acá: se resuelve en el cliente
+ * (`personaKeyOf`), porque la persona sale de varias capas (movimiento → medio → holder).
+ */
 export interface TransactionFilters {
   month?: string;
   accountId?: string;
   categoryId?: string;
   currency?: string;
-  holderName?: string;
   search?: string;
 }
 
@@ -16,14 +19,23 @@ export interface TransactionFilters {
  */
 export const NO_ACCOUNT_FILTER = '__no_account__';
 
-/** Filtros de campo de la lista (sin mes ni texto, que se manejan aparte en `TransactionsPage`). */
-export type FieldFilters = Omit<TransactionFilters, 'month' | 'search'>;
+/**
+ * Filtros de campo de la lista (sin mes ni texto, que se manejan aparte en `TransactionsPage`).
+ * `personaKey` es client-side (IDENT-1): una `personaKeyOf(...)` (`member:<id>` | `name:<n>` |
+ * "Sin medio"), no viaja a la query.
+ */
+export interface FieldFilters {
+  accountId?: string;
+  categoryId?: string;
+  currency?: string;
+  personaKey?: string;
+}
 
 export const EMPTY_FIELD_FILTERS: FieldFilters = {
   accountId: '',
   categoryId: '',
   currency: '',
-  holderName: '',
+  personaKey: '',
 };
 
 /** Argumentos ya normalizados para armar la query de Supabase (rango de fechas, texto recortado). */
@@ -35,7 +47,6 @@ export interface TransactionFilterArgs {
   accountIsNull?: boolean;
   categoryId?: string;
   currency?: string;
-  holderName?: string;
   search?: string;
 }
 
@@ -67,7 +78,6 @@ export function buildTransactionFilterArgs(filters: TransactionFilters): Transac
   else if (filters.accountId) args.accountId = filters.accountId;
   if (filters.categoryId) args.categoryId = filters.categoryId;
   if (filters.currency?.length === 3) args.currency = filters.currency;
-  if (filters.holderName) args.holderName = filters.holderName;
 
   const search = filters.search?.trim();
   if (search) args.search = escapeLike(search);

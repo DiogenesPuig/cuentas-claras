@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { personaKeyOf, personaLabelOf } from '@/lib/persona';
 import { useAuth } from '@/features/auth';
 import { useCategories } from '@/features/categories';
 import { useAccounts, useMembersForHolder } from '@/features/accounts';
@@ -47,11 +48,37 @@ export function TransactionsPage() {
     return () => clearTimeout(id);
   }, [searchInput]);
 
+  // La persona se filtra en el cliente (IDENT-1); el resto de los campos van a la query.
   const { data: transactions, isLoading } = useTransactions(workspaceId, {
     month,
     search,
-    ...fieldFilters,
+    accountId: fieldFilters.accountId,
+    categoryId: fieldFilters.categoryId,
+    currency: fieldFilters.currency,
   });
+
+  const memberNameById = useMemo(
+    () => new Map((members ?? []).map((member) => [member.id, member.name])),
+    [members],
+  );
+
+  const personaOptions = useMemo(() => {
+    const byKey = new Map<string, string>();
+    for (const tx of transactions ?? []) {
+      const key = personaKeyOf(tx);
+      if (!byKey.has(key)) byKey.set(key, personaLabelOf(tx, memberNameById));
+    }
+    return Array.from(byKey, ([key, label]) => ({ key, label })).sort((a, b) =>
+      a.label.localeCompare(b.label),
+    );
+  }, [transactions, memberNameById]);
+
+  const visibleTransactions = useMemo(() => {
+    const all = transactions ?? [];
+    const key = fieldFilters.personaKey;
+    if (!key) return all;
+    return all.filter((tx) => personaKeyOf(tx) === key);
+  }, [transactions, fieldFilters.personaKey]);
 
   const createTransaction = useCreateTransaction(workspaceId);
   const updateTransaction = useUpdateTransaction(workspaceId);
@@ -198,13 +225,14 @@ export function TransactionsPage() {
           value={fieldFilters}
           categories={categories ?? []}
           accounts={accounts ?? []}
+          personaOptions={personaOptions}
           onChange={setFieldFilters}
         />
-        <ExportButton transactions={transactions ?? []} />
+        <ExportButton transactions={visibleTransactions} />
       </div>
 
       <TransactionList
-        transactions={transactions ?? []}
+        transactions={visibleTransactions}
         isLoading={isLoading}
         canEdit={canEdit}
         onEdit={(transaction) => {

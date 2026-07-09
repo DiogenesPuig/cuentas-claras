@@ -13,10 +13,11 @@ mes a mes, con consolidado multi-moneda. Implementa **FR-20, FR-21, FR-22, FR-24
   - `aggregateByDimension`: agrupa movimientos por dimensión (FR-22) y consolida cada grupo;
     los grupos suman, entre todos, el total del período (con "Sin categoría"/"Sin medio" de
     fallback). Cada grupo trae `key` (clave interna) y `label` (lo que se muestra). "Persona"
-    agrupa por `owner_member_id` del medio (F2-10: dedup cuando el mismo dueño tiene el nombre
-    escrito distinto en cada banco) y cae a `holder_name` normalizado —tildes/orden, ver
-    `lib/name-match.normalizeNameKey`— cuando el medio no está ligado a un miembro; recibe
-    `memberNameById` (`workspace_members.id` → nombre vivo) para resolver la etiqueta.
+    delega en `lib/persona` (`personaKeyOf`/`personaLabelOf`, mismo criterio que el filtro de
+    `/movimientos`, IDENT-1): la persona del **movimiento** (`owner_member_id`) manda; si no, la del
+    **medio**; si no, el `holder_name` del medio normalizado (tildes/orden); si no hay medio, "Sin
+    medio". Recibe `memberNameById` (`workspace_members.id` → nombre **vivo**) para la etiqueta, lo
+    que arregla BUG-17 (el cambio de nombre se refleja sin duplicar persona).
   - `dimensionLabelFor`: etiqueta legible de un movimiento para una dimensión (igual a la clave
     salvo "persona", donde puede ser el nombre vivo del miembro). La usan los filtros y las
     opciones de filtro de `ReportsPage` para no mostrar la clave interna `member:<id>`.

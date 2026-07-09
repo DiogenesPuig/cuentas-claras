@@ -65,7 +65,7 @@ describe('toExportRows', () => {
     const [row] = toExportRows([
       makeTransaction({
         bank: 'Banco Galicia',
-        account: { name: 'Transferencia', holder_name: 'Ana', bank: null },
+        account: { name: 'Transferencia', holder_name: 'Ana', bank: null, owner_member_id: null },
       }),
     ]);
     expect(row.banco).toBe('Banco Galicia');

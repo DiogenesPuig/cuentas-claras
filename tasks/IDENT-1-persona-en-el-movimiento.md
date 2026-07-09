@@ -17,8 +17,6 @@
   sale de `member_directory` (`member_id` + nombre vivo, incluye placeholders); `AccountList` muestra
   el nombre vivo del miembro → **arregla el síntoma principal de BUG-17** (la lista de Medios). Sin
   cambio de comportamiento aún para transferencias (no hay `owner_member_id` en datos hasta el backfill).
-  _Pendiente de BUG-17: el **filtro "Persona" de `/movimientos`** (`FilterBar`) todavía agrupa por
-  `holder_name`; pasarlo a agrupar/filtrar por miembro (sub-ítem del paso siguiente)._
 - ✅ **Paso 3a — plomería + selector de persona en el alta:** `transactions.owner_member_id` viaja por
   `TransactionInput`/`toRow`/schema/form; campo "Persona (opcional)" ("Según el medio" = null, o un
   miembro/placeholder de `members`) que escribe `owner_member_id`. Aditivo/seguro (no reemplaza aún el
@@ -35,9 +33,16 @@
   (invalida las 2 listas de miembros). El selector de persona muestra **"+ Persona"** (solo owner/admin
   vía prop `onCreatePerson`): crea el placeholder y lo selecciona. Aviso bajo el selector cuando una
   transferencia no reconoce a la persona. Tests: alta con persona; crear persona.
-- ⏳ **Pasos siguientes:** (3d) filtro "Persona" de `/movimientos` por miembro; efectivo compartido
-  (mismo patrón que transferencia); (4) mover alias de `accounts` a la persona; (5) **backfill + colapso**
-  de medios por-persona (migración de datos, la parte de riesgo); (6) promoción placeholder→cuenta.
+- ✅ **Paso 3d — filtro "Persona" de `/movimientos` por miembro:** se extrajo `lib/persona`
+  (`personaKeyOf`/`personaLabelOf`, puro, testeado) que resuelve la persona por movimiento→medio→holder
+  con el nombre **vivo** del miembro; `reports/aggregate.personaIdentity` ahora delega ahí (cero cambio
+  de comportamiento). El movimiento trae `account.owner_member_id` en el select. El filtro dejó de ser
+  server-side por `holder_name` (`!inner`): ahora `FilterBar` recibe `personaOptions` basadas en miembro
+  y `TransactionsPage` filtra en el cliente con `personaKeyOf` → **arregla el síntoma del filtro de
+  BUG-17** (nombres vivos, sin duplicar). Tests: `lib/persona.test.ts`.
+- ⏳ **Pasos siguientes:** efectivo compartido (mismo patrón que transferencia); (4) mover alias de
+  `accounts` a la persona; (5) **backfill + colapso** de medios por-persona (migración de datos, la
+  parte de riesgo); (6) promoción placeholder→cuenta.
 
 ## Decisión de RLS (creación de placeholders) — CERRADA (2026-07-09)
 **Solo owner/admin** pueden crear placeholders (se deja `wm_write` como está). Consistente con

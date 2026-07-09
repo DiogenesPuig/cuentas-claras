@@ -1,6 +1,6 @@
 import { consolidateHistorical, type ConsolidationResult, type RateLookup } from '@/lib/money';
 import { resolveFxDate } from '@/lib/fx';
-import { normalizeNameKey } from '@/lib/name-match';
+import { personaKeyOf, personaLabelOf } from '@/lib/persona';
 import type { ReportTransactionView } from './api';
 
 /** Mapa `workspace_members.id` → nombre vivo del miembro (de `member_directory`). */
@@ -39,21 +39,7 @@ interface PersonaIdentity {
  * Usar siempre el nombre VIVO del miembro (no el `holder_name` congelado) arregla BUG-17.
  */
 function personaIdentity(tx: ReportTransactionView, memberNameById: MemberNameById): PersonaIdentity {
-  if (tx.owner_member_id) {
-    return {
-      key: `member:${tx.owner_member_id}`,
-      label: memberNameById.get(tx.owner_member_id) ?? tx.account?.holder_name ?? 'Sin nombre',
-    };
-  }
-  const account = tx.account;
-  if (!account) return { key: NO_ACCOUNT, label: NO_ACCOUNT };
-  if (account.owner_member_id) {
-    return {
-      key: `member:${account.owner_member_id}`,
-      label: memberNameById.get(account.owner_member_id) ?? account.holder_name,
-    };
-  }
-  return { key: `name:${normalizeNameKey(account.holder_name)}`, label: account.holder_name };
+  return { key: personaKeyOf(tx), label: personaLabelOf(tx, memberNameById) };
 }
 
 /** Clave de agrupación (FR-22) según la dimensión elegida. */
