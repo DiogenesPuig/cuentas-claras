@@ -6,6 +6,24 @@
 > MEJ-12 (efectivo), la "Transferencia única" (charla 2026-07-09) y arregla BUG-17 (cambiar el
 > nombre no se refleja en Medios). Diseño cerrado con el usuario el 2026-07-09.
 
+## Progreso (rama `task/ident-1-persona-en-movimiento`)
+- ✅ **Paso 1 — fundación del modelo** (migración 0018, aplicada en LOCAL, sin backfill):
+  `transactions.owner_member_id`; `workspace_members.user_id` nullable + `name`; `member_directory`
+  con placeholders (LEFT join, `member_id`); trigger de mismo-workspace. Aditivo → sin cambio de
+  comportamiento. Tipos/schema al día; typecheck/lint/test/build verdes. **Migración NO aplicada a
+  remoto todavía** (recién al final, con todo probado).
+- ⏳ **Pasos siguientes:** (2) resolución de persona en reportes/listas/filtro (`personaIdentity` lee
+  `owner_member_id`) — arregla BUG-17; (3) medios "Transferencia"/"Efectivo" compartidos + alta con
+  selector de persona + crear placeholder; (4) mover alias de `accounts` a la persona; (5) backfill +
+  colapso de medios por-persona (migración de datos, la parte de riesgo); (6) promoción placeholder→cuenta.
+
+## Decisión de RLS pendiente (creación de placeholders)
+`wm_write` hoy restringe **insertar** en `workspace_members` a **owner/admin**. Crear una "persona del
+grupo" (placeholder) desde el alta necesitaría esa política. Decidir: ¿solo owner/admin crean
+placeholders, o se relaja para que cualquier **miembro** pueda crear placeholders (filas con
+`user_id NULL`, manteniendo la restricción owner/admin para miembros reales)? Recomendado: permitir a
+miembros crear placeholders (con un `with check` que exija `user_id IS NULL` para el caso no-admin).
+
 ## Problema de raíz
 Hoy **la persona de un movimiento se deduce del medio** (`account.owner_member_id`/`holder_name`;
 `transactions` NO tiene campo de persona). Consecuencias:
