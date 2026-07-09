@@ -77,6 +77,9 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
   `tasks/BUG-14-medio-nombre-congelado-no-refleja-banco.md`.
 - ✅ `BUG-15` Editar un medio abría el form al pie de toda la lista — _hecho (PR #68, edición inline
   dentro de la tarjeta, `tasks/done/`)_
+- `BUG-16` Entrar por link de invitación como usuario NUEVO cae en "crear grupo" en vez de unirse
+  (el signup con Google pierde el `/invite/:token` por `redirectTo: origin`). Reportado 2026-07-09,
+  `tasks/BUG-16-invite-signup-cae-en-onboarding.md`.
 
 **Mejoras / ingesta (nuevas, 2026-07-06/07)**
 - `MEJ-11` Reportes: desglose de categorías al ver por persona — `tasks/MEJ-11-reportes-categorias-por-persona.md`.
@@ -84,6 +87,10 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
   diseño cerrado 2026-07-07) — `tasks/MEJ-12-efectivo-por-miembro.md`.
 - `MEJ-1` Date-picker con calendario — **dep `react-day-picker` APROBADA (2026-07-07)**, lista para implementar (`tasks/MEJORAS.md`).
 - `MEJ-2` Reordenar secciones de Reportes (drag & drop) — **dep `@dnd-kit` APROBADA (2026-07-07)**, versión DnD (`tasks/MEJORAS.md`).
+- `MEJ-13` Total de gastos en /movimientos respetando los filtros (hoy solo muestra el conteo) — `tasks/MEJ-13-total-gastos-en-movimientos.md`.
+- `MEJ-14` Botón ver/ocultar contraseña en el import de resumen — `tasks/MEJ-14-ver-contrasena-import-resumen.md`.
+- `MEJ-15` Eliminar un grupo (workspace) — destructivo, requiere cerrar diseño RLS/cascada/confirmación — `tasks/MEJ-15-eliminar-grupo.md`.
+- `MEJ-16` Separar categoría "Transporte" (viajes) de "Auto" (nafta/mantenimiento) — `tasks/MEJ-16-categoria-auto-vs-transporte.md`.
 - ✅ `F2-14` Parser del resumen de Banco Nación (BNA MasterCard Black) + banco no reconocido — _hecho
   (PR #66: el header venía en plural "DETALLES DEL MES"; `tasks/done/`). **Micro redeployado al Space
   de Hugging Face y verificado en prod (2026-07-07): reconoce el banco.**_
