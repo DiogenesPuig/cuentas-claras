@@ -139,6 +139,30 @@ Estos tres pedidos concretos caen todos sobre este mismo modelo de identidad y *
   que un caso común es que esa persona **se una a la app más adelante**. Al hacerlo, debe **conservar
   toda su historia** (medios, movimientos, apodos) sin migrar datos. Esto inclina el modelo a (a).
 
+## Decisión de fondo — PERSONA EN EL MOVIMIENTO (2026-07-09, con el usuario)
+> Disparador: el usuario ve **"muchas Transferencia"** en Medios (una por persona, F2-11) y quiere
+> **una sola "Transferencia"** que englobe a todo el grupo, PERO **sí le importa saber quién** hizo
+> cada transferencia. Eso obliga a cambiar de raíz cómo se atribuye la persona.
+
+- **Hoy:** la persona se **deduce del medio** (`account.owner_member_id`/`holder_name`; ver
+  `features/reports/aggregate.ts::personaIdentity` y `transactions` NO tiene campo de persona). Por eso
+  hay un medio `'transfer'` (y un `'cash'`) **por persona**.
+- **Decisión:** la persona pasa a ser un **campo del movimiento** (`transactions.owner_member_id`, o una
+  clave de persona que soporte placeholders). Reportes/listas leen **esa** persona, con **fallback al
+  holder del medio** para tarjetas (que sí son de una sola persona). Con esto:
+  - **Transferencia → UN solo medio compartido** del grupo; la persona sale del OCR (origen/destino) o
+    del **selector de persona** en el alta. Resuelve el pedido del usuario.
+  - **Efectivo → también UN solo "Efectivo" compartido** (mismo patrón), en vez de "uno por miembro".
+    **Esto REEMPLAZA la decisión previa "efectivo uno por persona" (MEJ-12).** → revisar/rehacer MEJ-12
+    a la luz de esto (ver nota en `tasks/MEJ-12-efectivo-por-miembro.md`).
+  - **Persona sin cuenta** = un valor más de ese campo (placeholder member). Unifica todo el ovillo:
+    transferencia + efectivo + persona sin cuenta salen del mismo modelo.
+- **Impacto a diseñar (Opus):** migración `transactions` (columna persona + backfill desde el
+  `owner_member_id`/holder del medio actual para no perder atribución histórica); reportes
+  (`personaIdentity` pasa a preferir la persona del movimiento); el alta (selector de persona);
+  migrar los medios `'transfer'`/`'cash'` por-persona existentes a uno compartido (o archivarlos) sin
+  romper la historia. RLS: el campo persona no debe permitir ver datos de otros workspaces.
+
 ## Decisiones CERRADAS (2026-07-07, con Opus + usuario)
 - **Modelo de datos → (a) miembro placeholder** en `workspace_members` con `user_id NULL` + un nombre
   propio (los placeholders no tienen `profile`). Verificado que es viable: `user_id` es hoy NOT NULL y

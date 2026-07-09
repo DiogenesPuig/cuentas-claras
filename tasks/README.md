@@ -104,12 +104,15 @@ el usuario** (no fijado todavía).
   por persona en reportes).
 - **Grupo B — ingesta, bloqueado en sample:** `F2-14` (parser BNA + banco), se junta con `BUG-10`
   (ambos esperan texto real anonimizado de resúmenes/comprobantes).
-- **Grupo C — identidad/efectivo/persona sin cuenta — DISEÑO CERRADO (2026-07-07).** Se parte en 2:
-  - **Etapa 1 → `MEJ-12`**: efectivo por miembro (dueño = miembro existente). No toca el modelo de
-    identidad; lista para implementar.
-  - **Etapa 2 → `MEJ-4` Parte B**: persona sin cuenta = **miembro placeholder** (`user_id NULL`) +
-    selector de persona en el alta + promoción a cuenta real. Migración en `workspace_members` + RLS.
-    Decisiones cerradas en `tasks/MEJ-4-alias-titulares.md`; quedan detalles a afinar al implementar.
+- **Grupo C — identidad/efectivo/persona sin cuenta/transferencias.** **Decisión de fondo (2026-07-09):
+    la persona pasa a ser un CAMPO DEL MOVIMIENTO** (hoy se deduce del medio), disparada por querer
+    **una sola "Transferencia"** para todo el grupo sin perder "quién". Esto unifica todo el ovillo
+    (transferencia + efectivo + persona sin cuenta) y **reabre** el enfoque de `MEJ-12` (efectivo pasaría
+    a ser UN "Efectivo" compartido, no uno por miembro). Ver `tasks/MEJ-4-alias-titulares.md` →
+    "Persona en el movimiento". Requiere **sesión de diseño con Opus** (migración `transactions` +
+    reportes + alta + migrar medios transfer/cash por-persona) antes de implementar.
+  - `MEJ-12` (efectivo por miembro) → **EN REVISIÓN**: no implementar tal cual hasta cerrar el diseño.
+  - `MEJ-4` Parte B (persona sin cuenta = miembro placeholder) → parte del mismo modelo.
 
 ## Orden de resolución recomendado (actualizado 2026-07-05)
 

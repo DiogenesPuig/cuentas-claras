@@ -5,6 +5,12 @@
 > **Etapa 1 de la identidad/efectivo (decisión 2026-07-07).** Cubre el caso de miembros existentes,
 > sin tocar el modelo de identidad. El caso "efectivo/gasto de un NO-miembro" es la Etapa 2 =
 > `tasks/MEJ-4-alias-titulares.md` (Parte B, persona sin cuenta / placeholder).
+>
+> ⚠️ **EN REVISIÓN (2026-07-09):** la decisión "persona en el movimiento" (ver MEJ-4B, disparada por
+> querer una sola "Transferencia") probablemente **reemplaza** este enfoque: en vez de un "Efectivo"
+> **por miembro**, iría **un solo "Efectivo" compartido** con la persona seteada por movimiento (mismo
+> patrón que la transferencia). **No implementar MEJ-12 tal cual está** hasta cerrar el diseño de
+> persona-en-el-movimiento con Opus; puede que este ticket cambie de forma o se absorba en MEJ-4B.
 
 ## Objetivo
 Que cada miembro del workspace tenga automáticamente un medio **"Efectivo"** propio (con
