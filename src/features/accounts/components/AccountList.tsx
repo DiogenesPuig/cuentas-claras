@@ -25,10 +25,6 @@ function AccountRow({
   // TODO(B8/reportes): cuando `owner_member_id` exista, mostrar el nombre vivo del miembro
   // (vía member_directory) en lugar de `holder_name`, que queda denormalizado si el miembro
   // cambia su nombre. Caer a `holder_name` solo cuando no hay miembro asociado.
-  const details = [account.bank, account.network, account.holder_name]
-    .filter(Boolean)
-    .join(' · ');
-
   const isTransfer = account.type === 'transfer';
 
   return (
@@ -49,11 +45,7 @@ function AccountRow({
             )}
           </p>
           <p className="text-xs text-muted-foreground">
-            {details || 'Sin detalles'}
-            {account.last4 && ` · ••${account.last4}`}
-            {' · '}
-            {account.currency}
-            {account.billing_close_day && ` · cierre día ${account.billing_close_day}`}
+            {[account.holder_name, account.currency].filter(Boolean).join(' · ')}
           </p>
         </div>
         {canManage && !editForm && (
