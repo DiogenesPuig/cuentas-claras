@@ -76,9 +76,9 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
   a titular + moneda, `tasks/done/`)_
 - ✅ `BUG-15` Editar un medio abría el form al pie de toda la lista — _hecho (PR #68, edición inline
   dentro de la tarjeta, `tasks/done/`)_
-- `BUG-16` Entrar por link de invitación como usuario NUEVO cae en "crear grupo" en vez de unirse
-  (el signup con Google pierde el `/invite/:token` por `redirectTo: origin`). Reportado 2026-07-09,
-  `tasks/BUG-16-invite-signup-cae-en-onboarding.md`.
+- ✅ `BUG-16` Entrar por link de invitación como usuario NUEVO caía en "crear grupo" — _hecho (PR #71,
+  `lib/pending-invite` en sessionStorage: RequireAuth guarda / RequireWorkspace retoma / InviteAccept
+  limpia; cubre el OAuth de Google, `tasks/done/`)_
 
 **Mejoras / ingesta (nuevas, 2026-07-06/07)**
 - `MEJ-11` Reportes: desglose de categorías al ver por persona — `tasks/MEJ-11-reportes-categorias-por-persona.md`.
