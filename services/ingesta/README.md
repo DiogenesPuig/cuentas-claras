@@ -121,8 +121,17 @@ Para una URL estable que no dependa de tu PC. Gratis y sin tarjeta (CPU básico 
 buena RAM, ideal para OCR). El Space es **público** por defecto: no es problema, el
 micro igual valida el JWT de Supabase en cada request.
 
+> 🚫 **NO subas `run-local.sh` (ni `.env*` ni `tests/`) al Space.** `run-local.sh` ejecuta
+> `cloudflared tunnel`; el detector de abuso de HF flaggea los Spaces que contienen/parecen correr
+> túneles de Cloudflare y **pausa el Space como "abusive" (regla "Cloudflare")** — pasó el 2026-07-06
+> y dejó la carga de archivos caída (un restart devuelve 503; hay que apelar el flag). El Space solo
+> necesita `app/`, `Dockerfile`, `pyproject.toml` y un `README.md` **mínimo** (frontmatter + una línea);
+> nada de instrucciones de túnel. Si HF flaggea el Space: apelá (Settings/Community o website@huggingface.co)
+> y/o creá uno nuevo con ese set de archivos acotado.
+
 1. En huggingface.co → **New Space** → SDK **Docker** → visibilidad Public.
-2. Subí el contenido de `services/ingesta/` al repo del Space (incluido el `Dockerfile`).
+2. Subí SOLO `app/`, `Dockerfile`, `pyproject.toml` y un `README.md` mínimo al repo del Space
+   (ver el aviso de arriba: sin `run-local.sh`/`.env`/`tests`, sin instrucciones de Cloudflare).
    El Space necesita escuchar en el puerto `7860`: agregá `app_port: 7860` en el
    frontmatter YAML del `README.md` del Space, o exponé ese puerto. El `CMD` ya lee
    `$PORT`, así que con `app_port: 7860` (HF setea `PORT=7860`) levanta solo.
