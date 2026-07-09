@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { useMyRole, type MemberRole } from '@/features/workspaces';
 import { useAccounts, useCreateAccount, useMembersForHolder, useUpdateAccount } from '../hooks';
 import type { Account, AccountInput } from '../api';
+import { accountDisplayName } from '../format';
 import { AccountForm } from './AccountForm';
 import { HolderAliasesEditor } from './HolderAliasesEditor';
 
@@ -35,7 +36,7 @@ function AccountRow({
       <div className="flex items-center justify-between gap-4 px-3 py-2.5">
         <div className="space-y-0.5">
           <p className="flex flex-wrap items-center gap-2 font-medium">
-            {account.name}
+            {accountDisplayName(account)}
             {account.is_extension && (
               <span className="rounded bg-accent px-1.5 py-0.5 text-xs font-normal text-accent-foreground">
                 extensión
