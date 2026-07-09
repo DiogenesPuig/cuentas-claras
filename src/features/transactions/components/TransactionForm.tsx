@@ -4,8 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { Category } from '@/features/categories';
 import {
-  useGetOrCreateTransferAccount,
-  useUpdateHolderAliases,
+  useGetOrCreateSharedTransferAccount,
   type Account,
   type MemberOption,
 } from '@/features/accounts';
@@ -16,7 +15,6 @@ import {
   bankFor,
   counterpartyFor,
   holderFor,
-  matchTransferAccount,
   ownerSideFor,
   type TransferPartyInfo,
 } from '@/lib/transfer-account';
@@ -112,17 +110,13 @@ export function TransactionForm({
   // null = usar heurística; true/false = override manual del usuario (BUG-5).
   const [treatAsInstitutional, setTreatAsInstitutional] = useState<boolean | null>(null);
   const [creatingTransferAccount, setCreatingTransferAccount] = useState(false);
-  // MEJ-4A: titular para el que el usuario descartó el prompt "¿es la misma persona?" (dijo "no
-  // es la misma") → deja de sugerir y se crea el medio nuevo como siempre.
-  const [aliasDismissedFor, setAliasDismissedFor] = useState<string | null>(null);
-  // Token de la creación de medio 'transfer' vigente (BUG-7): identifica cada corrida
-  // para descartar respuestas de un titular que ya cambió.
+  // Token de la asignación del medio "Transferencia" vigente (BUG-7): identifica cada corrida
+  // para descartar respuestas viejas si el estado cambió antes de resolver.
   const transferRunRef = useRef(0);
   // Guard de re-entrancia del submit (BUG-9): evita disparar dos altas con doble click
   // rápido antes de que React refleje `disabled`.
   const submittingRef = useRef(false);
-  const getOrCreateTransferAccount = useGetOrCreateTransferAccount(workspaceId);
-  const updateHolderAliases = useUpdateHolderAliases(workspaceId);
+  const getOrCreateSharedTransferAccount = useGetOrCreateSharedTransferAccount(workspaceId);
   const {
     register,
     handleSubmit,
@@ -140,7 +134,6 @@ export function TransactionForm({
     setOcrApplied(false);
     setTransferInfo(null);
     setTreatAsInstitutional(null);
-    setAliasDismissedFor(null);
     setDuplicateCandidates([]);
     setPendingSave(null);
   }, [transaction, reset]);
@@ -153,6 +146,7 @@ export function TransactionForm({
   const description = watch('description');
   const categoryId = watch('categoryId');
   const accountId = watch('accountId');
+  const ownerMemberId = watch('ownerMemberId');
   const bank = watch('bank');
   const selectedFile = watch('attachment')?.[0] ?? null;
   const categoryOptions = categories.filter((c) => c.kind === type);
@@ -172,50 +166,31 @@ export function TransactionForm({
     (isInstitutionalPayee(transferInfo.originHolder) || isInstitutionalPayee(transferInfo.destHolder));
   const effectiveIsInstitutional = treatAsInstitutional ?? heuristicIsInstitutional;
 
-  // Persona dueña de la transferencia (F2-11): si el titular matchea a un miembro, se
-  // busca/crea SU medio `'transfer'` (uno por persona, no por persona+banco).
+  // Persona dueña de la transferencia (F2-9): si el titular matchea a un miembro/placeholder, se
+  // prefilla en el campo "Persona" (editable). IDENT-1: el medio es el "Transferencia" COMPARTIDO
+  // (uno por workspace); la persona va en el movimiento (`owner_member_id`), no en el medio.
   const matchedMember = ownerHolder ? matchMember(ownerHolder, members ?? []) : null;
-  const transferAccounts = accounts.filter((a) => a.type === 'transfer');
-  const transferResult = matchTransferAccount(ownerHolder, matchedMember?.id ?? null, transferAccounts);
-  const transferMatch = transferResult.matched;
-  // MEJ-4A: candidato parecido (overlap parcial) cuando no hubo match fuerte → se ofrece unir.
-  const transferCandidate = transferMatch ? null : (transferResult.candidates[0] ?? null);
-  // ¿Mostrar el prompt "¿es la misma persona que <X>?" en vez de crear un medio nuevo?
-  const showAliasPrompt =
-    !effectiveIsInstitutional &&
-    !!ownerHolder &&
-    !accountId &&
-    !!transferCandidate &&
-    aliasDismissedFor !== ownerHolder;
 
-  // Si el medio `'transfer'` de la persona ya existe, se asocia solo. Si no, se crea
-  // lazy (sin pedirle al usuario que lo cree a mano) y se asocia el recién creado.
-  // Para pagos institucionales (BUG-5) se omite: no hay persona ni medio 'transfer'.
+  // Al detectar una transferencia por comprobante: asignar el medio "Transferencia" compartido y
+  // prefill de la persona. Pago institucional (BUG-5): sin medio ni persona.
   useEffect(() => {
+    if (!transferInfo) return;
     if (effectiveIsInstitutional) {
       if (accountId) setValue('accountId', '');
+      if (ownerMemberId) setValue('ownerMemberId', '');
       return;
     }
-    if (accountId || !ownerHolder) return;
-    if (transferMatch) {
-      setValue('accountId', transferMatch.id);
-      setCreatingTransferAccount(false);
-      return;
-    }
-    // MEJ-4A: hay un titular parecido y el usuario todavía no decidió → esperar su respuesta al
-    // prompt "¿es la misma persona?" antes de crear un medio nuevo (evita el duplicado).
-    if (transferCandidate && aliasDismissedFor !== ownerHolder) return;
-    if (!workspaceId) return;
+    if (!ownerHolder) return;
+    if (matchedMember && !ownerMemberId) setValue('ownerMemberId', matchedMember.id);
+    if (accountId || !workspaceId) return;
 
-    // Guard de carrera (BUG-7): cada creación toma un token y un flag `cancelled` propio.
-    // Si el titular cambia (el efecto se re-ejecuta) o el componente se desmonta antes de
-    // que resuelva, `cancelled` bloquea el `setValue` para no pisar el medio del titular
-    // actual con el de una creación vieja. El spinner solo lo apaga la corrida vigente.
+    // Guard de carrera (BUG-7): descarta la respuesta si el estado cambió o el componente se
+    // desmontó antes de resolver; solo la corrida vigente apaga el spinner.
     const runId = (transferRunRef.current += 1);
     let cancelled = false;
     setCreatingTransferAccount(true);
-    getOrCreateTransferAccount
-      .mutateAsync({ ownerMemberId: matchedMember?.id ?? null, holderName: ownerHolder })
+    getOrCreateSharedTransferAccount
+      .mutateAsync()
       .then((account) => {
         if (!cancelled) setValue('accountId', account.id);
       })
@@ -227,7 +202,7 @@ export function TransactionForm({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transferMatch?.id, transferCandidate?.id, aliasDismissedFor, ownerHolder, matchedMember?.id, effectiveIsInstitutional]);
+  }, [transferInfo, effectiveIsInstitutional, ownerHolder, matchedMember?.id, workspaceId, accountId, ownerMemberId]);
 
   // Banco del comprobante (F2-11): vive en el movimiento, no en el medio (el
   // usuario sigue pudiendo cambiarlo o borrarlo).
@@ -252,25 +227,10 @@ export function TransactionForm({
     setValue('description', d.description);
     setValue('bank', d.bank);
     setValue('accountId', d.accountId);
+    setValue('ownerMemberId', d.ownerMemberId);
     setTransferInfo(null);
     setTreatAsInstitutional(null);
-    setAliasDismissedFor(null);
     setOcrApplied(false);
-  }
-
-  // MEJ-4A prompt "¿es la misma persona que <X>?": si confirma, asocia el medio existente y
-  // guarda el nombre detectado como alias (matching futuro; no mueve movimientos viejos).
-  function confirmAliasSuggestion() {
-    if (!transferCandidate || !ownerHolder) return;
-    setValue('accountId', transferCandidate.id);
-    updateHolderAliases.mutate(
-      { id: transferCandidate.id, aliases: [...transferCandidate.holder_aliases, ownerHolder] },
-      { onError: () => toast.error('No se pudo guardar el alias, pero el medio quedó asociado.') },
-    );
-  }
-
-  function dismissAliasSuggestion() {
-    if (ownerHolder) setAliasDismissedFor(ownerHolder);
   }
 
   async function handleExtract() {
@@ -518,32 +478,6 @@ export function TransactionForm({
               {creatingTransferAccount && ' Creando su medio "Transferencia"…'}
               {!workspaceId && !accountId && ' Falta el workspace activo para asignar el medio.'}
             </p>
-          )}
-          {/* MEJ-4A: titular parecido a uno existente → ofrecer unir antes de crear un medio nuevo. */}
-          {showAliasPrompt && transferCandidate && (
-            <div className="space-y-2 rounded-md border border-primary/40 bg-primary/5 p-2 text-xs">
-              <p>
-                <span className="font-medium">{ownerHolder}</span> se parece a{' '}
-                <span className="font-medium">{transferCandidate.holder_name}</span>, que ya tiene
-                medio. ¿Es la misma persona?
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={confirmAliasSuggestion}
-                  className="rounded-md bg-primary px-2.5 py-1 font-medium text-primary-foreground hover:opacity-90"
-                >
-                  Sí, es la misma
-                </button>
-                <button
-                  type="button"
-                  onClick={dismissAliasSuggestion}
-                  className="rounded-md border border-input px-2.5 py-1 font-medium hover:bg-accent"
-                >
-                  No, es otra persona
-                </button>
-              </div>
-            </div>
           )}
           {transferInfo && (
             <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">

@@ -166,3 +166,38 @@ export async function getOrCreateTransferAccount(
   if (insertError) throw insertError;
   return created;
 }
+
+/**
+ * Medio "Transferencia" **compartido** del workspace (IDENT-1): UNO solo, sin dueño; la persona de
+ * cada transferencia va en el movimiento (`owner_member_id`), no en el medio. Se identifica por
+ * `type='transfer'` + `owner_member_id IS NULL` + `holder_name = ''` (los medios transfer legacy
+ * por-persona tienen `holder_name`/`owner_member_id`, así que no se confunden). Lazy: se crea la
+ * primera vez que se usa.
+ */
+export async function getOrCreateSharedTransferAccount(workspaceId: string): Promise<Account> {
+  const { data: existing, error: selectError } = await supabase
+    .from('accounts')
+    .select('*')
+    .eq('workspace_id', workspaceId)
+    .eq('type', 'transfer')
+    .is('owner_member_id', null)
+    .eq('holder_name', '')
+    .limit(1);
+  if (selectError) throw selectError;
+  if (existing && existing[0]) return existing[0];
+
+  const payload: TablesInsert<'accounts'> = {
+    workspace_id: workspaceId,
+    name: 'Transferencia',
+    type: 'transfer',
+    owner_member_id: null,
+    holder_name: '',
+  };
+  const { data: created, error: insertError } = await supabase
+    .from('accounts')
+    .insert(payload)
+    .select()
+    .single();
+  if (insertError) throw insertError;
+  return created;
+}

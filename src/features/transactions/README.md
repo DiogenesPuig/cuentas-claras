@@ -60,17 +60,14 @@ texto, **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado, y *
   F2-6) con un botón "Usar" (nunca se aplica sola). El combo de medios muestra
   banco · red · ••últimos4 · (dueño) (`accounts/format.accountLabel`) para distinguir tarjetas.
   Si el comprobante extraído es de una **transferencia** (`origin_holder/bank`, `dest_holder/bank`
-  del OCR, F2-8), atribuye el medio/persona **según el tipo** (F2-9, decisión 2026-06-23): gasto →
-  origen (quien envía), ingreso → destino (quien recibe) (`lib/transfer-account`). El banco del lado
-  dueño se precarga en el campo "Banco" del movimiento (editable). Un único medio `'transfer'` por
-  persona (F2-11): si el titular matchea a un miembro (`lib/member-match`), busca/crea (lazy, sin
-  pedirle al usuario que lo cree a mano) **su** medio `'transfer'` vía
-  `useGetOrCreateTransferAccount` (`features/accounts`); si no matchea a nadie, lo busca/crea por
-  `holder_name`. El medio recién creado se selecciona solo apenas la mutación resuelve.
-  **MEJ-4A:** si no hay match fuerte pero hay un titular **parecido** (`matchTransferAccount`), en
-  vez de crear un medio nuevo ofrece un prompt inline "¿es la misma persona que &lt;X&gt;?"; al
-  confirmar, asocia ese medio y guarda el nombre detectado como **alias** (`useUpdateHolderAliases`,
-  matching futuro, no mueve movimientos); al descartar, crea el medio nuevo como siempre.
+  del OCR, F2-8), determina el lado dueño **según el tipo** (F2-9): gasto → origen (quien envía),
+  ingreso → destino (quien recibe) (`lib/transfer-account`). El banco del lado dueño se precarga en
+  el campo "Banco" del movimiento (editable). **IDENT-1:** asigna el medio **"Transferencia"
+  compartido** del workspace (uno solo, `useGetOrCreateSharedTransferAccount`) y **prefilla la
+  persona** en el campo "Persona" si el titular matchea a un miembro/placeholder (`lib/member-match`);
+  si nadie matchea, la persona queda en "Según el medio" (vacío) para que el usuario la elija. La
+  persona va en el movimiento (`owner_member_id`), no en el medio (se acabó el medio `'transfer'` por
+  persona de F2-11). Pagos institucionales (BUG-5): sin medio ni persona.
   Requiere `workspaceId`/`members` (opcionales; sin ellos, no se ofrece la atribución automática).
   Si recibe `onCheckDuplicates` (F2-13), antes de crear un alta **nueva** calcula el hash del archivo
   (`lib/file-hash`) y busca candidatos; si los hay, muestra un **aviso suave** ("Ya subiste este

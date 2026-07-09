@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createAccount,
   getOrCreateTransferAccount,
+  getOrCreateSharedTransferAccount,
   listAccounts,
   listMembersForHolder,
   updateAccount,
@@ -75,6 +76,18 @@ export function useGetOrCreateTransferAccount(workspaceId: string | undefined) {
 
   return useMutation<Account, Error, TransferAccountHolder>({
     mutationFn: (holder) => getOrCreateTransferAccount(workspaceId as string, holder),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: accountsKeys.list(workspaceId) });
+    },
+  });
+}
+
+/** Busca/crea (lazy) el medio "Transferencia" **compartido** del workspace (IDENT-1). */
+export function useGetOrCreateSharedTransferAccount(workspaceId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation<Account, Error, void>({
+    mutationFn: () => getOrCreateSharedTransferAccount(workspaceId as string),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: accountsKeys.list(workspaceId) });
     },
