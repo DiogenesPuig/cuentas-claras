@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAcceptInvitation, useInvitationPreview } from '@/features/workspaces';
 import { useActiveWorkspace } from '@/hooks/useActiveWorkspace';
+import { clearPendingInvite } from '@/lib/pending-invite';
 
 const ROLE_LABELS: Record<string, string> = {
   owner: 'Owner',
@@ -18,6 +19,9 @@ export function InviteAcceptPage() {
   const { data: preview, isLoading, isError } = useInvitationPreview(token);
   const acceptInvitation = useAcceptInvitation();
   const [error, setError] = useState<string | null>(null);
+
+  // Ya llegamos a la pantalla de invitación: el redirect pendiente (BUG-16) cumplió su función.
+  useEffect(() => clearPendingInvite(), []);
 
   async function handleAccept() {
     if (!token) return;

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
+import { getPendingInvite } from '@/lib/pending-invite';
 import { useMyWorkspaces } from '../hooks';
 
 /**
@@ -26,6 +27,12 @@ export function RequireWorkspace({ children }: { children: ReactNode }) {
   }
 
   if (!workspaces || workspaces.length === 0) {
+    // Si el usuario venía de una invitación (BUG-16), retomarla en vez de mandarlo a crear un grupo.
+    // `InviteAcceptPage` limpia el pendiente al montar, así que no hay loop.
+    const pendingInvite = getPendingInvite();
+    if (pendingInvite) {
+      return <Navigate to={pendingInvite} replace />;
+    }
     return <Navigate to="/onboarding" replace />;
   }
 
