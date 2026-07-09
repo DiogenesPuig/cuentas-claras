@@ -1,6 +1,7 @@
 import type { Category } from '@/features/categories';
 import type { Account } from '@/features/accounts';
-import { EMPTY_FIELD_FILTERS, type FieldFilters } from '../filters';
+import { accountDisplayName } from '@/features/accounts/format';
+import { EMPTY_FIELD_FILTERS, NO_ACCOUNT_FILTER, type FieldFilters } from '../filters';
 
 export type FilterBarValue = FieldFilters;
 
@@ -59,9 +60,10 @@ export function FilterBar({ value, categories, accounts, onChange }: FilterBarPr
           className="rounded-md border border-input bg-background px-2 py-1.5 text-sm"
         >
           <option value="">Todos</option>
+          <option value={NO_ACCOUNT_FILTER}>Sin medio</option>
           {accounts.map((account) => (
             <option key={account.id} value={account.id}>
-              {account.name}
+              {accountDisplayName(account)}
             </option>
           ))}
         </select>

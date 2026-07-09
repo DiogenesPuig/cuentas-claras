@@ -60,6 +60,7 @@ export async function listTransactions(
   if (args.occurredFrom) query = query.gte('occurred_on', args.occurredFrom);
   if (args.occurredTo) query = query.lt('occurred_on', args.occurredTo);
   if (args.accountId) query = query.eq('account_id', args.accountId);
+  if (args.accountIsNull) query = query.is('account_id', null);
   if (args.categoryId) query = query.eq('category_id', args.categoryId);
   if (args.currency) query = query.eq('currency', args.currency);
   if (args.holderName) query = query.eq('account.holder_name', args.holderName);

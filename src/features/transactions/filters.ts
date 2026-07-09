@@ -10,7 +10,12 @@ export interface TransactionFilters {
   search?: string;
 }
 
-/** Argumentos ya normalizados para armar la query de Supabase (rango de fechas, texto recortado). */
+/**
+ * Valor centinela del filtro de medio para "movimientos SIN medio" (BUG-13): se distingue del
+ * "todos" (`''`) y de un id de medio real. Mapea a `account_id IS NULL` en la query.
+ */
+export const NO_ACCOUNT_FILTER = '__no_account__';
+
 /** Filtros de campo de la lista (sin mes ni texto, que se manejan aparte en `TransactionsPage`). */
 export type FieldFilters = Omit<TransactionFilters, 'month' | 'search'>;
 
@@ -21,10 +26,13 @@ export const EMPTY_FIELD_FILTERS: FieldFilters = {
   holderName: '',
 };
 
+/** Argumentos ya normalizados para armar la query de Supabase (rango de fechas, texto recortado). */
 export interface TransactionFilterArgs {
   occurredFrom?: string;
   occurredTo?: string;
   accountId?: string;
+  /** Movimientos sin medio asociado (`account_id IS NULL`), BUG-13. */
+  accountIsNull?: boolean;
   categoryId?: string;
   currency?: string;
   holderName?: string;
@@ -55,7 +63,8 @@ export function buildTransactionFilterArgs(filters: TransactionFilters): Transac
     args.occurredFrom = `${filters.month}-01`;
     args.occurredTo = `${shiftMonth(filters.month, 1)}-01`;
   }
-  if (filters.accountId) args.accountId = filters.accountId;
+  if (filters.accountId === NO_ACCOUNT_FILTER) args.accountIsNull = true;
+  else if (filters.accountId) args.accountId = filters.accountId;
   if (filters.categoryId) args.categoryId = filters.categoryId;
   if (filters.currency?.length === 3) args.currency = filters.currency;
   if (filters.holderName) args.holderName = filters.holderName;

@@ -49,3 +49,18 @@ export function accountLabel(account: AccountLike): string {
   }
   return account.name;
 }
+
+/**
+ * Nombre de un medio para listas/filtros que muestran el `name` crudo (BUG-14). El `name` de un
+ * medio creado desde un resumen queda "congelado" (ej. "mastercard ••1234" sin banco si el banco
+ * no se reconoció); si después se le edita el banco, el `name` no se regenera. Acá anteponemos el
+ * banco cuando está seteado y el nombre no lo incluye ya, para que el banco editado se vea sin
+ * pisar nombres personalizados que ya lo contienen.
+ */
+export function accountDisplayName(account: { name: string; bank: string | null }): string {
+  const bank = account.bank?.trim();
+  if (bank && !account.name.toLowerCase().includes(bank.toLowerCase())) {
+    return `${bank} · ${account.name}`;
+  }
+  return account.name;
+}

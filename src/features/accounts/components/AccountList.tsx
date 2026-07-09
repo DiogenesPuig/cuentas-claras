@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { useMyRole, type MemberRole } from '@/features/workspaces';
 import { useAccounts, useCreateAccount, useMembersForHolder, useUpdateAccount } from '../hooks';
 import type { Account, AccountInput } from '../api';
+import { accountDisplayName } from '../format';
 import { AccountForm } from './AccountForm';
 import { HolderAliasesEditor } from './HolderAliasesEditor';
 
@@ -24,10 +25,6 @@ function AccountRow({
   // TODO(B8/reportes): cuando `owner_member_id` exista, mostrar el nombre vivo del miembro
   // (vía member_directory) en lugar de `holder_name`, que queda denormalizado si el miembro
   // cambia su nombre. Caer a `holder_name` solo cuando no hay miembro asociado.
-  const details = [account.bank, account.network, account.holder_name]
-    .filter(Boolean)
-    .join(' · ');
-
   const isTransfer = account.type === 'transfer';
 
   return (
@@ -35,7 +32,7 @@ function AccountRow({
       <div className="flex items-center justify-between gap-4 px-3 py-2.5">
         <div className="space-y-0.5">
           <p className="flex flex-wrap items-center gap-2 font-medium">
-            {account.name}
+            {accountDisplayName(account)}
             {account.is_extension && (
               <span className="rounded bg-accent px-1.5 py-0.5 text-xs font-normal text-accent-foreground">
                 extensión
@@ -48,11 +45,7 @@ function AccountRow({
             )}
           </p>
           <p className="text-xs text-muted-foreground">
-            {details || 'Sin detalles'}
-            {account.last4 && ` · ••${account.last4}`}
-            {' · '}
-            {account.currency}
-            {account.billing_close_day && ` · cierre día ${account.billing_close_day}`}
+            {[account.holder_name, account.currency].filter(Boolean).join(' · ')}
           </p>
         </div>
         {canManage && !editForm && (

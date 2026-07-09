@@ -1,9 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { buildTransactionFilterArgs } from './filters';
+import { buildTransactionFilterArgs, NO_ACCOUNT_FILTER } from './filters';
 
 describe('buildTransactionFilterArgs', () => {
   it('sin filtros, no agrega ningún argumento', () => {
     expect(buildTransactionFilterArgs({})).toEqual({});
+  });
+
+  it('un accountId real filtra por igualdad (no como "sin medio")', () => {
+    expect(buildTransactionFilterArgs({ accountId: 'acc-1' })).toEqual({ accountId: 'acc-1' });
+  });
+
+  it('el centinela NO_ACCOUNT_FILTER pide movimientos sin medio (account_id IS NULL) (BUG-13)', () => {
+    expect(buildTransactionFilterArgs({ accountId: NO_ACCOUNT_FILTER })).toEqual({
+      accountIsNull: true,
+    });
   });
 
   it('convierte el mes en un rango [from, to) con el mes siguiente exclusivo', () => {

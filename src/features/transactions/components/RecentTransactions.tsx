@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { accountDisplayName } from '@/features/accounts/format';
 import { formatAmount } from '../format';
 import type { TransactionView } from '../api';
 
@@ -9,7 +10,8 @@ interface RecentTransactionsProps {
 }
 
 function rowSubtitle(tx: TransactionView): string {
-  return [tx.account?.holder_name, tx.account?.name, tx.occurred_on].filter(Boolean).join(' · ');
+  const medium = tx.account ? accountDisplayName(tx.account) : null;
+  return [tx.account?.holder_name, medium, tx.occurred_on].filter(Boolean).join(' · ');
 }
 
 /** Últimos movimientos del período: persona (holder del medio), medio y fecha (FR-20). */
