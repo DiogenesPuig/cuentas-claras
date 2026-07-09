@@ -69,12 +69,11 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
   `tasks/done/`)_
 - ✅ `BUG-12` Editar un movimiento llevaba al tope de la página — _hecho (PR #67, alta/edición en
   modal + componente `Modal` reutilizable, `tasks/done/`)_
-- `BUG-13` Los movimientos **sin medio** no se pueden encontrar (filtro por persona `!inner` +
-  búsqueda solo por `description`). Reportado 2026-07-06,
-  `tasks/BUG-13-movimientos-sin-medio-no-buscables.md`.
-- `BUG-14` Editar el banco de un medio no se refleja en su nombre mostrado (`name` congelado del alta
-  por resumen; las listas muestran `name`, no `accountLabel`). Reportado 2026-07-06,
-  `tasks/BUG-14-medio-nombre-congelado-no-refleja-banco.md`.
+- ✅ `BUG-13` Los movimientos **sin medio** no se podían encontrar — _hecho (PR #69, opción "Sin medio"
+  en el filtro → `account_id IS NULL`, `tasks/done/`)_
+- ✅ `BUG-14` Editar el banco de un medio no se reflejaba en las listas — _hecho (PR #69, helper
+  `accountDisplayName` antepone el banco en movimientos/filtro/Medios; sub-línea del medio simplificada
+  a titular + moneda, `tasks/done/`)_
 - ✅ `BUG-15` Editar un medio abría el form al pie de toda la lista — _hecho (PR #68, edición inline
   dentro de la tarjeta, `tasks/done/`)_
 - `BUG-16` Entrar por link de invitación como usuario NUEVO cae en "crear grupo" en vez de unirse
