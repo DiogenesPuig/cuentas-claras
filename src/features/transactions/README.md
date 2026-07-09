@@ -43,7 +43,8 @@ texto, **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado, y *
   debajo de los 5 min de la signed URL para no servir desde caché una URL ya vencida; `retry: false`
   porque el reintento ante una URL vencida lo dispara el usuario desde `AttachmentViewer`).
 - `schema.ts` — zod del form: `type`, `amount`, `currency`, `description`, `categoryId`,
-  `accountId`, `bank` (F2-11, opcional), `occurredOn` (default hoy), `chargedOn`, `attachment`
+  `accountId`, `ownerMemberId` (IDENT-1: persona del movimiento, opcional; "Según el medio" = null),
+  `bank` (F2-11, opcional), `occurredOn` (default hoy), `chargedOn`, `attachment`
   (`FileList` opcional). Las fechas se editan/validan como **DD/MM/YYYY** y se convierten a ISO al
   guardar (`displayToIsoDate`).
 - `index.ts` — barrel del feature.

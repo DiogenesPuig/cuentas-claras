@@ -22,6 +22,8 @@ export interface TransactionInput {
   description: string | null;
   categoryId: string | null;
   accountId: string | null;
+  /** Persona del movimiento (IDENT-1): `workspace_members.id` (miembro o placeholder), o null. */
+  ownerMemberId: string | null;
   /** Banco del movimiento (F2-11): hoy solo lo llena el flujo de transferencias. */
   bank: string | null;
   occurredOn: string;
@@ -81,6 +83,7 @@ function toRow(input: TransactionInput) {
     description: input.description,
     category_id: input.categoryId,
     account_id: input.accountId,
+    owner_member_id: input.ownerMemberId,
     bank: input.bank,
     occurred_on: input.occurredOn,
     charged_on: input.chargedOn,

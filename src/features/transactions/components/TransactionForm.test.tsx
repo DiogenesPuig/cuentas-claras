@@ -107,6 +107,29 @@ describe('TransactionForm', () => {
     });
   });
 
+  it('permite atribuir el movimiento a una persona (owner_member_id) (IDENT-1)', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(
+      <TransactionForm
+        categories={[]}
+        accounts={[]}
+        members={[{ id: 'member-juan', name: 'Juan Pérez' }]}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    await userEvent.type(screen.getByLabelText('Monto'), '500');
+    await userEvent.selectOptions(screen.getByLabelText('Persona (opcional)'), 'member-juan');
+    await userEvent.click(screen.getByRole('button', { name: 'Crear movimiento' }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 500, ownerMemberId: 'member-juan' }),
+        null,
+      );
+    });
+  });
+
   it('exige una moneda de 3 letras', async () => {
     const onSubmit = vi.fn();
     render(<TransactionForm categories={[]} accounts={[]} onSubmit={onSubmit} />);

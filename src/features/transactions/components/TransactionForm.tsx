@@ -55,6 +55,7 @@ function defaultValuesFor(transaction?: Transaction): TransactionFormInput {
     description: transaction.description ?? '',
     categoryId: transaction.category_id ?? '',
     accountId: transaction.account_id ?? '',
+    ownerMemberId: transaction.owner_member_id ?? '',
     bank: transaction.bank ?? '',
     occurredOn: isoToDisplayDate(transaction.occurred_on),
     chargedOn: isoToDisplayDate(transaction.charged_on),
@@ -327,6 +328,7 @@ export function TransactionForm({
       description: values.description || null,
       categoryId: values.categoryId || null,
       accountId: values.accountId || null,
+      ownerMemberId: values.ownerMemberId || null,
       bank: values.bank || null,
       occurredOn: displayToIsoDate(values.occurredOn),
       chargedOn: values.chargedOn ? displayToIsoDate(values.chargedOn) : null,
@@ -554,6 +556,26 @@ export function TransactionForm({
             </label>
           )}
         </div>
+      </div>
+
+      {/* Persona del movimiento (IDENT-1): quién lo hizo, para cuando el medio no la determina
+          (efectivo, transferencia compartida, sin medio). "Según el medio" = se deduce del medio. */}
+      <div className="space-y-1">
+        <label htmlFor="tx-owner" className="text-sm font-medium">
+          Persona (opcional)
+        </label>
+        <select
+          id="tx-owner"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          {...register('ownerMemberId')}
+        >
+          <option value="">Según el medio</option>
+          {(members ?? []).map((member) => (
+            <option key={member.id} value={member.id}>
+              {member.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="space-y-1">
