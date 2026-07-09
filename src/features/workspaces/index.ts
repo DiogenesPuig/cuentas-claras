@@ -29,6 +29,7 @@ export {
   useMembers,
   useUpdateMemberRole,
   useRemoveMember,
+  useCreatePlaceholderMember,
   useInvitations,
   useCreateInvitation,
   useInvitationPreview,

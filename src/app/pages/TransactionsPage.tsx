@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/features/auth';
 import { useCategories } from '@/features/categories';
 import { useAccounts, useMembersForHolder } from '@/features/accounts';
-import { useMyRole, type MemberRole } from '@/features/workspaces';
+import { useCreatePlaceholderMember, useMyRole, type MemberRole } from '@/features/workspaces';
 import { StatementImport } from '@/features/imports';
 import { Modal } from '@/components/Modal';
 import {
@@ -59,6 +59,7 @@ export function TransactionsPage() {
   const uploadAttachment = useUploadAttachment(workspaceId);
   const extractReceipt = useExtractReceipt();
   const findDuplicates = useFindDuplicateCandidates(workspaceId);
+  const createPerson = useCreatePlaceholderMember(workspaceId);
 
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -174,6 +175,7 @@ export function TransactionsPage() {
           accounts={accounts ?? []}
           workspaceId={workspaceId}
           members={members ?? []}
+          onCreatePerson={canManageAny ? (name) => createPerson.mutateAsync(name) : undefined}
           onSubmit={handleSubmit}
           onCancel={closeForm}
           isSubmitting={

@@ -76,8 +76,14 @@ interface TransactionFormProps {
   onExtractReceipt?: (file: File) => Promise<ReceiptExtraction>;
   /** Workspace activo: requerido para buscar/crear (lazy) el medio `'transfer'` de la persona (F2-11). */
   workspaceId?: string;
-  /** Miembros del workspace, para matchear al titular de una transferencia con su medio. */
+  /** Miembros del workspace (incluye placeholders), para el selector de persona y el match de transferencias. */
   members?: MemberOption[];
+  /**
+   * Crea una "persona del grupo" sin cuenta (placeholder, IDENT-1) y la devuelve. Si se pasa, el
+   * selector de persona muestra "+ Persona" (solo lo pasa el contenedor a owner/admin). El contenedor
+   * es responsable de invalidar la lista de miembros.
+   */
+  onCreatePerson?: (name: string) => Promise<MemberOption>;
   /**
    * Busca posibles duplicados antes de crear (F2-13). Si se pasa y devuelve candidatos en un alta
    * nueva, se muestra un aviso suave y se espera confirmación ("Guardar igual"). En edición no se llama.
@@ -96,6 +102,7 @@ export function TransactionForm({
   onExtractReceipt,
   workspaceId,
   members,
+  onCreatePerson,
   onCheckDuplicates,
 }: TransactionFormProps) {
   const amountRef = useRef<HTMLInputElement | null>(null);
@@ -110,6 +117,14 @@ export function TransactionForm({
   // null = usar heurística; true/false = override manual del usuario (BUG-5).
   const [treatAsInstitutional, setTreatAsInstitutional] = useState<boolean | null>(null);
   const [creatingTransferAccount, setCreatingTransferAccount] = useState(false);
+  // Crear "persona del grupo" (placeholder, IDENT-1) desde el selector de persona.
+  const [creatingPerson, setCreatingPerson] = useState(false);
+  const [newPersonName, setNewPersonName] = useState('');
+  // Personas recién creadas en esta sesión del form (para que aparezcan ya en el select).
+  const [createdPeople, setCreatedPeople] = useState<MemberOption[]>([]);
+  // Persona a seleccionar recién creada: se aplica en un efecto (una vez que su <option> existe),
+  // porque `setValue` sobre un select uncontrolled no engancha si la opción todavía no está.
+  const [pendingPersonId, setPendingPersonId] = useState<string | null>(null);
   // Token de la asignación del medio "Transferencia" vigente (BUG-7): identifica cada corrida
   // para descartar respuestas viejas si el estado cambió antes de resolver.
   const transferRunRef = useRef(0);
@@ -232,6 +247,35 @@ export function TransactionForm({
     setTreatAsInstitutional(null);
     setOcrApplied(false);
   }
+
+  // Crea una "persona del grupo" (placeholder) y la selecciona (IDENT-1).
+  async function handleCreatePerson() {
+    const name = newPersonName.trim();
+    if (!name || !onCreatePerson) return;
+    try {
+      const created = await onCreatePerson(name);
+      setCreatedPeople((prev) => [...prev, created]);
+      setPendingPersonId(created.id); // se selecciona en el efecto, cuando su <option> ya existe
+      setNewPersonName('');
+      setCreatingPerson(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo crear la persona.');
+    }
+  }
+
+  // Opciones del selector de persona: miembros + las recién creadas (que aún no están en `members`).
+  const personOptions = [
+    ...(members ?? []),
+    ...createdPeople.filter((p) => !(members ?? []).some((m) => m.id === p.id)),
+  ];
+
+  // Selecciona la persona recién creada una vez que su <option> ya está renderizada.
+  useEffect(() => {
+    if (pendingPersonId && createdPeople.some((p) => p.id === pendingPersonId)) {
+      setValue('ownerMemberId', pendingPersonId);
+      setPendingPersonId(null);
+    }
+  }, [pendingPersonId, createdPeople, setValue]);
 
   async function handleExtract() {
     if (!onExtractReceipt || !selectedFile) return;
@@ -498,18 +542,72 @@ export function TransactionForm({
         <label htmlFor="tx-owner" className="text-sm font-medium">
           Persona (opcional)
         </label>
-        <select
-          id="tx-owner"
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-          {...register('ownerMemberId')}
-        >
-          <option value="">Según el medio</option>
-          {(members ?? []).map((member) => (
-            <option key={member.id} value={member.id}>
-              {member.name}
-            </option>
-          ))}
-        </select>
+        <div className="flex items-center gap-2">
+          <select
+            id="tx-owner"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            {...register('ownerMemberId')}
+          >
+            <option value="">Según el medio</option>
+            {personOptions.map((member) => (
+              <option key={member.id} value={member.id}>
+                {member.name}
+              </option>
+            ))}
+          </select>
+          {onCreatePerson && !creatingPerson && (
+            <button
+              type="button"
+              onClick={() => setCreatingPerson(true)}
+              className="shrink-0 rounded-md border border-input px-2 py-2 text-sm font-medium hover:bg-accent"
+            >
+              + Persona
+            </button>
+          )}
+        </div>
+        {onCreatePerson && creatingPerson && (
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={newPersonName}
+              onChange={(event) => setNewPersonName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  void handleCreatePerson();
+                }
+              }}
+              placeholder="Nombre de la persona del grupo"
+              aria-label="Nombre de la persona del grupo"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            />
+            <button
+              type="button"
+              onClick={() => void handleCreatePerson()}
+              disabled={!newPersonName.trim()}
+              className="shrink-0 rounded-md bg-primary px-2.5 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+            >
+              Crear
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCreatingPerson(false);
+                setNewPersonName('');
+              }}
+              className="shrink-0 rounded-md border border-input px-2.5 py-2 text-sm font-medium hover:bg-accent"
+            >
+              Cancelar
+            </button>
+          </div>
+        )}
+        {/* Aviso: si es una transferencia y no reconocimos a la persona, se toma según el medio. */}
+        {transferInfo && !effectiveIsInstitutional && !ownerMemberId && (
+          <p className="text-xs text-muted-foreground">
+            No reconocimos al usuario/miembro del comprobante; elegilo (o creá la persona), o el
+            movimiento se toma según el medio.
+          </p>
+        )}
       </div>
 
       <div className="space-y-1">

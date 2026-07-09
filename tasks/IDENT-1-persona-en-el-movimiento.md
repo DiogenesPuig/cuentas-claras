@@ -30,10 +30,14 @@
   **Reemplaza "muchas Transferencia" por una sola.** _Nota: los movimientos VIEJOS siguen en sus
   medios transfer por-persona hasta el backfill (paso 5); ahí conviven, pero reportes resuelven bien
   (por `account.owner_member_id`)._
-- ⏳ **Pasos siguientes:** (3c) crear placeholder (owner/admin: api + hook + "crear persona del grupo"
-  en el selector); (3d) filtro "Persona" de `/movimientos` por miembro; efectivo compartido (mismo
-  patrón); (4) mover alias de `accounts` a la persona; (5) **backfill + colapso** de medios por-persona
-  (migración de datos, la parte de riesgo); (6) promoción placeholder→cuenta.
+- ✅ **Paso 3c — crear placeholder desde el alta:** `createPlaceholderMember` (workspaces, RLS
+  owner/admin: fila `workspace_members` con `user_id NULL` + nombre) + `useCreatePlaceholderMember`
+  (invalida las 2 listas de miembros). El selector de persona muestra **"+ Persona"** (solo owner/admin
+  vía prop `onCreatePerson`): crea el placeholder y lo selecciona. Aviso bajo el selector cuando una
+  transferencia no reconoce a la persona. Tests: alta con persona; crear persona.
+- ⏳ **Pasos siguientes:** (3d) filtro "Persona" de `/movimientos` por miembro; efectivo compartido
+  (mismo patrón que transferencia); (4) mover alias de `accounts` a la persona; (5) **backfill + colapso**
+  de medios por-persona (migración de datos, la parte de riesgo); (6) promoción placeholder→cuenta.
 
 ## Decisión de RLS (creación de placeholders) — CERRADA (2026-07-09)
 **Solo owner/admin** pueden crear placeholders (se deja `wm_write` como está). Consistente con

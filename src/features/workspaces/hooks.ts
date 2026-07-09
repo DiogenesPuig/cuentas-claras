@@ -4,6 +4,7 @@ import {
   acceptInvitation,
   createInvitation,
   createInviteLink,
+  createPlaceholderMember,
   createWorkspace,
   getMyRole,
   getWorkspace,
@@ -132,6 +133,20 @@ export function useRemoveMember(workspaceId: string | undefined) {
     mutationFn: (memberId) => removeMember(memberId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: workspacesKeys.members(workspaceId) });
+    },
+  });
+}
+
+/** Crea una "persona del grupo" sin cuenta (placeholder, IDENT-1). Invalida las dos listas de
+ * miembros (la de `/grupo` y la del selector de persona/reportes en `features/accounts`). */
+export function useCreatePlaceholderMember(workspaceId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation<{ id: string; name: string }, Error, string>({
+    mutationFn: (name) => createPlaceholderMember(workspaceId as string, name),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: workspacesKeys.members(workspaceId) });
+      void queryClient.invalidateQueries({ queryKey: ['accounts', 'members', workspaceId] });
     },
   });
 }

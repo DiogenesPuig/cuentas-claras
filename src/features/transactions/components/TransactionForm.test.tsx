@@ -128,6 +128,26 @@ describe('TransactionForm', () => {
     });
   });
 
+  it('permite crear una persona del grupo (placeholder) desde el alta y la selecciona (IDENT-1)', async () => {
+    const onCreatePerson = vi.fn().mockResolvedValue({ id: 'member-new', name: 'Tía Ana' });
+    render(
+      <TransactionForm
+        categories={[]}
+        accounts={[]}
+        members={[]}
+        onCreatePerson={onCreatePerson}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: '+ Persona' }));
+    await userEvent.type(screen.getByLabelText('Nombre de la persona del grupo'), 'Tía Ana');
+    await userEvent.click(screen.getByRole('button', { name: 'Crear' }));
+
+    await waitFor(() => expect(onCreatePerson).toHaveBeenCalledWith('Tía Ana'));
+    expect(screen.getByLabelText('Persona (opcional)')).toHaveValue('member-new');
+  });
+
   it('exige una moneda de 3 letras', async () => {
     const onSubmit = vi.fn();
     render(<TransactionForm categories={[]} accounts={[]} onSubmit={onSubmit} />);

@@ -173,6 +173,24 @@ export async function removeMember(memberId: string): Promise<void> {
   if (error) throw error;
 }
 
+/**
+ * Crea una "persona del grupo" SIN cuenta (placeholder, IDENT-1): fila de `workspace_members` con
+ * `user_id NULL` + nombre. No da acceso a nadie (sin usuario no hay login). RLS exige owner/admin.
+ * Devuelve `{ id, name }` (forma de `MemberOption`) para el selector de persona.
+ */
+export async function createPlaceholderMember(
+  workspaceId: string,
+  name: string,
+): Promise<{ id: string; name: string }> {
+  const { data, error } = await supabase
+    .from('workspace_members')
+    .insert({ workspace_id: workspaceId, user_id: null, name, role: 'member' })
+    .select('id, name')
+    .single();
+  if (error) throw error;
+  return { id: data.id, name: data.name ?? name };
+}
+
 /** Invitaciones del workspace, más recientes primero (RLS exige rol owner/admin). */
 export async function listInvitations(workspaceId: string): Promise<Invitation[]> {
   const { data, error } = await supabase
