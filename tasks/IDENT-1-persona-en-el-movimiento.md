@@ -19,10 +19,16 @@
   cambio de comportamiento aún para transferencias (no hay `owner_member_id` en datos hasta el backfill).
   _Pendiente de BUG-17: el **filtro "Persona" de `/movimientos`** (`FilterBar`) todavía agrupa por
   `holder_name`; pasarlo a agrupar/filtrar por miembro (sub-ítem del paso siguiente)._
-- ⏳ **Pasos siguientes:** (3) medios "Transferencia"/"Efectivo" compartidos + alta con selector de
-  persona + crear placeholder (owner/admin) + filtro "Persona" por miembro; (4) mover alias de
-  `accounts` a la persona; (5) backfill + colapso de medios por-persona (migración de datos, la parte
-  de riesgo); (6) promoción placeholder→cuenta.
+- ✅ **Paso 3a — plomería + selector de persona en el alta:** `transactions.owner_member_id` viaja por
+  `TransactionInput`/`toRow`/schema/form; campo "Persona (opcional)" ("Según el medio" = null, o un
+  miembro/placeholder de `members`) que escribe `owner_member_id`. Aditivo/seguro (no reemplaza aún el
+  flujo de transferencia por-persona).
+- ⏳ **Pasos siguientes:** (3b) medio "Transferencia"/"Efectivo" **compartido** + reworkear el flujo de
+  transferencia por OCR para usarlo y setear `owner_member_id` (matchMember) en vez del medio
+  por-persona; (3c) crear placeholder (owner/admin: api + hook + "crear persona del grupo" en el
+  selector); (3d) filtro "Persona" de `/movimientos` por miembro; (4) mover alias de `accounts` a la
+  persona; (5) backfill + colapso de medios por-persona (migración de datos, la parte de riesgo);
+  (6) promoción placeholder→cuenta.
 
 ## Decisión de RLS (creación de placeholders) — CERRADA (2026-07-09)
 **Solo owner/admin** pueden crear placeholders (se deja `wm_write` como está). Consistente con
