@@ -32,6 +32,7 @@ function makeTx(overrides: Partial<ReportTransactionView> = {}): ReportTransacti
     type: 'expense',
     amount: 100,
     currency: 'ARS',
+    owner_member_id: null,
     amount_base: null,
     fx_rate: null,
     fx_date: null,

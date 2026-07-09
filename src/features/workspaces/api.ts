@@ -8,7 +8,8 @@ export type Invitation = Tables<'invitations'>;
 export interface Member {
   /** Id de `workspace_members` (el que se usa para cambiar rol / quitar). */
   id: string;
-  userId: string;
+  /** `null` para una persona del grupo sin cuenta (placeholder, IDENT-1). */
+  userId: string | null;
   name: string;
   avatarUrl: string | null;
   role: MemberRole;

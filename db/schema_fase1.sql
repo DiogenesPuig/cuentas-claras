@@ -89,7 +89,8 @@ create trigger trg_workspaces_updated
 create table workspace_members (
   id            uuid primary key default gen_random_uuid(),
   workspace_id  uuid not null references workspaces (id) on delete cascade,
-  user_id       uuid not null references profiles (id)   on delete cascade,
+  user_id       uuid references profiles (id)   on delete cascade,  -- NULL = persona sin cuenta (placeholder, IDENT-1)
+  name          text,                                                -- nombre del placeholder (IDENT-1); miembros reales lo sacan de profiles
   role          member_role not null default 'member',
   joined_at     timestamptz not null default now(),
   unique (workspace_id, user_id)
@@ -308,7 +309,8 @@ create table transactions (
   charged_on          date,                                        -- cuándo se cobra/imputa (base del FX y del ciclo)
   description         text,
   category_id         uuid references categories (id)         on delete set null,
-  account_id          uuid references accounts (id)           on delete set null,  -- medio/tarjeta usado (define la persona vía su holder)
+  account_id          uuid references accounts (id)           on delete set null,  -- medio/tarjeta usado
+  owner_member_id     uuid references workspace_members (id)  on delete set null,  -- IDENT-1: persona del movimiento (fuente de verdad; el medio deja de ser la única vía)
   created_by          uuid not null references profiles (id),
   source              transaction_source not null default 'manual',
   is_shared           boolean not null default false,              -- base para "quién debe a quién"
@@ -444,13 +446,14 @@ create policy tx_delete on transactions
 create view member_directory
 with (security_invoker = false) as
   select
+    wm.id                     as member_id,          -- IDENT-1
     wm.workspace_id,
-    p.id   as user_id,
-    p.name,
+    wm.user_id,                                       -- NULL para placeholders (IDENT-1)
+    coalesce(p.name, wm.name) as name,               -- IDENT-1: profile (miembro real) o placeholder
     p.avatar_url,
     wm.role
   from workspace_members wm
-  join profiles p on p.id = wm.user_id
+  left join profiles p on p.id = wm.user_id          -- LEFT para incluir placeholders (IDENT-1)
   where is_member(wm.workspace_id);
 
 -- ============================================================================

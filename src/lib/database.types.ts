@@ -97,6 +97,13 @@ export type Database = {
             foreignKeyName: "accounts_owner_member_id_fkey"
             columns: ["owner_member_id"]
             isOneToOne: false
+            referencedRelation: "member_directory"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "accounts_owner_member_id_fkey"
+            columns: ["owner_member_id"]
+            isOneToOne: false
             referencedRelation: "workspace_members"
             referencedColumns: ["id"]
           },
@@ -151,13 +158,6 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "attachments_uploaded_by_fkey"
-            columns: ["uploaded_by"]
-            isOneToOne: false
-            referencedRelation: "member_directory"
-            referencedColumns: ["user_id"]
-          },
           {
             foreignKeyName: "attachments_uploaded_by_fkey"
             columns: ["uploaded_by"]
@@ -294,13 +294,6 @@ export type Database = {
             foreignKeyName: "invitations_invited_by_fkey"
             columns: ["invited_by"]
             isOneToOne: false
-            referencedRelation: "member_directory"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "invitations_invited_by_fkey"
-            columns: ["invited_by"]
-            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -402,6 +395,7 @@ export type Database = {
           installment_total: number | null
           is_shared: boolean
           occurred_on: string
+          owner_member_id: string | null
           source: Database["public"]["Enums"]["transaction_source"]
           type: Database["public"]["Enums"]["transaction_type"]
           updated_at: string
@@ -427,6 +421,7 @@ export type Database = {
           installment_total?: number | null
           is_shared?: boolean
           occurred_on?: string
+          owner_member_id?: string | null
           source?: Database["public"]["Enums"]["transaction_source"]
           type: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string
@@ -452,6 +447,7 @@ export type Database = {
           installment_total?: number | null
           is_shared?: boolean
           occurred_on?: string
+          owner_member_id?: string | null
           source?: Database["public"]["Enums"]["transaction_source"]
           type?: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string
@@ -483,14 +479,21 @@ export type Database = {
             foreignKeyName: "transactions_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
-            referencedRelation: "member_directory"
-            referencedColumns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "transactions_created_by_fkey"
-            columns: ["created_by"]
+            foreignKeyName: "transactions_owner_member_id_fkey"
+            columns: ["owner_member_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "member_directory"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "transactions_owner_member_id_fkey"
+            columns: ["owner_member_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_members"
             referencedColumns: ["id"]
           },
           {
@@ -506,32 +509,28 @@ export type Database = {
         Row: {
           id: string
           joined_at: string
+          name: string | null
           role: Database["public"]["Enums"]["member_role"]
-          user_id: string
+          user_id: string | null
           workspace_id: string
         }
         Insert: {
           id?: string
           joined_at?: string
+          name?: string | null
           role?: Database["public"]["Enums"]["member_role"]
-          user_id: string
+          user_id?: string | null
           workspace_id: string
         }
         Update: {
           id?: string
           joined_at?: string
+          name?: string | null
           role?: Database["public"]["Enums"]["member_role"]
-          user_id?: string
+          user_id?: string | null
           workspace_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "workspace_members_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "member_directory"
-            referencedColumns: ["user_id"]
-          },
           {
             foreignKeyName: "workspace_members_user_id_fkey"
             columns: ["user_id"]
@@ -584,13 +583,6 @@ export type Database = {
             foreignKeyName: "workspaces_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
-            referencedRelation: "member_directory"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "workspaces_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -601,12 +593,20 @@ export type Database = {
       member_directory: {
         Row: {
           avatar_url: string | null
+          member_id: string | null
           name: string | null
           role: Database["public"]["Enums"]["member_role"] | null
           user_id: string | null
           workspace_id: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "workspace_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workspace_members_workspace_id_fkey"
             columns: ["workspace_id"]
