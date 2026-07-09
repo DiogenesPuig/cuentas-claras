@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { Category } from '@/features/categories';
 import {
+  useGetOrCreateSharedCashAccount,
   useGetOrCreateSharedTransferAccount,
   type Account,
   type MemberOption,
@@ -38,6 +39,15 @@ import { sha256Hex } from '@/lib/file-hash';
 
 /** Debajo de este valor avisamos que la extracción puede ser imprecisa. */
 const LOW_CONFIDENCE = 0.5;
+
+/** Valor centinela del selector de medio para "Efectivo compartido" (IDENT-1): al elegirlo se
+ * crea/reusa el medio `'cash'` compartido de forma lazy y se reemplaza por su id real. */
+const SHARED_CASH_SENTINEL = '__shared_cash__';
+
+/** El medio "Efectivo" compartido del workspace (IDENT-1): `cash`, sin dueño ni titular. */
+function isSharedCashAccount(account: Account): boolean {
+  return account.type === 'cash' && !account.owner_member_id && account.holder_name === '';
+}
 
 const TYPE_LABELS: Record<TransactionFormInput['type'], string> = {
   expense: 'Gasto',
@@ -128,10 +138,17 @@ export function TransactionForm({
   // Token de la asignación del medio "Transferencia" vigente (BUG-7): identifica cada corrida
   // para descartar respuestas viejas si el estado cambió antes de resolver.
   const transferRunRef = useRef(0);
+  // Efectivo compartido (IDENT-1): al elegir la opción "Efectivo" del selector se crea/reusa el
+  // medio compartido de forma lazy. `pendingCashId` se aplica en un efecto una vez que su <option>
+  // existe (mismo motivo que `pendingPersonId`).
+  const [creatingCashAccount, setCreatingCashAccount] = useState(false);
+  const [pendingCashId, setPendingCashId] = useState<string | null>(null);
+  const cashRunRef = useRef(0);
   // Guard de re-entrancia del submit (BUG-9): evita disparar dos altas con doble click
   // rápido antes de que React refleje `disabled`.
   const submittingRef = useRef(false);
   const getOrCreateSharedTransferAccount = useGetOrCreateSharedTransferAccount(workspaceId);
+  const getOrCreateSharedCashAccount = useGetOrCreateSharedCashAccount(workspaceId);
   const {
     register,
     handleSubmit,
@@ -151,6 +168,7 @@ export function TransactionForm({
     setTreatAsInstitutional(null);
     setDuplicateCandidates([]);
     setPendingSave(null);
+    setPendingCashId(null);
   }, [transaction, reset]);
 
   useEffect(() => {
@@ -166,6 +184,11 @@ export function TransactionForm({
   const selectedFile = watch('attachment')?.[0] ?? null;
   const categoryOptions = categories.filter((c) => c.kind === type);
   const amountField = register('amount');
+
+  // Efectivo compartido (IDENT-1): si ya existe, se elige como cualquier medio; si no, se ofrece la
+  // opción centinela que lo crea al vuelo. La persona (quién pagó) va en el selector de persona.
+  const sharedCashAccount = accounts.find(isSharedCashAccount) ?? null;
+  const showCashSentinel = !sharedCashAccount || pendingCashId !== null;
 
   // Atribución del medio/persona en una transferencia (F2-9, decisión 2026-06-23):
   // gasto → origen (quien envía), ingreso → destino (quien recibe).
@@ -225,6 +248,42 @@ export function TransactionForm({
     if (ownerBank && !bank) setValue('bank', ownerBank);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ownerBank]);
+
+  // Al elegir "Efectivo" (centinela): crea/reusa el medio compartido. No se setea el id acá porque
+  // su <option> puede no existir aún; se aplica en el efecto de abajo (ver `pendingPersonId`).
+  useEffect(() => {
+    if (accountId !== SHARED_CASH_SENTINEL || !workspaceId) return;
+    const runId = (cashRunRef.current += 1);
+    let cancelled = false;
+    setCreatingCashAccount(true);
+    getOrCreateSharedCashAccount
+      .mutateAsync()
+      .then((account) => {
+        if (!cancelled) setPendingCashId(account.id);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setValue('accountId', '');
+        toast.error(err instanceof Error ? err.message : 'No se pudo crear el medio "Efectivo".');
+      })
+      .finally(() => {
+        if (cashRunRef.current === runId) setCreatingCashAccount(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accountId, workspaceId]);
+
+  // Selecciona el medio "Efectivo" compartido recién creado una vez que su <option> ya está en la
+  // lista (tras invalidar `useAccounts`), para que el select uncontrolled enganche el valor.
+  useEffect(() => {
+    if (pendingCashId === null) return;
+    if (!accounts.some((a) => a.id === pendingCashId)) return;
+    setValue('accountId', pendingCashId);
+    setPendingCashId(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingCashId, accounts]);
 
   // Sugerencia de categoría por descripción (F2-6, FR-19): solo si no hay una elegida.
   // Nunca se aplica sola; el usuario decide con el botón "Usar".
@@ -343,6 +402,11 @@ export function TransactionForm({
   }
 
   async function handleFormSubmit(values: TransactionFormInput) {
+    // Efectivo compartido (IDENT-1): no guardar el centinela; esperar a que el medio se cree.
+    if (values.accountId === SHARED_CASH_SENTINEL || creatingCashAccount || pendingCashId !== null) {
+      toast.error('Esperá a que termine de crearse el medio “Efectivo”.');
+      return;
+    }
     // Guard anti doble-submit (BUG-9): ignora reentradas mientras la anterior no terminó,
     // por si un doble click rápido dispara el handler antes de que se refleje `disabled`.
     if (submittingRef.current) return;
@@ -514,7 +578,14 @@ export function TransactionForm({
                 {accountLabel({ ...account, holderName: account.holder_name })}
               </option>
             ))}
+            {showCashSentinel && <option value={SHARED_CASH_SENTINEL}>Efectivo</option>}
           </select>
+          {creatingCashAccount && (
+            <p className="text-xs text-muted-foreground">Creando el medio “Efectivo”…</p>
+          )}
+          {sharedCashAccount && accountId === sharedCashAccount.id && !ownerMemberId && (
+            <p className="text-xs text-muted-foreground">Elegí abajo quién lo pagó (opcional).</p>
+          )}
           {ownerHolder && !effectiveIsInstitutional && (
             <p className="text-xs text-muted-foreground">
               Transferencia con {ownerHolder}

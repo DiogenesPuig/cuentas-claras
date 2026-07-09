@@ -49,8 +49,11 @@ texto, **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado, y *
   guardar (`displayToIsoDate`).
 - `index.ts` — barrel del feature.
 - `components/TransactionForm.tsx` — alta/edición rápida: foco automático en el monto, categorías
-  filtradas por tipo (gasto/ingreso) vía `useCategories`, medios vía `useAccounts`. La persona NO
-  se elige: se deduce del `account_id` (su holder) en reportes/listas, no en este form. El archivo
+  filtradas por tipo (gasto/ingreso) vía `useCategories`, medios vía `useAccounts`. **IDENT-1:** un
+  selector **"Persona (opcional)"** atribuye el movimiento a un miembro/placeholder
+  (`owner_member_id`); "Según el medio" (vacío) = se deduce del medio en reportes/listas. Con
+  `onCreatePerson` (solo owner/admin) ofrece **"+ Persona"** para crear una persona del grupo
+  (placeholder) inline y seleccionarla. El archivo
   elegido se entrega al `onSubmit` (no se sube dentro del form, que no tiene lógica de datos); quien
   lo use decide cuándo subirlo (ver `TransactionsPage`/`DashboardPage`). Si recibe `onExtractReceipt`,
   muestra el botón "Extraer datos del comprobante" que llama al OCR y precarga monto/moneda/fecha/comercio
@@ -68,6 +71,10 @@ texto, **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado, y *
   si nadie matchea, la persona queda en "Según el medio" (vacío) para que el usuario la elija. La
   persona va en el movimiento (`owner_member_id`), no en el medio (se acabó el medio `'transfer'` por
   persona de F2-11). Pagos institucionales (BUG-5): sin medio ni persona.
+  **Efectivo compartido (IDENT-1):** el selector de medio ofrece la opción **"Efectivo"** que
+  crea/reusa (lazy, `useGetOrCreateSharedCashAccount`) el **único** medio efectivo del workspace y lo
+  asigna; quién pagó va en el selector de persona. Mientras se crea, el submit espera (no guarda el
+  centinela). Una vez creado aparece como un medio normal y el centinela desaparece.
   Requiere `workspaceId`/`members` (opcionales; sin ellos, no se ofrece la atribución automática).
   Si recibe `onCheckDuplicates` (F2-13), antes de crear un alta **nueva** calcula el hash del archivo
   (`lib/file-hash`) y busca candidatos; si los hay, muestra un **aviso suave** ("Ya subiste este
@@ -82,9 +89,12 @@ texto, **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado, y *
 - `components/RecentTransactions.tsx` — últimos N movimientos del período con persona (holder del
   medio), medio y fecha (B9). Link "Ver todos" a `/movimientos`.
 - `components/FilterBar.tsx` — filtros combinables de `/movimientos`: persona, medio y categoría
-  (selects a partir de `accounts`/`categories`) y moneda (texto libre de 3 letras, igual que en
-  `TransactionForm`), con botón "Limpiar filtros" (B10). El select de medio tiene la opción **"Sin
-  medio"** (`NO_ACCOUNT_FILTER`, BUG-13) y muestra los medios con `accountDisplayName` (BUG-14).
+  y moneda (texto libre de 3 letras, igual que en `TransactionForm`), con botón "Limpiar filtros"
+  (B10). El select de medio tiene la opción **"Sin medio"** (`NO_ACCOUNT_FILTER`, BUG-13) y muestra
+  los medios con `accountDisplayName` (BUG-14). **IDENT-1:** el filtro **"Persona"** ya no agrupa por
+  `holder_name`: recibe `personaOptions` por **miembro** (nombre vivo, vía `lib/persona`) que arma
+  `TransactionsPage`, y el filtrado es client-side (`personaKey`), no en la query — arregla el síntoma
+  del filtro de BUG-17.
 - `components/SearchBar.tsx` — input de búsqueda por motivo; el debounce lo maneja quien la usa
   (`TransactionsPage`), el componente queda simple y controlado (B10).
 - `components/TransactionList.tsx` — lista de movimientos ya filtrados con el total arriba y el

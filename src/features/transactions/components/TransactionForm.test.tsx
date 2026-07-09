@@ -10,13 +10,15 @@ const toastMock = vi.hoisted(() => ({ error: vi.fn(), warning: vi.fn(), success:
 vi.mock('sonner', () => ({ toast: toastMock }));
 
 const getOrCreateSharedTransferAccountMock = vi.fn();
+const getOrCreateSharedCashAccountMock = vi.fn();
 
 // Mockeamos el barrel completo (no `vi.importActual`: el barrel re-exporta `api.ts`, que
-// importa `lib/supabase` y rompe en CI sin las env vars — ver memoria del barrel). El único
-// valor que `TransactionForm.tsx` importa de acá es el hook del medio compartido (IDENT-1); el
-// resto son tipos (se borran en compilación, no hace falta mockearlos).
+// importa `lib/supabase` y rompe en CI sin las env vars — ver memoria del barrel). Los únicos
+// valores que `TransactionForm.tsx` importa de acá son los hooks de los medios compartidos
+// (IDENT-1); el resto son tipos (se borran en compilación, no hace falta mockearlos).
 vi.mock('@/features/accounts', () => ({
   useGetOrCreateSharedTransferAccount: () => ({ mutateAsync: getOrCreateSharedTransferAccountMock }),
+  useGetOrCreateSharedCashAccount: () => ({ mutateAsync: getOrCreateSharedCashAccountMock }),
 }));
 
 function makeAccount(overrides: Partial<Account>): Account {
@@ -338,6 +340,32 @@ describe('TransactionForm', () => {
     });
     // Nadie matchea "Desconocido Ramírez" → la persona queda en "Según el medio" (vacío).
     expect(screen.getByLabelText('Persona (opcional)')).toHaveValue('');
+  });
+
+  it('crea el medio "Efectivo" compartido al elegirlo y lo asigna al movimiento (IDENT-1)', async () => {
+    const cash = makeAccount({ id: 'acc-cash', name: 'Efectivo', type: 'cash', holder_name: '' });
+    getOrCreateSharedCashAccountMock.mockResolvedValue(cash);
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    const props = {
+      categories: [],
+      onSubmit,
+      workspaceId: 'ws-1',
+      members: [{ id: 'm-juan', name: 'Juan' }],
+    };
+
+    // Sin efectivo compartido todavía: el selector ofrece la opción centinela "Efectivo".
+    const { rerender } = render(<TransactionForm {...props} accounts={[]} />);
+    await userEvent.selectOptions(
+      screen.getByLabelText('Medio (opcional)'),
+      screen.getByRole('option', { name: 'Efectivo' }),
+    );
+    await waitFor(() => expect(getOrCreateSharedCashAccountMock).toHaveBeenCalled());
+
+    // Una vez creado (aparece en la lista de medios), el movimiento queda asignado al compartido.
+    rerender(<TransactionForm {...props} accounts={[cash]} />);
+    await waitFor(() =>
+      expect(screen.getByLabelText('Medio (opcional)')).toHaveValue('acc-cash'),
+    );
   });
 
   it('un doble click rápido en guardar no dispara dos altas (BUG-9)', async () => {

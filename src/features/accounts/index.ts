@@ -6,6 +6,7 @@ export {
   updateHolderAliases,
   getOrCreateTransferAccount,
   getOrCreateSharedTransferAccount,
+  getOrCreateSharedCashAccount,
   type Account,
   type AccountType,
   type CardNetwork,
@@ -21,6 +22,7 @@ export {
   useUpdateHolderAliases,
   useGetOrCreateTransferAccount,
   useGetOrCreateSharedTransferAccount,
+  useGetOrCreateSharedCashAccount,
   accountsKeys,
 } from './hooks';
 export {

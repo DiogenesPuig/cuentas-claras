@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createAccount,
   getOrCreateTransferAccount,
+  getOrCreateSharedCashAccount,
   getOrCreateSharedTransferAccount,
   listAccounts,
   listMembersForHolder,
@@ -88,6 +89,18 @@ export function useGetOrCreateSharedTransferAccount(workspaceId: string | undefi
 
   return useMutation<Account, Error, void>({
     mutationFn: () => getOrCreateSharedTransferAccount(workspaceId as string),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: accountsKeys.list(workspaceId) });
+    },
+  });
+}
+
+/** Busca/crea (lazy) el medio "Efectivo" **compartido** del workspace (IDENT-1). */
+export function useGetOrCreateSharedCashAccount(workspaceId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation<Account, Error, void>({
+    mutationFn: () => getOrCreateSharedCashAccount(workspaceId as string),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: accountsKeys.list(workspaceId) });
     },

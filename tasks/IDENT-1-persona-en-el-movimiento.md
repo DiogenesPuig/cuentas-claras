@@ -40,9 +40,15 @@
   server-side por `holder_name` (`!inner`): ahora `FilterBar` recibe `personaOptions` basadas en miembro
   y `TransactionsPage` filtra en el cliente con `personaKeyOf` → **arregla el síntoma del filtro de
   BUG-17** (nombres vivos, sin duplicar). Tests: `lib/persona.test.ts`.
-- ⏳ **Pasos siguientes:** efectivo compartido (mismo patrón que transferencia); (4) mover alias de
-  `accounts` a la persona; (5) **backfill + colapso** de medios por-persona (migración de datos, la
-  parte de riesgo); (6) promoción placeholder→cuenta.
+- ✅ **Paso 3e — Efectivo compartido:** `getOrCreateSharedCashAccount` (UN medio `'cash'` por
+  workspace, `owner_member_id NULL` + `holder_name ''`) + `useGetOrCreateSharedCashAccount`. En el
+  alta, el selector de medio ofrece la opción **"Efectivo"** (centinela) que crea/reusa el medio lazy
+  al elegirla y lo asigna; quién pagó va en el selector de persona. El submit espera mientras se crea
+  (no guarda el centinela). Una vez creado, es un medio normal y el centinela desaparece. Test del
+  flujo (centinela → crea → asigna). Mismo patrón que la transferencia compartida (3b).
+- ⏳ **Pasos siguientes:** (4) mover alias de `accounts` a la persona; (5) **backfill + colapso** de
+  medios transfer/cash por-persona (migración de datos, la parte de riesgo); (6) promoción
+  placeholder→cuenta.
 
 ## Decisión de RLS (creación de placeholders) — CERRADA (2026-07-09)
 **Solo owner/admin** pueden crear placeholders (se deja `wm_write` como está). Consistente con

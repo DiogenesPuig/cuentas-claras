@@ -16,10 +16,16 @@ tipo, moneda, últimos 4 dígitos, holder (miembro o nombre) y, si es extensión
   persona y, si no existe, lo crea lazy; un único medio "Transferencia" por persona, sin banco).
   MEJ-4: el buscar/crear ahora delega en el matcher puro `findTransferAccount` (`lib/transfer-account`)
   —mismo criterio que el pre-match del front, incluyendo `holder_aliases`— en vez del match exacto
-  por `holder_name` que duplicaba ante variantes de orden/tildes/apodos. Sin React.
+  por `holder_name` que duplicaba ante variantes de orden/tildes/apodos.
+  IDENT-1: `getOrCreateSharedTransferAccount(workspaceId)` y `getOrCreateSharedCashAccount(workspaceId)`
+  buscan/crean (lazy) el **único** medio "Transferencia"/"Efectivo" **compartido** del workspace
+  (`owner_member_id NULL` + `holder_name = ''`); la persona de cada movimiento va en
+  `transactions.owner_member_id`, no en el medio (así se reemplaza el "uno por persona"). Sin React.
 - `hooks.ts` — react-query: `useAccounts(workspaceId)` (se reutilizará en el alta de movimientos,
   B8), `useMembersForHolder`, `useCreateAccount`, `useUpdateAccount`, `useUpdateHolderAliases`
-  (MEJ-4) y `useGetOrCreateTransferAccount` (F2-11, invalida `accounts` al crear).
+  (MEJ-4), `useGetOrCreateTransferAccount` (F2-11) y los compartidos de IDENT-1
+  `useGetOrCreateSharedTransferAccount` / `useGetOrCreateSharedCashAccount` (todos invalidan
+  `accounts` al crear).
 - `schema.ts` — zod del form: `name`, `bank`, `network`, `type` (incluye `'transfer'`, F2-11),
   `currency`, `last4`, `holderKind` (`member` | `name`) + `ownerMemberId`/`holderName` según
   corresponda, `isExtension` + `parentAccountId` si aplica, `billingCloseDay`.

@@ -201,3 +201,38 @@ export async function getOrCreateSharedTransferAccount(workspaceId: string): Pro
   if (insertError) throw insertError;
   return created;
 }
+
+/**
+ * Medio "Efectivo" **compartido** del workspace (IDENT-1): UNO solo, sin dueño; la persona que pagó
+ * en efectivo va en el movimiento (`owner_member_id`), no en el medio. Mismo patrón que
+ * `getOrCreateSharedTransferAccount`: se identifica por `type='cash'` + `owner_member_id IS NULL` +
+ * `holder_name = ''` (los medios cash legacy por-persona tienen `holder_name`/`owner_member_id`, así
+ * que no se confunden). Lazy: se crea la primera vez que se usa.
+ */
+export async function getOrCreateSharedCashAccount(workspaceId: string): Promise<Account> {
+  const { data: existing, error: selectError } = await supabase
+    .from('accounts')
+    .select('*')
+    .eq('workspace_id', workspaceId)
+    .eq('type', 'cash')
+    .is('owner_member_id', null)
+    .eq('holder_name', '')
+    .limit(1);
+  if (selectError) throw selectError;
+  if (existing && existing[0]) return existing[0];
+
+  const payload: TablesInsert<'accounts'> = {
+    workspace_id: workspaceId,
+    name: 'Efectivo',
+    type: 'cash',
+    owner_member_id: null,
+    holder_name: '',
+  };
+  const { data: created, error: insertError } = await supabase
+    .from('accounts')
+    .insert(payload)
+    .select()
+    .single();
+  if (insertError) throw insertError;
+  return created;
+}
