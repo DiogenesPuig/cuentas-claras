@@ -12,17 +12,23 @@
   con placeholders (LEFT join, `member_id`); trigger de mismo-workspace. Aditivo → sin cambio de
   comportamiento. Tipos/schema al día; typecheck/lint/test/build verdes. **Migración NO aplicada a
   remoto todavía** (recién al final, con todo probado).
-- ⏳ **Pasos siguientes:** (2) resolución de persona en reportes/listas/filtro (`personaIdentity` lee
-  `owner_member_id`) — arregla BUG-17; (3) medios "Transferencia"/"Efectivo" compartidos + alta con
-  selector de persona + crear placeholder; (4) mover alias de `accounts` a la persona; (5) backfill +
-  colapso de medios por-persona (migración de datos, la parte de riesgo); (6) promoción placeholder→cuenta.
+- ✅ **Paso 2 — resolución de persona (nombre vivo):** `personaIdentity` (reports) ahora lee
+  `tx.owner_member_id` primero (persona del movimiento manda), luego el medio; `listMembersForHolder`
+  sale de `member_directory` (`member_id` + nombre vivo, incluye placeholders); `AccountList` muestra
+  el nombre vivo del miembro → **arregla el síntoma principal de BUG-17** (la lista de Medios). Sin
+  cambio de comportamiento aún para transferencias (no hay `owner_member_id` en datos hasta el backfill).
+  _Pendiente de BUG-17: el **filtro "Persona" de `/movimientos`** (`FilterBar`) todavía agrupa por
+  `holder_name`; pasarlo a agrupar/filtrar por miembro (sub-ítem del paso siguiente)._
+- ⏳ **Pasos siguientes:** (3) medios "Transferencia"/"Efectivo" compartidos + alta con selector de
+  persona + crear placeholder (owner/admin) + filtro "Persona" por miembro; (4) mover alias de
+  `accounts` a la persona; (5) backfill + colapso de medios por-persona (migración de datos, la parte
+  de riesgo); (6) promoción placeholder→cuenta.
 
-## Decisión de RLS pendiente (creación de placeholders)
-`wm_write` hoy restringe **insertar** en `workspace_members` a **owner/admin**. Crear una "persona del
-grupo" (placeholder) desde el alta necesitaría esa política. Decidir: ¿solo owner/admin crean
-placeholders, o se relaja para que cualquier **miembro** pueda crear placeholders (filas con
-`user_id NULL`, manteniendo la restricción owner/admin para miembros reales)? Recomendado: permitir a
-miembros crear placeholders (con un `with check` que exija `user_id IS NULL` para el caso no-admin).
+## Decisión de RLS (creación de placeholders) — CERRADA (2026-07-09)
+**Solo owner/admin** pueden crear placeholders (se deja `wm_write` como está). Consistente con
+"invitar/agregar miembros" (ya es owner/admin) y más simple. Costo aceptado: un rol "member" que
+carga un movimiento de un no-miembro no puede crear la persona en el momento (lo deja en "Otros" o le
+pide a un admin) — poco común, porque los que cargan plata suelen ser owner/admin.
 
 ## Problema de raíz
 Hoy **la persona de un movimiento se deduce del medio** (`account.owner_member_id`/`holder_name`;

@@ -12,20 +12,25 @@ function AccountRow({
   account,
   canManage,
   workspaceId,
+  memberNameById,
   onEdit,
   editForm,
 }: {
   account: Account;
   canManage: boolean;
   workspaceId: string;
+  /** Nombre vivo del miembro por su id (IDENT-1/BUG-17): evita mostrar el `holder_name` congelado. */
+  memberNameById: Map<string, string>;
   onEdit: (account: Account) => void;
   /** Si se está editando ESTE medio, el form va acá adentro (pegado a la tarjeta, BUG-15). */
   editForm?: ReactNode;
 }) {
-  // TODO(B8/reportes): cuando `owner_member_id` exista, mostrar el nombre vivo del miembro
-  // (vía member_directory) en lugar de `holder_name`, que queda denormalizado si el miembro
-  // cambia su nombre. Caer a `holder_name` solo cuando no hay miembro asociado.
   const isTransfer = account.type === 'transfer';
+  // Si el medio está ligado a un miembro, mostrar su nombre VIVO (no el `holder_name` denormalizado,
+  // que queda viejo al cambiar el nombre del perfil — BUG-17).
+  const holder = account.owner_member_id
+    ? (memberNameById.get(account.owner_member_id) ?? account.holder_name)
+    : account.holder_name;
 
   return (
     <li className="overflow-hidden rounded-lg border border-border bg-card text-sm shadow-sm transition-colors hover:border-primary/50 focus-within:border-primary/60">
@@ -45,7 +50,7 @@ function AccountRow({
             )}
           </p>
           <p className="text-xs text-muted-foreground">
-            {[account.holder_name, account.currency].filter(Boolean).join(' · ')}
+            {[holder, account.currency].filter(Boolean).join(' · ')}
           </p>
         </div>
         {canManage && !editForm && (
@@ -90,6 +95,8 @@ export function AccountList({ workspaceId }: AccountListProps) {
 
   const canManage = role !== null && role !== undefined && CAN_MANAGE_ROLES.includes(role);
   const isFormOpen = editing !== null || isCreating;
+  // Nombre vivo del miembro por su id (IDENT-1/BUG-17).
+  const memberNameById = new Map((members ?? []).map((m) => [m.id, m.name]));
 
   function closeForm() {
     setEditing(null);
@@ -143,6 +150,7 @@ export function AccountList({ workspaceId }: AccountListProps) {
             account={account}
             canManage={canManage}
             workspaceId={workspaceId}
+            memberNameById={memberNameById}
             onEdit={setEditing}
             editForm={editing?.id === account.id ? accountForm(account) : undefined}
           />

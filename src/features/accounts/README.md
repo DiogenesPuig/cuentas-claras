@@ -7,8 +7,9 @@ tipo, moneda, últimos 4 dígitos, holder (miembro o nombre) y, si es extensión
 ## Archivos
 
 - `api.ts` — Supabase: `listAccounts` (no archivados del workspace), `listMembersForHolder`
-  (miembros del workspace para el selector de holder, vía `workspace_members` + la vista
-  `member_directory` — `profiles` solo es legible por su propio dueño), `createAccount` y
+  (miembros del workspace para el selector de holder y para resolver la persona; sale de la vista
+  `member_directory` con `member_id` + nombre **vivo** e **incluye placeholders** —IDENT-1—;
+  `profiles` solo es legible por su propio dueño), `createAccount` y
   `updateAccount` (RLS exige rol owner/admin), `updateHolderAliases(id, aliases)` (MEJ-4: setea
   los nombres alternativos del titular de un medio `'transfer'`; recorta/deduplica), y
   `getOrCreateTransferAccount(workspaceId, holder)` (F2-11: busca el medio `type='transfer'` de una
@@ -44,10 +45,9 @@ tipo, moneda, últimos 4 dígitos, holder (miembro o nombre) y, si es extensión
 
 - Total gastado por medio en el período (FR-6): depende de `transactions` (C11); se deja para
   cuando exista esa lógica.
-- **Mostrar el holder por `owner_member_id` (pendiente):** hoy la lista muestra `holder_name`, que
-  queda denormalizado si el miembro cambia su nombre. A futuro, cuando exista `owner_member_id`,
-  mostrar el nombre vivo del miembro (vía `member_directory`) y caer a `holder_name` solo si no hay
-  miembro asociado. Ver `TODO(B8/reportes)` en `components/AccountList.tsx`.
+- **Holder por `owner_member_id` (hecho, IDENT-1/BUG-17):** `AccountList` muestra el nombre **vivo**
+  del miembro (vía `member_directory`) cuando el medio tiene `owner_member_id`, y cae a `holder_name`
+  solo si no hay miembro asociado. Así cambiar el nombre del perfil se refleja sin duplicar persona.
 
 ## Relacionados
 

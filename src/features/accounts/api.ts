@@ -39,26 +39,22 @@ export async function listAccounts(workspaceId: string): Promise<Account[]> {
 }
 
 /**
- * Miembros del workspace, para elegir el holder de un medio.
- * `profiles` solo es legible por su propio dueño, por eso el nombre se busca en
- * la vista `member_directory` (en vez de un join directo a `profiles`).
+ * Miembros del workspace (id de `workspace_members` + nombre **vivo**), para elegir el holder de un
+ * medio y para resolver la persona en reportes/listas. Sale de `member_directory` (IDENT-1: ya trae
+ * `member_id` + nombre, y **incluye placeholders** —personas sin cuenta—; `profiles` solo es legible
+ * por su dueño, por eso el nombre va por la vista). Usar el nombre vivo, y no el `holder_name`
+ * congelado del medio, es lo que arregla BUG-17.
  */
 export async function listMembersForHolder(workspaceId: string): Promise<MemberOption[]> {
-  const [membersRes, directoryRes] = await Promise.all([
-    supabase.from('workspace_members').select('id, user_id').eq('workspace_id', workspaceId),
-    supabase.from('member_directory').select('user_id, name').eq('workspace_id', workspaceId),
-  ]);
-  if (membersRes.error) throw membersRes.error;
-  if (directoryRes.error) throw directoryRes.error;
-
-  const namesByUser = new Map(
-    (directoryRes.data ?? []).map((row) => [row.user_id, row.name ?? 'Sin nombre']),
+  const { data, error } = await supabase
+    .from('member_directory')
+    .select('member_id, name')
+    .eq('workspace_id', workspaceId);
+  if (error) throw error;
+  // `member_id` es `wm.id` (PK, nunca null); la vista lo marca nullable, así que lo filtramos.
+  return (data ?? []).flatMap((row) =>
+    row.member_id ? [{ id: row.member_id, name: row.name ?? 'Sin nombre' }] : [],
   );
-
-  return (membersRes.data ?? []).map((m) => ({
-    id: m.id,
-    name: namesByUser.get(m.user_id) ?? 'Sin nombre',
-  }));
 }
 
 function toRow(input: AccountInput) {

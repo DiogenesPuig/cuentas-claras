@@ -121,6 +121,24 @@ describe('aggregateByDimension', () => {
     expect(groups[0].consolidated.expense).toBe(150);
   });
 
+  it('IDENT-1: la persona del MOVIMIENTO (owner_member_id) manda sobre la del medio', () => {
+    const memberNameById = new Map([['member-maria', 'María Gómez']]);
+    const transactions = [
+      // Medio compartido "Transferencia" (sin dueño), pero el movimiento es de María.
+      makeTx({
+        amount: 100,
+        owner_member_id: 'member-maria',
+        account: makeAccount({ holder_name: 'Transferencia', owner_member_id: null }),
+      }),
+    ];
+
+    const groups = aggregateByDimension(transactions, 'persona', 'ARS', noRate, memberNameById);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].label).toBe('María Gómez');
+    expect(groups[0].consolidated.expense).toBe(100);
+  });
+
   it('F2-10: sin owner_member_id, dos holder_name con orden/tildes distintos se fusionan por nombre normalizado', () => {
     const transactions = [
       makeTx({ amount: 100, account: makeAccount({ holder_name: 'Pérez Juan', owner_member_id: null }) }),
