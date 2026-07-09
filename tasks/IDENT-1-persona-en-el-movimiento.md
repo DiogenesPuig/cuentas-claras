@@ -23,12 +23,17 @@
   `TransactionInput`/`toRow`/schema/form; campo "Persona (opcional)" ("Según el medio" = null, o un
   miembro/placeholder de `members`) que escribe `owner_member_id`. Aditivo/seguro (no reemplaza aún el
   flujo de transferencia por-persona).
-- ⏳ **Pasos siguientes:** (3b) medio "Transferencia"/"Efectivo" **compartido** + reworkear el flujo de
-  transferencia por OCR para usarlo y setear `owner_member_id` (matchMember) en vez del medio
-  por-persona; (3c) crear placeholder (owner/admin: api + hook + "crear persona del grupo" en el
-  selector); (3d) filtro "Persona" de `/movimientos` por miembro; (4) mover alias de `accounts` a la
-  persona; (5) backfill + colapso de medios por-persona (migración de datos, la parte de riesgo);
-  (6) promoción placeholder→cuenta.
+- ✅ **Paso 3b — "Transferencia" compartida:** `getOrCreateSharedTransferAccount` (UN medio 'transfer'
+  por workspace) + hook; el flujo del alta asigna ese medio y **prefilla la persona** (matchMember →
+  miembro/placeholder), sin match queda vacía para elegir. Se eliminó el flujo per-persona
+  (`getOrCreateTransferAccount`/`matchTransferAccount`) y el prompt de alias de MEJ-4A del alta.
+  **Reemplaza "muchas Transferencia" por una sola.** _Nota: los movimientos VIEJOS siguen en sus
+  medios transfer por-persona hasta el backfill (paso 5); ahí conviven, pero reportes resuelven bien
+  (por `account.owner_member_id`)._
+- ⏳ **Pasos siguientes:** (3c) crear placeholder (owner/admin: api + hook + "crear persona del grupo"
+  en el selector); (3d) filtro "Persona" de `/movimientos` por miembro; efectivo compartido (mismo
+  patrón); (4) mover alias de `accounts` a la persona; (5) **backfill + colapso** de medios por-persona
+  (migración de datos, la parte de riesgo); (6) promoción placeholder→cuenta.
 
 ## Decisión de RLS (creación de placeholders) — CERRADA (2026-07-09)
 **Solo owner/admin** pueden crear placeholders (se deja `wm_write` como está). Consistente con
