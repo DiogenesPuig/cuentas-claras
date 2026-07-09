@@ -76,6 +76,9 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
   a titular + moneda, `tasks/done/`)_
 - ✅ `BUG-15` Editar un medio abría el form al pie de toda la lista — _hecho (PR #68, edición inline
   dentro de la tarjeta, `tasks/done/`)_
+- `BUG-17` Cambiar mi nombre no se refleja en Medios/filtro (`holder_name` denormalizado) → persona
+  duplicada. Reportado 2026-07-09. Lo arregla `IDENT-1` (nombre vivo); o fix chico de display aparte —
+  `tasks/BUG-17-cambiar-nombre-no-actualiza-medios.md`.
 - ✅ `BUG-16` Entrar por link de invitación como usuario NUEVO caía en "crear grupo" — _hecho (PR #71,
   `lib/pending-invite` en sessionStorage: RequireAuth guarda / RequireWorkspace retoma / InviteAccept
   limpia; cubre el OAuth de Google, `tasks/done/`)_
@@ -104,15 +107,14 @@ el usuario** (no fijado todavía).
   por persona en reportes).
 - **Grupo B — ingesta, bloqueado en sample:** `F2-14` (parser BNA + banco), se junta con `BUG-10`
   (ambos esperan texto real anonimizado de resúmenes/comprobantes).
-- **Grupo C — identidad/efectivo/persona sin cuenta/transferencias.** **Decisión de fondo (2026-07-09):
-    la persona pasa a ser un CAMPO DEL MOVIMIENTO** (hoy se deduce del medio), disparada por querer
-    **una sola "Transferencia"** para todo el grupo sin perder "quién". Esto unifica todo el ovillo
-    (transferencia + efectivo + persona sin cuenta) y **reabre** el enfoque de `MEJ-12` (efectivo pasaría
-    a ser UN "Efectivo" compartido, no uno por miembro). Ver `tasks/MEJ-4-alias-titulares.md` →
-    "Persona en el movimiento". Requiere **sesión de diseño con Opus** (migración `transactions` +
-    reportes + alta + migrar medios transfer/cash por-persona) antes de implementar.
-  - `MEJ-12` (efectivo por miembro) → **EN REVISIÓN**: no implementar tal cual hasta cerrar el diseño.
-  - `MEJ-4` Parte B (persona sin cuenta = miembro placeholder) → parte del mismo modelo.
+- **Grupo C — identidad (transferencia/efectivo/persona sin cuenta) → `IDENT-1` (DISEÑO CERRADO
+    2026-07-09).** La persona pasa a ser un **campo del movimiento** (`transactions.owner_member_id`);
+    un solo "Transferencia" y un solo "Efectivo" compartidos; personas sin cuenta = miembro placeholder;
+    migración que conserva la historia; **todo junto**. Ticket maestro:
+    `tasks/IDENT-1-persona-en-el-movimiento.md` (absorbe MEJ-4B Parte B, MEJ-12 y BUG-17). Grande, con
+    migración en `transactions`/`workspace_members` + reportes + alta.
+  - `MEJ-12` (efectivo por miembro) → **REEMPLAZADO** por IDENT-1.
+  - `MEJ-4` Parte A (alias) hecho; Parte B → absorbida en IDENT-1.
 
 ## Orden de resolución recomendado (actualizado 2026-07-05)
 
