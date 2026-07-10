@@ -93,6 +93,9 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 - `MEJ-14` Botón ver/ocultar contraseña en el import de resumen — `tasks/MEJ-14-ver-contrasena-import-resumen.md`.
 - `MEJ-15` Eliminar un grupo (workspace) — destructivo, requiere cerrar diseño RLS/cascada/confirmación — `tasks/MEJ-15-eliminar-grupo.md`.
 - `MEJ-16` Separar categoría "Transporte" (viajes) de "Auto" (nafta/mantenimiento) — `tasks/MEJ-16-categoria-auto-vs-transporte.md`.
+- `MEJ-18` Memoria de categoría por comercio: aprende de las correcciones (comercio→categoría, por
+  workspace, gana sobre las keywords de F2-6) — diseño de datos/RLS cerrado con el usuario 2026-07-10;
+  falta cerrar la "clave de comercio" — `tasks/MEJ-18-memoria-categoria-por-comercio.md`.
 - ✅ `F2-14` Parser del resumen de Banco Nación (BNA MasterCard Black) + banco no reconocido — _hecho
   (PR #66: el header venía en plural "DETALLES DEL MES"; `tasks/done/`). **Micro redeployado al Space
   de Hugging Face y verificado en prod (2026-07-07): reconoce el banco.**_
