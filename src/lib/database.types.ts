@@ -507,6 +507,7 @@ export type Database = {
       }
       workspace_members: {
         Row: {
+          aliases: string[]
           id: string
           joined_at: string
           name: string | null
@@ -515,6 +516,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          aliases?: string[]
           id?: string
           joined_at?: string
           name?: string | null
@@ -523,6 +525,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          aliases?: string[]
           id?: string
           joined_at?: string
           name?: string | null
@@ -592,6 +595,7 @@ export type Database = {
     Views: {
       member_directory: {
         Row: {
+          aliases: string[] | null
           avatar_url: string | null
           member_id: string | null
           name: string | null

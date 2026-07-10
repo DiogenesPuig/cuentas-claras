@@ -91,6 +91,7 @@ create table workspace_members (
   workspace_id  uuid not null references workspaces (id) on delete cascade,
   user_id       uuid references profiles (id)   on delete cascade,  -- NULL = persona sin cuenta (placeholder, IDENT-1)
   name          text,                                                -- nombre del placeholder (IDENT-1); miembros reales lo sacan de profiles
+  aliases       text[] not null default '{}',                        -- IDENT-1 paso 4: nombres alternativos p/ matchear titulares de transferencias (MEJ-4A, movidos desde accounts)
   role          member_role not null default 'member',
   joined_at     timestamptz not null default now(),
   unique (workspace_id, user_id)
@@ -450,6 +451,7 @@ with (security_invoker = false) as
     wm.workspace_id,
     wm.user_id,                                       -- NULL para placeholders (IDENT-1)
     coalesce(p.name, wm.name) as name,               -- IDENT-1: profile (miembro real) o placeholder
+    wm.aliases,                                       -- IDENT-1 paso 4: alias de la persona (matching de transferencias)
     p.avatar_url,
     wm.role
   from workspace_members wm
