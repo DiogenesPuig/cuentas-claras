@@ -98,30 +98,6 @@ export async function updateAccount(id: string, input: AccountInput): Promise<Ac
   return data;
 }
 
-/**
- * Actualiza solo los alias de titular de un medio (MEJ-4). Normaliza: recorta, descarta vacíos
- * y duplica-insensible (por si el usuario repite un nombre). RLS exige rol owner/admin.
- */
-export async function updateHolderAliases(id: string, aliases: string[]): Promise<Account> {
-  const cleaned = Array.from(
-    new Map(
-      aliases
-        .map((a) => a.trim())
-        .filter((a) => a.length > 0)
-        .map((a) => [a.toLowerCase(), a]),
-    ).values(),
-  );
-  const payload: TablesUpdate<'accounts'> = { holder_aliases: cleaned };
-  const { data, error } = await supabase
-    .from('accounts')
-    .update(payload)
-    .eq('id', id)
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
-}
-
 export interface TransferAccountHolder {
   /** Si el titular matchea a un miembro, su `workspace_members.id`. */
   ownerMemberId: string | null;

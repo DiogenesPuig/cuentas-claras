@@ -6,6 +6,6 @@
   holder, extensión + titular, día de cierre).
 - `AccountForm.test.tsx` — smoke tests: nombre requerido, holder=miembro exige elegir uno y setea
   `owner_member_id`, extensión exige tarjeta titular.
-- `HolderAliasesEditor.tsx` — gestión de nombres alternativos (alias) del titular de un medio
-  `'transfer'` (MEJ-4): chips con quitar + input para agregar. Solo matching futuro (no fusiona
-  movimientos). Se muestra en `AccountList` bajo cada medio `'transfer'` (owner/admin).
+
+_(IDENT-1 paso 4: el editor de alias de titular dejó de vivir en el medio; los alias son de la persona
+y se editan en `/grupo` con `MemberAliasesEditor` —ver `features/workspaces/components`—.)_

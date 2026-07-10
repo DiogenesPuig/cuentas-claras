@@ -13,6 +13,8 @@ export interface Member {
   name: string;
   avatarUrl: string | null;
   role: MemberRole;
+  /** Nombres alternativos de la persona para matchear transferencias (IDENT-1 paso 4). */
+  aliases: string[];
 }
 
 export interface InviteInput {
@@ -138,7 +140,10 @@ export async function updateWorkspaceSettings(
  */
 export async function listMembers(workspaceId: string): Promise<Member[]> {
   const [membersRes, directoryRes] = await Promise.all([
-    supabase.from('workspace_members').select('id, user_id, role').eq('workspace_id', workspaceId),
+    supabase
+      .from('workspace_members')
+      .select('id, user_id, role, aliases')
+      .eq('workspace_id', workspaceId),
     supabase
       .from('member_directory')
       .select('user_id, name, avatar_url')
@@ -157,6 +162,7 @@ export async function listMembers(workspaceId: string): Promise<Member[]> {
       name: directory?.name ?? 'Sin nombre',
       avatarUrl: directory?.avatar_url ?? null,
       role: member.role,
+      aliases: member.aliases ?? [],
     };
   });
 }
@@ -164,6 +170,28 @@ export async function listMembers(workspaceId: string): Promise<Member[]> {
 /** Cambia el rol de un miembro (RLS exige rol owner/admin). */
 export async function updateMemberRole(memberId: string, role: MemberRole): Promise<void> {
   const { error } = await supabase.from('workspace_members').update({ role }).eq('id', memberId);
+  if (error) throw error;
+}
+
+/**
+ * Setea los nombres alternativos (alias) de una persona (IDENT-1 paso 4): sirven para matchear el
+ * titular de un comprobante de transferencia contra este miembro/placeholder y no crear duplicados.
+ * Recorta y deduplica (case-insensitive, descartando vacíos). RLS exige rol owner/admin (`wm_write`).
+ */
+export async function updateMemberAliases(memberId: string, aliases: string[]): Promise<void> {
+  const seen = new Set<string>();
+  const cleaned: string[] = [];
+  for (const raw of aliases) {
+    const value = raw.trim();
+    const key = value.toLowerCase();
+    if (!value || seen.has(key)) continue;
+    seen.add(key);
+    cleaned.push(value);
+  }
+  const { error } = await supabase
+    .from('workspace_members')
+    .update({ aliases: cleaned })
+    .eq('id', memberId);
   if (error) throw error;
 }
 

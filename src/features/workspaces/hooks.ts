@@ -14,6 +14,7 @@ import {
   previewInvitation,
   removeMember,
   revokeInvitation,
+  updateMemberAliases,
   updateMemberRole,
   updateWorkspaceSettings,
   type CreateWorkspaceInput,
@@ -133,6 +134,20 @@ export function useRemoveMember(workspaceId: string | undefined) {
     mutationFn: (memberId) => removeMember(memberId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: workspacesKeys.members(workspaceId) });
+    },
+  });
+}
+
+/** Setea los alias de una persona (IDENT-1 paso 4). Invalida la lista de miembros (`/grupo`) y la
+ * del selector de persona (`features/accounts`), porque los alias cambian el matching de transferencias. */
+export function useUpdateMemberAliases(workspaceId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, { memberId: string; aliases: string[] }>({
+    mutationFn: ({ memberId, aliases }) => updateMemberAliases(memberId, aliases),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: workspacesKeys.members(workspaceId) });
+      void queryClient.invalidateQueries({ queryKey: ['accounts', 'members', workspaceId] });
     },
   });
 }

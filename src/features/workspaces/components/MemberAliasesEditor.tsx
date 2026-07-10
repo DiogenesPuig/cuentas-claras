@@ -1,28 +1,32 @@
 import { useState } from 'react';
-import { useUpdateHolderAliases } from '../hooks';
-import type { Account } from '../api';
+import { useUpdateMemberAliases } from '../hooks';
 
 /**
- * Gestión de los nombres alternativos (alias) del titular de un medio `'transfer'` (MEJ-4).
- * Sirven para que futuros comprobantes/importaciones con ese nombre resuelvan a este medio en vez
- * de crear un duplicado. NO fusiona movimientos ya cargados; solo afecta el matching futuro.
+ * Nombres alternativos (alias) de una persona (IDENT-1 paso 4, movido desde el medio). Sirven para
+ * que los comprobantes/importaciones de transferencia con ese nombre resuelvan a esta persona en vez
+ * de quedar sin atribuir o duplicar. NO fusiona movimientos ya cargados; solo afecta el matching
+ * futuro. Distinto del "apodo privado" (MEJ-8): el alias es dato del grupo (lo edita owner/admin) y
+ * es el nombre real alternativo; el apodo es cómo lo ves vos en tus reportes.
  */
-export function HolderAliasesEditor({
-  account,
+export function MemberAliasesEditor({
+  memberId,
+  memberName,
+  aliases,
   workspaceId,
 }: {
-  account: Account;
+  memberId: string;
+  memberName: string;
+  aliases: string[];
   workspaceId: string;
 }) {
-  const update = useUpdateHolderAliases(workspaceId);
+  const update = useUpdateMemberAliases(workspaceId);
   const [value, setValue] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const aliases = account.holder_aliases;
 
   async function save(next: string[]) {
     setError(null);
     try {
-      await update.mutateAsync({ id: account.id, aliases: next });
+      await update.mutateAsync({ memberId, aliases: next });
       setValue('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar.');
@@ -37,8 +41,8 @@ export function HolderAliasesEditor({
   return (
     <div className="space-y-1.5">
       <p className="text-xs font-medium text-muted-foreground">
-        Otros nombres de esta persona{' '}
-        <span className="font-normal">(para no duplicar el medio al importar transferencias)</span>
+        Otros nombres de {memberName}{' '}
+        <span className="font-normal">(para reconocerla al importar transferencias)</span>
       </p>
       <div className="flex flex-wrap items-center gap-1.5">
         {aliases.map((alias) => (
@@ -74,7 +78,7 @@ export function HolderAliasesEditor({
             }
           }}
           placeholder="Ej: Pepito"
-          aria-label={`Agregar nombre alternativo a ${account.holder_name}`}
+          aria-label={`Agregar nombre alternativo a ${memberName}`}
           className="w-40 rounded-md border border-input bg-background px-2 py-1 text-xs"
         />
         <button

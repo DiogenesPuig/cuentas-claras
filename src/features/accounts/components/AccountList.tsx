@@ -4,21 +4,18 @@ import { useAccounts, useCreateAccount, useMembersForHolder, useUpdateAccount } 
 import type { Account, AccountInput } from '../api';
 import { accountDisplayName } from '../format';
 import { AccountForm } from './AccountForm';
-import { HolderAliasesEditor } from './HolderAliasesEditor';
 
 const CAN_MANAGE_ROLES: readonly MemberRole[] = ['owner', 'admin'];
 
 function AccountRow({
   account,
   canManage,
-  workspaceId,
   memberNameById,
   onEdit,
   editForm,
 }: {
   account: Account;
   canManage: boolean;
-  workspaceId: string;
   /** Nombre vivo del miembro por su id (IDENT-1/BUG-17): evita mostrar el `holder_name` congelado. */
   memberNameById: Map<string, string>;
   onEdit: (account: Account) => void;
@@ -66,13 +63,6 @@ function AccountRow({
       {/* Edición inline (BUG-15): el form aparece DENTRO de la tarjeta que tocaste, no al pie
           de toda la lista, así no hay que scrollear para editar el medio de más arriba. */}
       {editForm && <div className="border-t border-border bg-muted/30 px-3 py-3">{editForm}</div>}
-      {/* Alias de titular: solo tiene sentido en el medio 'transfer' (uno por persona, MEJ-4).
-          Sub-sección tintada dentro de la misma tarjeta para que se lea como parte de este medio. */}
-      {canManage && !editForm && isTransfer && (
-        <div className="border-t border-border bg-muted/40 px-3 py-2">
-          <HolderAliasesEditor account={account} workspaceId={workspaceId} />
-        </div>
-      )}
     </li>
   );
 }
@@ -149,7 +139,6 @@ export function AccountList({ workspaceId }: AccountListProps) {
             key={account.id}
             account={account}
             canManage={canManage}
-            workspaceId={workspaceId}
             memberNameById={memberNameById}
             onEdit={setEditing}
             editForm={editing?.id === account.id ? accountForm(account) : undefined}

@@ -7,7 +7,6 @@ import {
   listAccounts,
   listMembersForHolder,
   updateAccount,
-  updateHolderAliases,
   type Account,
   type AccountInput,
   type MemberOption,
@@ -53,18 +52,6 @@ export function useUpdateAccount(workspaceId: string | undefined) {
 
   return useMutation<Account, Error, { id: string; input: AccountInput }>({
     mutationFn: ({ id, input }) => updateAccount(id, input),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: accountsKeys.list(workspaceId) });
-    },
-  });
-}
-
-/** Actualiza los alias de titular de un medio `'transfer'` (MEJ-4). */
-export function useUpdateHolderAliases(workspaceId: string | undefined) {
-  const queryClient = useQueryClient();
-
-  return useMutation<Account, Error, { id: string; aliases: string[] }>({
-    mutationFn: ({ id, aliases }) => updateHolderAliases(id, aliases),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: accountsKeys.list(workspaceId) });
     },

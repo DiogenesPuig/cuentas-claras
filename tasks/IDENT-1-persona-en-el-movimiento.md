@@ -46,9 +46,18 @@
   al elegirla y lo asigna; quién pagó va en el selector de persona. El submit espera mientras se crea
   (no guarda el centinela). Una vez creado, es un medio normal y el centinela desaparece. Test del
   flujo (centinela → crea → asigna). Mismo patrón que la transferencia compartida (3b).
-- ⏳ **Pasos siguientes:** (4) mover alias de `accounts` a la persona; (5) **backfill + colapso** de
-  medios transfer/cash por-persona (migración de datos, la parte de riesgo); (6) promoción
-  placeholder→cuenta.
+- ✅ **Paso 4 — alias en la persona:** `workspace_members.aliases` (migración 0019, aplicada en LOCAL)
+  + backfill desde `accounts.holder_aliases` de los medios con `owner_member_id`; `member_directory`
+  expone `aliases`. `matchMember` ahora considera los alias del miembro (match exacto de clave contra
+  un alias es autoritativo aunque sea de 1 palabra, ej. "Pepito") → los alias dejan de perderse en el
+  flujo de transferencia compartida. Edición movida del medio a la **persona**: `updateMemberAliases`
+  (workspaces, RLS owner/admin) + `MemberAliasesEditor` en `/grupo`; se quitó el `HolderAliasesEditor`
+  del medio. `accounts.holder_aliases` queda como dato legacy hasta el colapso del paso 5 (los alias
+  de titulares **no-miembros** se moverán ahí, al crear su placeholder). Tests de `matchMember` (+5).
+  **Migración NO aplicada a remoto todavía** (junto con el resto, al final).
+- ⏳ **Pasos siguientes:** (5) **backfill + colapso** de medios transfer/cash por-persona (migración de
+  datos, la parte de riesgo; ahí se mueven también los `holder_aliases` de no-miembros a su placeholder
+  y se archivan los medios viejos); (6) promoción placeholder→cuenta.
 
 ## Decisión de RLS (creación de placeholders) — CERRADA (2026-07-09)
 **Solo owner/admin** pueden crear placeholders (se deja `wm_write` como está). Consistente con
