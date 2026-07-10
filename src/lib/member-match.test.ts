@@ -39,4 +39,32 @@ describe('matchMember', () => {
     const members: MatchableMember[] = [{ id: 'a', name: 'Ana Pérez' }];
     expect(matchMember('Juan Pérez', members)).toBeNull();
   });
+
+  it('matchea por alias exacto de una sola palabra (ej. "Pepito" → José Pérez)', () => {
+    const members: MatchableMember[] = [
+      { id: 'a', name: 'José Pérez', aliases: ['Pepito'] },
+      { id: 'b', name: 'María Gómez' },
+    ];
+    expect(matchMember('Pepito', members)?.id).toBe('a');
+    // Sin alias, "Pepito" (1 token) no matchearía a nadie.
+    expect(matchMember('Pepito', [{ id: 'a', name: 'José Pérez' }])).toBeNull();
+  });
+
+  it('matchea por alias con ≥2 tokens (variante de nombre completo)', () => {
+    const members: MatchableMember[] = [{ id: 'a', name: 'José Pérez', aliases: ['Pepe Perez'] }];
+    expect(matchMember('Pepe Pérez', members)?.id).toBe('a');
+  });
+
+  it('alias insensible a tildes/orden en el match exacto', () => {
+    const members: MatchableMember[] = [{ id: 'a', name: 'Ana Díaz', aliases: ['Añá'] }];
+    expect(matchMember('aña', members)?.id).toBe('a');
+  });
+
+  it('ante alias ambiguo (dos miembros con el mismo alias) no preasigna', () => {
+    const members: MatchableMember[] = [
+      { id: 'a', name: 'José Pérez', aliases: ['Flaco'] },
+      { id: 'b', name: 'Juan López', aliases: ['Flaco'] },
+    ];
+    expect(matchMember('Flaco', members)).toBeNull();
+  });
 });

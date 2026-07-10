@@ -24,6 +24,8 @@ export interface MemberOption {
   /** Id de `workspace_members`, el valor que se guarda en `accounts.owner_member_id`. */
   id: string;
   name: string;
+  /** Alias de la persona (IDENT-1 paso 4): se usan para matchear titulares de transferencias. */
+  aliases?: string[];
 }
 
 /** Medios/tarjetas no archivados del workspace, en orden alfabético. */
@@ -48,12 +50,14 @@ export async function listAccounts(workspaceId: string): Promise<Account[]> {
 export async function listMembersForHolder(workspaceId: string): Promise<MemberOption[]> {
   const { data, error } = await supabase
     .from('member_directory')
-    .select('member_id, name')
+    .select('member_id, name, aliases')
     .eq('workspace_id', workspaceId);
   if (error) throw error;
   // `member_id` es `wm.id` (PK, nunca null); la vista lo marca nullable, así que lo filtramos.
   return (data ?? []).flatMap((row) =>
-    row.member_id ? [{ id: row.member_id, name: row.name ?? 'Sin nombre' }] : [],
+    row.member_id
+      ? [{ id: row.member_id, name: row.name ?? 'Sin nombre', aliases: row.aliases ?? [] }]
+      : [],
   );
 }
 
