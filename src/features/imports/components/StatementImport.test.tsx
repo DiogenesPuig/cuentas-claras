@@ -18,6 +18,7 @@ vi.mock('../hooks', () => ({
 
 vi.mock('@/features/accounts', () => ({
   useAccounts: () => ({ data: [] }),
+  useMembersForHolder: () => ({ data: [] }),
   accountLabel: (a: { name: string }) => a.name,
   CARD_NETWORKS: [],
 }));

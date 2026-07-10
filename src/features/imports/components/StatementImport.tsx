@@ -3,11 +3,14 @@ import {
   accountLabel,
   CARD_NETWORKS,
   useAccounts,
+  useMembersForHolder,
   type Account,
   type AccountFormInput,
+  type MemberOption,
 } from '@/features/accounts';
 import { useCategories } from '@/features/categories';
 import { accountDefaultsFromHint, accountsToMatchable, isResidualHint, matchAccount } from '@/lib/account-match';
+import { matchMember } from '@/lib/member-match';
 import { IngestaError, type StatementAccountHint } from '@/lib/ingesta';
 import { useConfirmImport, useFindExistingHashes, useParseStatement } from '../hooks';
 import {
@@ -20,18 +23,31 @@ import {
 import { AccountQuickCreate } from './AccountQuickCreate';
 import { StagingRow } from './StagingRow';
 
-/** Mapea las pistas del resumen a los valores iniciales del alta de medios (B7). */
-function defaultsFromHint(hint: StatementAccountHint): Partial<AccountFormInput> {
+/**
+ * Mapea las pistas del resumen a los valores iniciales del alta de medios (B7).
+ *
+ * IDENT-1 (persona por miembro): si el titular del resumen matchea a un miembro —por su nombre o por
+ * sus **alias** (ficha en `/grupo`)— la tarjeta se precarga como **suya** (`owner_member_id`) en vez
+ * de quedar como un nombre suelto. Así los gastos de ese resumen quedan atribuidos a esa persona, y la
+ * próxima variante del mismo nombre ("DIEGO TORRES" / "TORRES MARCO DIEGO") también lo reconoce. Sin
+ * match, cae al nombre del resumen (comportamiento previo).
+ */
+function defaultsFromHint(
+  hint: StatementAccountHint,
+  members: readonly MemberOption[],
+): Partial<AccountFormInput> {
   const base = accountDefaultsFromHint(hint);
   const network = (CARD_NETWORKS as readonly string[]).includes(base.network) ? base.network : '';
+  const member = matchMember(hint.holder, members);
   return {
     name: base.name,
     bank: base.bank,
     network: network as AccountFormInput['network'],
     last4: base.last4,
-    holderName: base.holderName,
-    holderKind: 'name', // del resumen sale un nombre, no un miembro de la app
     type: 'credit', // los resúmenes son de tarjetas de crédito
+    ...(member
+      ? { holderKind: 'member', ownerMemberId: member.id }
+      : { holderKind: 'name', holderName: base.holderName }),
   };
 }
 
@@ -53,6 +69,7 @@ function parseErrorMessage(err: unknown): string {
 /** Flujo de importación de resumen: subir PDF → revisar → confirmar en bloque (FR-16). */
 export function StatementImport({ workspaceId }: StatementImportProps) {
   const { data: accounts } = useAccounts(workspaceId);
+  const { data: members } = useMembersForHolder(workspaceId);
   const { data: categories } = useCategories(workspaceId);
   const parseStatement = useParseStatement();
   const findExistingHashes = useFindExistingHashes(workspaceId);
@@ -290,7 +307,7 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
               <AccountQuickCreate
                 workspaceId={workspaceId}
                 title="Crear medio detectado en el resumen"
-                defaults={defaultsFromHint(card.accountHint)}
+                defaults={defaultsFromHint(card.accountHint, members ?? [])}
                 accounts={accounts ?? []}
                 onCreated={(account) => handleAccountCreated(cardIdx, account)}
                 onCancel={() => toggleCreate(cardIdx, false)}

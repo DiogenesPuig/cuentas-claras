@@ -55,6 +55,15 @@
   del medio. `accounts.holder_aliases` queda como dato legacy hasta el colapso del paso 5 (los alias
   de titulares **no-miembros** se moverán ahí, al crear su placeholder). Tests de `matchMember` (+5).
   **Migración NO aplicada a remoto todavía** (junto con el resto, al final).
+- ✅ **Paso 4b — resúmenes atribuyen a la persona (opción A, charla 2026-07-10):** al importar un
+  resumen, si el titular de una tarjeta matchea a un miembro por nombre o **alias** (`matchMember` con
+  los alias del paso 4), el alta inline de esa tarjeta se precarga como **suya** (`owner_member_id`) en
+  vez de un nombre suelto → los gastos quedan atribuidos a esa persona y se reconocen variantes del
+  nombre entre resúmenes (ej. "DIEGO TORRES" / "TORRES MARCO DIEGO"). Enganche en
+  `StatementImport.defaultsFromHint`; los resúmenes recurrentes de la misma tarjeta ya matcheaban por
+  `last4`. Sin match → nombre del resumen (comportamiento previo). _Pendiente futuro (fuera de este
+  slice): que `matchAccount` sin `last4` también consulte los alias del miembro para desambiguar una
+  tarjeta existente._
 - ⏳ **Pasos siguientes:** (5) **backfill + colapso** de medios transfer/cash por-persona (migración de
   datos, la parte de riesgo; ahí se mueven también los `holder_aliases` de no-miembros a su placeholder
   y se archivan los medios viejos); (6) promoción placeholder→cuenta.
