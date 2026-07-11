@@ -64,9 +64,26 @@
   `last4`. Sin match → nombre del resumen (comportamiento previo). _Pendiente futuro (fuera de este
   slice): que `matchAccount` sin `last4` también consulte los alias del miembro para desambiguar una
   tarjeta existente._
-- ⏳ **Pasos siguientes:** (5) **backfill + colapso** de medios transfer/cash por-persona (migración de
-  datos, la parte de riesgo; ahí se mueven también los `holder_aliases` de no-miembros a su placeholder
-  y se archivan los medios viejos); (6) promoción placeholder→cuenta.
+- 🚧 **Paso 5 — backfill + colapso (EN CURSO, la parte de riesgo):**
+  - ✅ **Planificador puro + tests:** `lib/ident1-collapse.planWorkspaceCollapse(input)` calcula el plan
+    sin tocar la DB (reusa `matchMember`/`normalizeNameKey`): placeholders a crear (deduplicados por
+    nombre), alias a sumar a miembros, movimientos a reatribuir+repuntar al medio compartido, medios a
+    **archivar** (no borrar), remapeo de apodos MEJ-8 `name:`→`member:` (con detección de colisión) y
+    avisos. 7 tests.
+  - ✅ **Dry-run read-only contra la DB local** (harness temporal, no commiteado). **Hallazgo clave:**
+    con los datos reales, holders que son un miembro existente pero cuyo **nombre de perfil es corto**
+    (ej. medio "Diogenes Alejandro Xavier Puig" vs miembro "Diogenes") **NO** matchean por token (1 solo
+    token en común) → caerían como **placeholder duplicado del propio miembro**, y el merge de personas
+    está **fuera de alcance**. ⇒ el colapso necesita un **loop de revisión**: antes de aplicar, el
+    usuario suma en `/grupo` los alias necesarios a los miembros (ej. alias "Diogenes Alejandro Xavier
+    Puig" al miembro Diogenes) para que esos medios resuelvan al miembro y no a un placeholder. La
+    dedup por nombre ya colapsa bien los duplicados exactos ("... ×2" → 1).
+  - ⏳ **Falta:** (a) que el usuario cure los alias de miembros mirando el dry-run; (b) el **runner de
+    aplicación** (cascarón: crea placeholders, suma alias, get-or-create de los medios compartidos,
+    reatribuye+repuntea los movimientos, archiva los medios legacy, remapea apodos) con dry-run/apply e
+    **idempotente**; (c) mover los `holder_aliases` de los no-miembros a su placeholder al crearlo;
+    (d) correr en local, verificar, y **recién ahí** aplicar a remoto + tipos + `schema_fase1.sql`.
+- ⏳ **Paso 6:** promoción placeholder→cuenta.
 
 ## Decisión de RLS (creación de placeholders) — CERRADA (2026-07-09)
 **Solo owner/admin** pueden crear placeholders (se deja `wm_write` como está). Consistente con
