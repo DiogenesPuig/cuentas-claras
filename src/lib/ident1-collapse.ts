@@ -15,6 +15,10 @@
  *  3. si no → **placeholder** nuevo, deduplicado por `normalizeNameKey(holderName)` (varias
  *     "Transferencia Pepito" colapsan en una sola persona del grupo).
  *
+ * Regla de "no ensuciar" (decisión 2026-07-11): un medio legacy **sin movimientos** que caería en un
+ * placeholder NO crea la persona (no hay historia que preservar); solo se archiva. Los placeholders se
+ * crean únicamente cuando hay ≥1 movimiento que atribuirles.
+ *
  * Nunca borra: los medios legacy se **archivan** (conservan la historia; sus movimientos ya quedaron
  * repunteados al medio compartido con la persona en el movimiento).
  */
@@ -99,6 +103,9 @@ export interface AccountResolution {
   targetRef: string;
   targetKind: 'member' | 'placeholder';
   targetName: string;
+  movements: number;
+  /** `member`: se ata a un miembro · `placeholder`: crea persona · `archive-only`: sin mov, solo archiva. */
+  action: 'member' | 'placeholder' | 'archive-only';
 }
 
 export interface CollapsePlan {
@@ -139,13 +146,20 @@ export function planWorkspaceCollapse(input: CollapseInput): CollapsePlan {
   const hasShared = (type: SharedType): boolean =>
     accounts.some((a) => a.type === type && isShared(a));
 
+  const txCountByAccount = new Map<string, number>();
+  for (const tx of transactions) {
+    if (legacyIds.has(tx.accountId)) {
+      txCountByAccount.set(tx.accountId, (txCountByAccount.get(tx.accountId) ?? 0) + 1);
+    }
+  }
+
   const warnings: string[] = [];
 
   // 1. Resolver cada medio legacy a un target (miembro existente o placeholder deduplicado).
   const placeholderByKey = new Map<string, PlaceholderPlan>();
   const memberAliasByMember = new Map<string, string[]>();
   const targetByAccount = new Map<string, { ref: string; kind: 'member' | 'placeholder'; name: string }>();
-  const resolutions: AccountResolution[] = [];
+  const placeholderMovs = new Map<string, number>(); // tempId → total de movimientos de sus medios
 
   for (const acc of legacy) {
     let ref: string;
@@ -179,21 +193,37 @@ export function planWorkspaceCollapse(input: CollapseInput): CollapsePlan {
           aliases: mergeAliases(acc.holderAliases),
         });
       }
+      placeholderMovs.set(tempId, (placeholderMovs.get(tempId) ?? 0) + (txCountByAccount.get(acc.id) ?? 0));
       ref = tempId;
       kind = 'placeholder';
       name = acc.holderName.trim();
     }
 
     targetByAccount.set(acc.id, { ref, kind, name });
-    resolutions.push({
+  }
+
+  // Placeholders que efectivamente se crean: solo los que tienen ≥1 movimiento (los medios vacíos que
+  // caerían en un placeholder se archivan sin crear persona — regla de "no ensuciar").
+  const usedPlaceholderIds = new Set(
+    [...placeholderMovs].filter(([, n]) => n > 0).map(([id]) => id),
+  );
+
+  const resolutions: AccountResolution[] = legacy.map((acc) => {
+    const t = targetByAccount.get(acc.id)!;
+    const movements = txCountByAccount.get(acc.id) ?? 0;
+    const action: AccountResolution['action'] =
+      t.kind === 'member' ? 'member' : usedPlaceholderIds.has(t.ref) ? 'placeholder' : 'archive-only';
+    return {
       accountId: acc.id,
       holderName: acc.holderName,
       type: acc.type,
-      targetRef: ref,
-      targetKind: kind,
-      targetName: name,
-    });
-  }
+      targetRef: t.ref,
+      targetKind: t.kind,
+      targetName: t.name,
+      movements,
+      action,
+    };
+  });
 
   // 2. Atribuir + repuntar los movimientos de medios legacy. Falta el medio compartido → warning.
   const accountById = new Map(accounts.map((a) => [a.id, a]));
@@ -220,9 +250,11 @@ export function planWorkspaceCollapse(input: CollapseInput): CollapsePlan {
   }
 
   // 3. Remapear apodos MEJ-8 name:<clave> → member:<id> del target (drop si colisiona con uno existente).
+  //    Solo si el target se materializa: un miembro, o un placeholder que sí se crea (con movimientos).
   const memberApodoKeys = new Set(
     apodos.filter((a) => a.personaKey.startsWith('member:')).map((a) => `${a.userId}|${a.personaKey}`),
   );
+  const validRefs = new Set<string>([...members.map((m) => m.id), ...usedPlaceholderIds]);
   // clave normalizada → target ref (para casar el apodo con el medio que resolvió a esa persona).
   const targetByNameKey = new Map<string, string>();
   for (const acc of legacy) {
@@ -236,7 +268,7 @@ export function planWorkspaceCollapse(input: CollapseInput): CollapsePlan {
     if (!apodo.personaKey.startsWith('name:')) continue;
     const nameKey = apodo.personaKey.slice('name:'.length);
     const toRef = targetByNameKey.get(nameKey);
-    if (!toRef) continue; // ningún medio legacy explica este apodo → se deja como está
+    if (!toRef || !validRefs.has(toRef)) continue; // sin medio, o el target no se materializa → se deja
     // El target final es un member:<id>. Para placeholders el runner sustituye el tempId por el id real.
     const collision = memberApodoKeys.has(`${apodo.userId}|member:${toRef}`);
     apodoRemaps.push({ userId: apodo.userId, fromKey: apodo.personaKey, toRef, collision });
@@ -247,7 +279,7 @@ export function planWorkspaceCollapse(input: CollapseInput): CollapsePlan {
   );
 
   return {
-    placeholders: [...placeholderByKey.values()],
+    placeholders: [...placeholderByKey.values()].filter((p) => usedPlaceholderIds.has(p.tempId)),
     memberAliasAdditions,
     attributions,
     archiveAccountIds: legacy.map((a) => a.id),

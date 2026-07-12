@@ -20,6 +20,8 @@ const accounts: CollapseAccount[] = [
   { id: 'a3', type: 'transfer', ownerMemberId: 'm1', holderName: 'Juan Perez', holderAliases: ['Juanci'] },
   { id: 'a4', type: 'transfer', ownerMemberId: null, holderName: 'Juan Pérez', holderAliases: [] },
   { id: 'a5', type: 'cash', ownerMemberId: null, holderName: 'NX Leandro Tallarico', holderAliases: [] },
+  // No-miembro SIN movimientos: se archiva pero NO crea placeholder (regla de "no ensuciar").
+  { id: 'a6', type: 'transfer', ownerMemberId: null, holderName: 'Solo Archivar Nadie', holderAliases: ['Zutano'] },
 ];
 
 const transactions: CollapseTx[] = [
@@ -35,6 +37,7 @@ const apodos: CollapseApodo[] = [
   { userId: 'u1', personaKey: 'name:GOMEZ PEPITO' },
   { userId: 'u1', personaKey: 'name:JUAN PEREZ' },
   { userId: 'u1', personaKey: 'name:NADIE DESCONOCIDO' }, // sin medio → se deja
+  { userId: 'u1', personaKey: 'name:ARCHIVAR NADIE SOLO' }, // medio sin movs → placeholder no se crea → se deja
 ];
 
 const input: CollapseInput = { members, accounts, transactions, apodos };
@@ -74,7 +77,15 @@ describe('planWorkspaceCollapse', () => {
   });
 
   it('archiva todos los medios legacy (no el compartido)', () => {
-    expect(new Set(plan.archiveAccountIds)).toEqual(new Set(['a1', 'a2', 'a3', 'a4', 'a5']));
+    expect(new Set(plan.archiveAccountIds)).toEqual(new Set(['a1', 'a2', 'a3', 'a4', 'a5', 'a6']));
+  });
+
+  it('medio sin movimientos que caería en placeholder: se archiva pero NO crea persona', () => {
+    expect(plan.placeholders.some((p) => p.name === 'Solo Archivar Nadie')).toBe(false);
+    const r6 = plan.resolutions.find((r) => r.accountId === 'a6');
+    expect(r6).toMatchObject({ action: 'archive-only', movements: 0 });
+    // y su apodo no se remapea (el placeholder no se materializa).
+    expect(plan.apodoRemaps.some((r) => r.fromKey === 'name:ARCHIVAR NADIE SOLO')).toBe(false);
   });
 
   it('avisa cuando falta el medio compartido del tipo requerido (cash)', () => {

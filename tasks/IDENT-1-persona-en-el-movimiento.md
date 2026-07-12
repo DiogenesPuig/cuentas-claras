@@ -78,11 +78,20 @@
     usuario suma en `/grupo` los alias necesarios a los miembros (ej. alias "Diogenes Alejandro Xavier
     Puig" al miembro Diogenes) para que esos medios resuelvan al miembro y no a un placeholder. La
     dedup por nombre ya colapsa bien los duplicados exactos ("... ×2" → 1).
-  - ⏳ **Falta:** (a) que el usuario cure los alias de miembros mirando el dry-run; (b) el **runner de
-    aplicación** (cascarón: crea placeholders, suma alias, get-or-create de los medios compartidos,
-    reatribuye+repuntea los movimientos, archiva los medios legacy, remapea apodos) con dry-run/apply e
-    **idempotente**; (c) mover los `holder_aliases` de los no-miembros a su placeholder al crearlo;
-    (d) correr en local, verificar, y **recién ahí** aplicar a remoto + tipos + `schema_fase1.sql`.
+  - ✅ **Regla "no ensuciar" (decisión 2026-07-11):** un medio legacy **sin movimientos** que caería en
+    un placeholder NO crea la persona (no hay historia que preservar); solo se archiva. Los placeholders
+    se crean solo con ≥1 movimiento. Los apodos que apuntarían a un placeholder no creado se dejan como
+    están. (+1 test.)
+  - ✅ **Runner de aplicación:** `scripts/ident1-collapse.harness.test.ts` (cascarón: cura los alias de
+    miembros confirmados, crea placeholders, get-or-create de los medios compartidos, reatribuye+repuntea
+    los movimientos, archiva los medios legacy, remapea apodos). Dry-run por defecto; escribe solo con
+    `IDENT1_APPLY=1`. **Idempotente** (re-correr = no-op). Guardado tras `IDENT1` → en CI queda skipped.
+  - ✅ **Aplicado en LOCAL + verificado (2026-07-11):** con backup previo de las 4 tablas. Resultado:
+    "Diogenes Alejandro Xavier Puig" → **miembro Diogenes** (alias, sin duplicado); 1 placeholder
+    ("PUIG LUCAS, MIGUEL DOMINGO", con sus 2 movimientos); 9 medios legacy archivados; el apodo
+    `name:`→`member:`; queda 1 solo medio transfer (el compartido). Re-run dry-run = no-op.
+  - ⏳ **Falta:** aplicar en **remoto** (con backup previo). Paso 5 es data-only → sin cambio de esquema
+    ni de tipos; `schema_fase1.sql` no cambia.
 - ⏳ **Paso 6:** promoción placeholder→cuenta.
 
 ## Decisión de RLS (creación de placeholders) — CERRADA (2026-07-09)
