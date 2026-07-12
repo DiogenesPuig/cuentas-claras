@@ -15,100 +15,90 @@ const members: CollapseMember[] = [
 
 const accounts: CollapseAccount[] = [
   { id: 'sT', type: 'transfer', ownerMemberId: null, holderName: '', holderAliases: [] }, // compartido
-  { id: 'a1', type: 'transfer', ownerMemberId: null, holderName: 'Pepito Gomez', holderAliases: ['Pepe'] },
-  { id: 'a2', type: 'transfer', ownerMemberId: null, holderName: 'GOMEZ PEPITO', holderAliases: ['Pepito G'] },
-  { id: 'a3', type: 'transfer', ownerMemberId: 'm1', holderName: 'Juan Perez', holderAliases: ['Juanci'] },
-  { id: 'a4', type: 'transfer', ownerMemberId: null, holderName: 'Juan Pérez', holderAliases: [] },
-  { id: 'a5', type: 'cash', ownerMemberId: null, holderName: 'NX Leandro Tallarico', holderAliases: [] },
-  // No-miembro SIN movimientos: se archiva pero NO crea placeholder (regla de "no ensuciar").
-  { id: 'a6', type: 'transfer', ownerMemberId: null, holderName: 'Solo Archivar Nadie', holderAliases: ['Zutano'] },
-  // Tarjetas de no-miembro (no se colapsan): se enganchan a la persona si matchean.
-  { id: 'a7', type: 'credit', ownerMemberId: null, holderName: 'GOMEZ, PEPITO J', holderAliases: [] }, // → placeholder Pepito
-  { id: 'a8', type: 'credit', ownerMemberId: null, holderName: 'Juan Perez', holderAliases: [] }, // → miembro m1
-  { id: 'a9', type: 'credit', ownerMemberId: null, holderName: 'Fulano Random', holderAliases: [] }, // sin match
+  // Miguel: transferencia (con "DOMINGO" + coma) + tarjetas escritas distinto → UNA persona por match.
+  { id: 'mig_t', type: 'transfer', ownerMemberId: null, holderName: 'PUIG LUCAS, MIGUEL DOMINGO', holderAliases: [] },
+  { id: 'mig_c1', type: 'credit', ownerMemberId: null, holderName: 'LUCAS MIGUEL PUIG', holderAliases: [] },
+  { id: 'mig_c2', type: 'credit', ownerMemberId: null, holderName: 'D MIGUEL LUCAS PUIG', holderAliases: [] },
+  // Agata: SOLO tarjeta con movimientos (sin transferencia) → igual se crea persona.
+  { id: 'agata', type: 'credit', ownerMemberId: null, holderName: 'AGATA HELENA PUIG', holderAliases: [] },
+  // Miembro por match de nombre y por alias:
+  { id: 'juan_c', type: 'credit', ownerMemberId: null, holderName: 'Juan Perez', holderAliases: ['Juanci'] },
+  { id: 'leo_t', type: 'cash', ownerMemberId: null, holderName: 'NX Leandro Tallarico', holderAliases: [] },
+  // No-miembro SIN movimientos: transferencia se archiva sin crear persona; tarjeta se saltea.
+  { id: 'nadie_t', type: 'transfer', ownerMemberId: null, holderName: 'Solo Archivar Nadie', holderAliases: ['Zutano'] },
+  { id: 'nadie_c', type: 'credit', ownerMemberId: null, holderName: 'Otro Fantasma', holderAliases: [] },
 ];
 
 const transactions: CollapseTx[] = [
-  { id: 't1', accountId: 'a1', ownerMemberId: null },
-  { id: 't2', accountId: 'a3', ownerMemberId: 'm1' },
-  { id: 't3', accountId: 'a4', ownerMemberId: null },
-  { id: 't4', accountId: 'a5', ownerMemberId: null },
-  { id: 't5', accountId: 'sT', ownerMemberId: 'm1' }, // ya en el compartido → se ignora
+  { id: 't1', accountId: 'mig_t', ownerMemberId: null }, // transfer Miguel
+  { id: 't2', accountId: 'mig_c1', ownerMemberId: null }, // tarjeta Miguel
+  { id: 't3', accountId: 'mig_c2', ownerMemberId: null }, // tarjeta Miguel (otra grafía)
+  { id: 't4', accountId: 'agata', ownerMemberId: null }, // tarjeta Agata
+  { id: 't5', accountId: 'juan_c', ownerMemberId: null }, // tarjeta que es del miembro m1
+  { id: 't6', accountId: 'leo_t', ownerMemberId: null }, // cash que matchea a m2 por alias
+  { id: 't7', accountId: 'sT', ownerMemberId: 'm1' }, // ya en el compartido → se ignora
 ];
 
 const apodos: CollapseApodo[] = [
-  { userId: 'u1', personaKey: 'member:m1' }, // apodo existente → provoca colisión
-  { userId: 'u1', personaKey: 'name:GOMEZ PEPITO' },
-  { userId: 'u1', personaKey: 'name:JUAN PEREZ' },
-  { userId: 'u1', personaKey: 'name:NADIE DESCONOCIDO' }, // sin medio → se deja
-  { userId: 'u1', personaKey: 'name:ARCHIVAR NADIE SOLO' }, // medio sin movs → placeholder no se crea → se deja
+  { userId: 'u1', personaKey: 'member:m1' }, // apodo existente → colisión
+  { userId: 'u1', personaKey: 'name:LUCAS MIGUEL PUIG' }, // → persona Miguel
+  { userId: 'u1', personaKey: 'name:JUAN PEREZ' }, // → miembro m1 (colisión)
 ];
 
 const input: CollapseInput = { members, accounts, transactions, apodos };
+const plan = planWorkspaceCollapse(input);
+const refOf = (accountId: string) => plan.resolutions.find((r) => r.accountId === accountId)?.targetRef;
 
 describe('planWorkspaceCollapse', () => {
-  const plan = planWorkspaceCollapse(input);
-
-  it('dedup: dos medios del mismo nombre normalizado → UN placeholder con alias unidos', () => {
-    expect(plan.placeholders).toHaveLength(1);
-    const ph = plan.placeholders[0];
-    expect(ph.tempId).toBe('ph:GOMEZ PEPITO');
-    expect(ph.name).toBe('Pepito Gomez');
-    expect(ph.aliases).toEqual(['Pepe', 'Pepito G']);
+  it('unifica todos los medios de Miguel (transfer + 2 tarjetas, grafías distintas) en UNA persona', () => {
+    const miguelRef = refOf('mig_t');
+    expect(miguelRef).toBeDefined();
+    expect(refOf('mig_c1')).toBe(miguelRef);
+    expect(refOf('mig_c2')).toBe(miguelRef);
+    // Es un placeholder (no miembro) y se crea una sola vez.
+    expect(plan.placeholders.filter((p) => p.tempId === miguelRef)).toHaveLength(1);
   });
 
-  it('medio vinculado a un miembro: mueve sus holder_aliases al miembro', () => {
-    const add = plan.memberAliasAdditions.find((a) => a.memberId === 'm1');
-    expect(add?.aliases).toEqual(['Juanci']);
-    // m2 no recibió alias (su medio no tenía holder_aliases).
-    expect(plan.memberAliasAdditions.some((a) => a.memberId === 'm2')).toBe(false);
+  it('crea persona para un no-miembro que SOLO tiene tarjeta con movimientos (Agata)', () => {
+    const agataRef = refOf('agata')!;
+    expect(plan.placeholders.some((p) => p.tempId === agataRef)).toBe(true);
+    // La tarjeta se engancha (cambia de dueño), no se archiva.
+    expect(plan.accountOwnerUpdates.some((u) => u.accountId === 'agata')).toBe(true);
+    expect(plan.archiveAccountIds).not.toContain('agata');
   });
 
-  it('matchMember por nombre (a4→m1) y por alias exacto (a5→m2)', () => {
-    const r4 = plan.resolutions.find((r) => r.accountId === 'a4');
-    expect(r4).toMatchObject({ targetKind: 'member', targetRef: 'm1' });
-    const r5 = plan.resolutions.find((r) => r.accountId === 'a5');
-    expect(r5).toMatchObject({ targetKind: 'member', targetRef: 'm2' });
+  it('engancha a un miembro real por nombre (tarjeta) y por alias (cash), y mueve sus holder_aliases', () => {
+    expect(refOf('juan_c')).toBe('m1');
+    expect(refOf('leo_t')).toBe('m2');
+    expect(plan.memberAliasAdditions.find((a) => a.memberId === 'm1')?.aliases).toEqual(['Juanci']);
   });
 
-  it('atribuye los movimientos y respeta el owner ya seteado', () => {
-    const byTx = new Map(plan.attributions.map((a) => [a.txId, a]));
-    expect(byTx.get('t1')).toMatchObject({ ownerRef: 'ph:GOMEZ PEPITO', sharedType: 'transfer', keepExistingOwner: false });
-    expect(byTx.get('t2')).toMatchObject({ ownerRef: 'm1', keepExistingOwner: true });
-    expect(byTx.get('t3')).toMatchObject({ ownerRef: 'm1', keepExistingOwner: false });
-    expect(byTx.get('t4')).toMatchObject({ ownerRef: 'm2', sharedType: 'cash', keepExistingOwner: false });
-    expect(byTx.has('t5')).toBe(false); // el que ya estaba en el compartido no se toca
+  it('archiva las transferencias/efectivo por-persona, nunca las tarjetas', () => {
+    expect(plan.archiveAccountIds).toEqual(expect.arrayContaining(['mig_t', 'leo_t', 'nadie_t']));
+    expect(plan.archiveAccountIds).not.toContain('mig_c1');
+    expect(plan.archiveAccountIds).not.toContain('agata');
   });
 
-  it('archiva solo los medios legacy transfer/cash (ni el compartido ni las tarjetas)', () => {
-    expect(new Set(plan.archiveAccountIds)).toEqual(new Set(['a1', 'a2', 'a3', 'a4', 'a5', 'a6']));
-  });
-
-  it('engancha las tarjetas de no-miembro a la persona (placeholder o miembro), sin archivarlas', () => {
-    const byAcc = new Map(plan.accountOwnerUpdates.map((u) => [u.accountId, u.ownerRef]));
-    expect(byAcc.get('a7')).toBe('ph:GOMEZ PEPITO'); // tarjeta "GOMEZ, PEPITO J" → placeholder Pepito
-    expect(byAcc.get('a8')).toBe('m1'); // tarjeta "Juan Perez" → miembro m1
-    expect(byAcc.has('a9')).toBe(false); // "Fulano Random" no matchea a nadie
-    // las tarjetas no se archivan ni se reatribuyen sus movimientos.
-    expect(plan.archiveAccountIds).not.toContain('a7');
-  });
-
-  it('medio sin movimientos que caería en placeholder: se archiva pero NO crea persona', () => {
+  it('no crea persona para no-miembros SIN movimientos (transfer se archiva, tarjeta se saltea)', () => {
     expect(plan.placeholders.some((p) => p.name === 'Solo Archivar Nadie')).toBe(false);
-    const r6 = plan.resolutions.find((r) => r.accountId === 'a6');
-    expect(r6).toMatchObject({ action: 'archive-only', movements: 0 });
-    // y su apodo no se remapea (el placeholder no se materializa).
-    expect(plan.apodoRemaps.some((r) => r.fromKey === 'name:ARCHIVAR NADIE SOLO')).toBe(false);
+    expect(plan.placeholders.some((p) => p.name === 'Otro Fantasma')).toBe(false);
+    expect(plan.resolutions.find((r) => r.accountId === 'nadie_t')?.action).toBe('archive-only');
+    expect(plan.resolutions.find((r) => r.accountId === 'nadie_c')?.action).toBe('skip');
+    expect(plan.accountOwnerUpdates.some((u) => u.accountId === 'nadie_c')).toBe(false);
   });
 
-  it('avisa cuando falta el medio compartido del tipo requerido (cash)', () => {
-    expect(plan.warnings.some((w) => w.includes('cash'))).toBe(true);
+  it('reatribuye los movimientos de transfer/cash al medio compartido (no los de tarjeta)', () => {
+    const txIds = new Set(plan.attributions.map((a) => a.txId));
+    expect(txIds).toEqual(new Set(['t1', 't6'])); // transfer Miguel + cash Leandro; las tarjetas no
   });
 
-  it('remapea apodos name:→member y marca la colisión con uno existente', () => {
+  it('remapea apodos name:→persona y marca colisión con uno existente', () => {
     const byFrom = new Map(plan.apodoRemaps.map((r) => [r.fromKey, r]));
-    expect(byFrom.get('name:GOMEZ PEPITO')).toMatchObject({ toRef: 'ph:GOMEZ PEPITO', collision: false });
+    expect(byFrom.get('name:LUCAS MIGUEL PUIG')?.toRef).toBe(refOf('mig_c1'));
     expect(byFrom.get('name:JUAN PEREZ')).toMatchObject({ toRef: 'm1', collision: true });
-    expect(byFrom.has('name:NADIE DESCONOCIDO')).toBe(false); // sin medio que lo explique
+  });
+
+  it('no fusiona homónimos parciales (Agata/Miguel comparten solo "PUIG")', () => {
+    expect(refOf('agata')).not.toBe(refOf('mig_t'));
   });
 });

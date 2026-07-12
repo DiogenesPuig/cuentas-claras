@@ -83,14 +83,23 @@ describe.runIf(process.env.IDENT1)('IDENT-1 collapse runner', () => {
       ]);
       if (accRes.error) throw accRes.error;
       if (apoRes.error) throw apoRes.error;
-      // Solo se cargan los movimientos de los medios transfer/cash (son los que se reatribuyen).
-      const collapseIds = (accRes.data ?? [])
-        .filter((a) => a.type === 'transfer' || a.type === 'cash')
+      // Movimientos de TODOS los medios de no-miembro (incluye tarjetas: se cuentan para decidir si la
+      // persona se crea). Paginado por si superan el tope de 1000 filas de PostgREST.
+      const relevantIds = (accRes.data ?? [])
+        .filter((a) => !(a.owner_member_id === null && a.holder_name === '')) // excluye compartidos
         .map((a) => a.id);
-      const txRes = collapseIds.length
-        ? await sb.from('transactions').select('id, account_id, owner_member_id').in('account_id', collapseIds)
-        : { data: [], error: null };
-      if (txRes.error) throw txRes.error;
+      const txData: { id: string; account_id: string | null; owner_member_id: string | null }[] = [];
+      for (let from = 0; relevantIds.length; from += 1000) {
+        const page = await sb
+          .from('transactions')
+          .select('id, account_id, owner_member_id')
+          .in('account_id', relevantIds)
+          .range(from, from + 999);
+        if (page.error) throw page.error;
+        txData.push(...(page.data ?? []));
+        if (!page.data || page.data.length < 1000) break;
+      }
+      const txRes = { data: txData, error: null };
 
       const input: CollapseInput = {
         members: wsMembers.map((m) => ({ id: m.id, name: liveName(m), aliases: (m.aliases as string[]) ?? [] })),
@@ -109,9 +118,6 @@ describe.runIf(process.env.IDENT1)('IDENT-1 collapse runner', () => {
       log(`\n===== workspace ${wsId} =====`);
       for (const r of plan.resolutions) {
         log(`  "${r.holderName}" (${r.type}, ${r.movements} mov) → ${r.action.toUpperCase()} ${r.targetName}`);
-      }
-      for (const u of plan.accountOwnerUpdates) {
-        log(`  [tarjeta] "${u.holderName}" → ${u.targetName}`);
       }
       if (plan.warnings.length) log('AVISOS:', plan.warnings.join(' | '));
       if (!apply) {

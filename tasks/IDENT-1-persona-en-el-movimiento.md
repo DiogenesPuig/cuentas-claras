@@ -94,11 +94,18 @@
     `owner_member_id` al miembro/placeholder que matchea, sin archivar ni repuntear) → todos los medios
     de la misma persona se agrupan por identidad, no por texto. Match conservador (≥2 tokens; "PUIG"
     solo no alcanza) → no toca a homónimos parciales. +3 tests.
-  - ✅ **Aplicado en LOCAL + verificado (2026-07-12):** con backup previo (revertido y reaplicado tras
-    el fix). Resultado: "Diogenes Alejandro Xavier Puig" → **miembro Diogenes** (sin duplicado);
-    1 placeholder ("PUIG LUCAS, MIGUEL DOMINGO") con **sus 15 movimientos** (2 de transferencia + 13 de
-    sus 3 tarjetas) bajo **una sola** persona; medios legacy archivados; apodo `name:`→`member:`; queda
-    1 medio transfer (el compartido). Re-run dry-run = no-op (idempotente).
+  - ✅ **Rediseño a "agrupar por persona" (feedback probando, 2026-07-13):** faltaban personas —los
+    no-miembros que solo tenían **tarjetas** (Agata/Hermes/Alicia) no se creaban, y Miguel quedaba
+    partido en el workspace donde su transferencia estaba vacía—. El planner ahora **clusteriza todos
+    los medios de no-miembro** (transfer/cash + tarjetas) en personas con `matchMember`, y crea un
+    placeholder por persona con ≥1 movimiento **en cualquier medio** (no solo transferencia). Maneja
+    también medios transfer/cash **de un miembro** (se archivan y repuntan a él). Tests reescritos (8).
+  - ✅ **Aplicado en LOCAL + verificado (2026-07-13):** con backup previo (revertido y reaplicado).
+    Resultado por workspace: 4 personas-placeholder limpias (Miguel, Hermes, Agata, Alicia), cada una
+    con **todos** sus medios unidos (ej. Miguel: transfer + 3 tarjetas con grafías distintas → 15 movs
+    en `personal`, 8 en `viaje`; Hermes une "HERMES DEMIAN"/"DEMIAN HERMES"). Diogenes → miembro (sin
+    duplicado). **0 movimientos** quedan resueltos por nombre suelto. Homónimos parciales (comparten
+    solo "PUIG") NO se fusionan. Re-run dry-run = no-op (idempotente).
   - ⏳ **Falta:** aplicar en **remoto** (con backup previo). Paso 5 es data-only → sin cambio de esquema
     ni de tipos; `schema_fase1.sql` no cambia.
 - ⏳ **Paso 6:** promoción placeholder→cuenta.
