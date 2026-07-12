@@ -35,7 +35,8 @@ export interface CollapseMember extends MatchableMember {
 
 export interface CollapseAccount {
   id: string;
-  type: SharedType;
+  /** 'transfer'/'cash' se colapsan; otros tipos (tarjetas) de no-miembros se enganchan a la persona. */
+  type: string;
   ownerMemberId: string | null;
   /** '' en el medio compartido; nombre del titular en los legacy por-persona. */
   holderName: string;
@@ -108,18 +109,34 @@ export interface AccountResolution {
   action: 'member' | 'placeholder' | 'archive-only';
 }
 
+/** Enganche de un medio de no-miembro (ej. tarjeta) a la persona (miembro o placeholder), seteando
+ *  `owner_member_id`. Así todos los medios de la misma persona se agrupan por identidad y no por texto
+ *  (un mismo Miguel escrito distinto en cada tarjeta queda unido). NO archiva ni repuntea movimientos. */
+export interface AccountOwnerUpdate {
+  accountId: string;
+  ownerRef: string; // memberId o tempId de placeholder
+  holderName: string;
+  targetName: string;
+}
+
 export interface CollapsePlan {
   placeholders: PlaceholderPlan[];
   memberAliasAdditions: MemberAliasAddition[];
   attributions: TxAttribution[];
   archiveAccountIds: string[];
+  accountOwnerUpdates: AccountOwnerUpdate[];
   apodoRemaps: ApodoRemap[];
   resolutions: AccountResolution[];
   /** Advertencias no bloqueantes (medio compartido faltante, apodo sin medio que lo explique, etc.). */
   warnings: string[];
 }
 
-const isShared = (a: CollapseAccount): boolean => a.ownerMemberId === null && a.holderName === '';
+const isCollapsible = (a: CollapseAccount): boolean => a.type === 'transfer' || a.type === 'cash';
+const isShared = (a: CollapseAccount): boolean =>
+  isCollapsible(a) && a.ownerMemberId === null && a.holderName === '';
+/** Medio de no-miembro que NO se colapsa (tarjeta suelta): candidato a engancharse a la persona. */
+const isLinkCandidate = (a: CollapseAccount): boolean =>
+  !isCollapsible(a) && a.ownerMemberId === null && a.holderName.trim() !== '';
 
 /** Dedup case-insensitive conservando el primer casing; descarta vacíos. */
 function mergeAliases(...lists: string[][]): string[] {
@@ -141,7 +158,7 @@ export function planWorkspaceCollapse(input: CollapseInput): CollapsePlan {
   const { members, accounts, transactions, apodos } = input;
 
   const memberById = new Map(members.map((m) => [m.id, m]));
-  const legacy = accounts.filter((a) => !isShared(a));
+  const legacy = accounts.filter((a) => isCollapsible(a) && !isShared(a));
   const legacyIds = new Set(legacy.map((a) => a.id));
   const hasShared = (type: SharedType): boolean =>
     accounts.some((a) => a.type === type && isShared(a));
@@ -216,7 +233,7 @@ export function planWorkspaceCollapse(input: CollapseInput): CollapsePlan {
     return {
       accountId: acc.id,
       holderName: acc.holderName,
-      type: acc.type,
+      type: acc.type as SharedType, // resoluciones son de medios legacy (transfer/cash)
       targetRef: t.ref,
       targetKind: t.kind,
       targetName: t.name,
@@ -235,11 +252,12 @@ export function planWorkspaceCollapse(input: CollapseInput): CollapsePlan {
     const acc = accountById.get(tx.accountId);
     const target = targetByAccount.get(tx.accountId);
     if (!acc || !target) continue;
-    neededShared.add(acc.type);
+    const sharedType = acc.type as SharedType; // legacy ⇒ siempre 'transfer'|'cash'
+    neededShared.add(sharedType);
     attributions.push({
       txId: tx.id,
       ownerRef: tx.ownerMemberId ?? target.ref,
-      sharedType: acc.type,
+      sharedType,
       keepExistingOwner: tx.ownerMemberId !== null,
     });
   }
@@ -247,6 +265,28 @@ export function planWorkspaceCollapse(input: CollapseInput): CollapsePlan {
     if (!hasShared(type)) {
       warnings.push(`No existe el medio "${type}" compartido: el runner debe crearlo antes de repuntar.`);
     }
+  }
+
+  // 2b. Enganchar medios de no-miembro (tarjetas) a la persona: se matchean contra los miembros reales
+  //     + los placeholders que sí se crean. Así el mismo Miguel escrito distinto en cada tarjeta queda
+  //     bajo una sola identidad (por owner_member_id), inmune a las variantes del texto.
+  const matchTargets: CollapseMember[] = [
+    ...members,
+    ...[...placeholderByKey.values()]
+      .filter((p) => usedPlaceholderIds.has(p.tempId))
+      .map((p) => ({ id: p.tempId, name: p.name, aliases: p.aliases })),
+  ];
+  const accountOwnerUpdates: AccountOwnerUpdate[] = [];
+  for (const acc of accounts) {
+    if (!isLinkCandidate(acc)) continue;
+    const target = matchMember(acc.holderName, matchTargets);
+    if (!target) continue;
+    accountOwnerUpdates.push({
+      accountId: acc.id,
+      ownerRef: target.id,
+      holderName: acc.holderName,
+      targetName: target.name,
+    });
   }
 
   // 3. Remapear apodos MEJ-8 name:<clave> → member:<id> del target (drop si colisiona con uno existente).
@@ -283,6 +323,7 @@ export function planWorkspaceCollapse(input: CollapseInput): CollapsePlan {
     memberAliasAdditions,
     attributions,
     archiveAccountIds: legacy.map((a) => a.id),
+    accountOwnerUpdates,
     apodoRemaps,
     resolutions,
     warnings,

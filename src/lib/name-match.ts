@@ -5,12 +5,15 @@
  */
 
 const COMBINING_MARKS = /[̀-ͯ]/g;
+/** Signos de puntuación y símbolos: no forman parte del nombre (ej. la coma de "LUCAS, MIGUEL"). */
+const PUNCTUATION = /[^\p{L}\p{N}\s]/gu;
 
 export function normalizeName(value: string | null | undefined): string {
   return (value ?? '')
     .normalize('NFD')
     .replace(COMBINING_MARKS, '')
     .toUpperCase()
+    .replace(PUNCTUATION, ' ') // "LUCAS," → "LUCAS " para que no cuente como token distinto
     .replace(/\s+/g, ' ')
     .trim();
 }

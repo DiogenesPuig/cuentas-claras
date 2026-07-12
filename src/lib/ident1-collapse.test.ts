@@ -22,6 +22,10 @@ const accounts: CollapseAccount[] = [
   { id: 'a5', type: 'cash', ownerMemberId: null, holderName: 'NX Leandro Tallarico', holderAliases: [] },
   // No-miembro SIN movimientos: se archiva pero NO crea placeholder (regla de "no ensuciar").
   { id: 'a6', type: 'transfer', ownerMemberId: null, holderName: 'Solo Archivar Nadie', holderAliases: ['Zutano'] },
+  // Tarjetas de no-miembro (no se colapsan): se enganchan a la persona si matchean.
+  { id: 'a7', type: 'credit', ownerMemberId: null, holderName: 'GOMEZ, PEPITO J', holderAliases: [] }, // → placeholder Pepito
+  { id: 'a8', type: 'credit', ownerMemberId: null, holderName: 'Juan Perez', holderAliases: [] }, // → miembro m1
+  { id: 'a9', type: 'credit', ownerMemberId: null, holderName: 'Fulano Random', holderAliases: [] }, // sin match
 ];
 
 const transactions: CollapseTx[] = [
@@ -76,8 +80,17 @@ describe('planWorkspaceCollapse', () => {
     expect(byTx.has('t5')).toBe(false); // el que ya estaba en el compartido no se toca
   });
 
-  it('archiva todos los medios legacy (no el compartido)', () => {
+  it('archiva solo los medios legacy transfer/cash (ni el compartido ni las tarjetas)', () => {
     expect(new Set(plan.archiveAccountIds)).toEqual(new Set(['a1', 'a2', 'a3', 'a4', 'a5', 'a6']));
+  });
+
+  it('engancha las tarjetas de no-miembro a la persona (placeholder o miembro), sin archivarlas', () => {
+    const byAcc = new Map(plan.accountOwnerUpdates.map((u) => [u.accountId, u.ownerRef]));
+    expect(byAcc.get('a7')).toBe('ph:GOMEZ PEPITO'); // tarjeta "GOMEZ, PEPITO J" → placeholder Pepito
+    expect(byAcc.get('a8')).toBe('m1'); // tarjeta "Juan Perez" → miembro m1
+    expect(byAcc.has('a9')).toBe(false); // "Fulano Random" no matchea a nadie
+    // las tarjetas no se archivan ni se reatribuyen sus movimientos.
+    expect(plan.archiveAccountIds).not.toContain('a7');
   });
 
   it('medio sin movimientos que caería en placeholder: se archiva pero NO crea persona', () => {

@@ -73,19 +73,22 @@ describe.runIf(process.env.IDENT1)('IDENT-1 collapse runner', () => {
 
       // B. Leer el estado del workspace (medios legacy NO archivados + sus movimientos + apodos).
       const [accRes, apoRes] = await Promise.all([
+        // Todos los medios activos (incluye tarjetas: se enganchan a la persona si matchean).
         sb
           .from('accounts')
           .select('id, type, owner_member_id, holder_name, holder_aliases')
           .eq('workspace_id', wsId)
-          .in('type', ['transfer', 'cash'])
           .eq('is_archived', false),
         sb.from('persona_aliases').select('user_id, persona_key').eq('workspace_id', wsId),
       ]);
       if (accRes.error) throw accRes.error;
       if (apoRes.error) throw apoRes.error;
-      const accIds = (accRes.data ?? []).map((a) => a.id);
-      const txRes = accIds.length
-        ? await sb.from('transactions').select('id, account_id, owner_member_id').in('account_id', accIds)
+      // Solo se cargan los movimientos de los medios transfer/cash (son los que se reatribuyen).
+      const collapseIds = (accRes.data ?? [])
+        .filter((a) => a.type === 'transfer' || a.type === 'cash')
+        .map((a) => a.id);
+      const txRes = collapseIds.length
+        ? await sb.from('transactions').select('id, account_id, owner_member_id').in('account_id', collapseIds)
         : { data: [], error: null };
       if (txRes.error) throw txRes.error;
 
@@ -93,7 +96,7 @@ describe.runIf(process.env.IDENT1)('IDENT-1 collapse runner', () => {
         members: wsMembers.map((m) => ({ id: m.id, name: liveName(m), aliases: (m.aliases as string[]) ?? [] })),
         accounts: (accRes.data ?? []).map((a) => ({
           id: a.id,
-          type: a.type as 'transfer' | 'cash',
+          type: a.type as string,
           ownerMemberId: a.owner_member_id,
           holderName: a.holder_name,
           holderAliases: (a.holder_aliases as string[]) ?? [],
@@ -107,10 +110,13 @@ describe.runIf(process.env.IDENT1)('IDENT-1 collapse runner', () => {
       for (const r of plan.resolutions) {
         log(`  "${r.holderName}" (${r.type}, ${r.movements} mov) → ${r.action.toUpperCase()} ${r.targetName}`);
       }
+      for (const u of plan.accountOwnerUpdates) {
+        log(`  [tarjeta] "${u.holderName}" → ${u.targetName}`);
+      }
       if (plan.warnings.length) log('AVISOS:', plan.warnings.join(' | '));
       if (!apply) {
         log(
-          `RESUMEN: placeholders=${plan.placeholders.length} · reatribuir=${plan.attributions.length} · archivar=${plan.archiveAccountIds.length} · apodos=${plan.apodoRemaps.length}`,
+          `RESUMEN: placeholders=${plan.placeholders.length} · reatribuir=${plan.attributions.length} · archivar=${plan.archiveAccountIds.length} · tarjetas-enganchadas=${plan.accountOwnerUpdates.length} · apodos=${plan.apodoRemaps.length}`,
         );
         continue;
       }
@@ -209,6 +215,16 @@ async function applyPlan(
     if (error) throw error;
   }
   log(`[${wsId}] medios archivados: ${plan.archiveAccountIds.length}`);
+
+  // 5b. Enganchar tarjetas de no-miembro a la persona (setea owner_member_id; no archiva ni repuntea).
+  for (const u of plan.accountOwnerUpdates) {
+    const { error } = await sb
+      .from('accounts')
+      .update({ owner_member_id: resolveRef(u.ownerRef) })
+      .eq('id', u.accountId);
+    if (error) throw error;
+  }
+  if (plan.accountOwnerUpdates.length) log(`[${wsId}] tarjetas enganchadas: ${plan.accountOwnerUpdates.length}`);
 
   // 6. Remapear apodos MEJ-8 name:→member: (drop si el target ya tiene apodo).
   for (const rm of plan.apodoRemaps) {
