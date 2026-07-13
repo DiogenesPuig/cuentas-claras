@@ -76,17 +76,20 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
   a titular + moneda, `tasks/done/`)_
 - ✅ `BUG-15` Editar un medio abría el form al pie de toda la lista — _hecho (PR #68, edición inline
   dentro de la tarjeta, `tasks/done/`)_
-- `BUG-17` Cambiar mi nombre no se refleja en Medios/filtro (`holder_name` denormalizado) → persona
-  duplicada. Reportado 2026-07-09. Lo arregla `IDENT-1` (nombre vivo); o fix chico de display aparte —
-  `tasks/BUG-17-cambiar-nombre-no-actualiza-medios.md`.
+- ✅ `BUG-17` Cambiar mi nombre no se refleja en Medios/filtro (`holder_name` denormalizado) → persona
+  duplicada — _lo arregló `IDENT-1` (nombre vivo del miembro), PR #72, `tasks/done/`_.
 - ✅ `BUG-16` Entrar por link de invitación como usuario NUEVO caía en "crear grupo" — _hecho (PR #71,
   `lib/pending-invite` en sessionStorage: RequireAuth guarda / RequireWorkspace retoma / InviteAccept
   limpia; cubre el OAuth de Google, `tasks/done/`)_
 
 **Mejoras / ingesta (nuevas, 2026-07-06/07)**
 - `MEJ-11` Reportes: desglose de categorías al ver por persona — `tasks/MEJ-11-reportes-categorias-por-persona.md`.
-- `MEJ-12` Efectivo por defecto: un medio "Efectivo" por miembro con dueño (Etapa 1 de identidad/efectivo,
-  diseño cerrado 2026-07-07) — `tasks/MEJ-12-efectivo-por-miembro.md`.
+- ✅ `MEJ-12` Efectivo por defecto — _**reemplazado** por `IDENT-1` (Efectivo compartido + persona por
+  movimiento), PR #72, `tasks/done/`_.
+- ✅ `IDENT-1` Persona en el movimiento (modelo unificado de identidad): persona como campo del
+  movimiento, Transferencia/Efectivo compartidos, placeholders + promoción, backfill/colapso. Absorbió
+  MEJ-4B, MEJ-12 y BUG-17. **Aplicado en prod** (migraciones 0018/0019/0020 + backfill) — PR #72,
+  `tasks/done/`.
 - `MEJ-1` Date-picker con calendario — **dep `react-day-picker` APROBADA (2026-07-07)**, lista para implementar (`tasks/MEJORAS.md`).
 - `MEJ-2` Reordenar secciones de Reportes (drag & drop) — **dep `@dnd-kit` APROBADA (2026-07-07)**, versión DnD (`tasks/MEJORAS.md`).
 - `MEJ-13` Total de gastos en /movimientos respetando los filtros (hoy solo muestra el conteo) — `tasks/MEJ-13-total-gastos-en-movimientos.md`.
@@ -114,14 +117,11 @@ el usuario** (no fijado todavía).
   por persona en reportes).
 - **Grupo B — ingesta, bloqueado en sample:** `F2-14` (parser BNA + banco), se junta con `BUG-10`
   (ambos esperan texto real anonimizado de resúmenes/comprobantes).
-- **Grupo C — identidad (transferencia/efectivo/persona sin cuenta) → `IDENT-1` (DISEÑO CERRADO
-    2026-07-09).** La persona pasa a ser un **campo del movimiento** (`transactions.owner_member_id`);
-    un solo "Transferencia" y un solo "Efectivo" compartidos; personas sin cuenta = miembro placeholder;
-    migración que conserva la historia; **todo junto**. Ticket maestro:
-    `tasks/IDENT-1-persona-en-el-movimiento.md` (absorbe MEJ-4B Parte B, MEJ-12 y BUG-17). Grande, con
-    migración en `transactions`/`workspace_members` + reportes + alta.
-  - `MEJ-12` (efectivo por miembro) → **REEMPLAZADO** por IDENT-1.
-  - `MEJ-4` Parte A (alias) hecho; Parte B → absorbida en IDENT-1.
+- ✅ **Grupo C — identidad (transferencia/efectivo/persona sin cuenta) → `IDENT-1` HECHO (PR #72,
+    aplicado en prod 2026-07-13).** La persona es un **campo del movimiento** (`transactions.owner_member_id`);
+    un solo "Transferencia"/"Efectivo" compartidos; personas sin cuenta = placeholder (con promoción a
+    cuenta); backfill/colapso conservando la historia. Absorbió MEJ-4B, MEJ-12 y BUG-17 (todos en
+    `tasks/done/`).
 
 ## Orden de resolución recomendado (actualizado 2026-07-05)
 
