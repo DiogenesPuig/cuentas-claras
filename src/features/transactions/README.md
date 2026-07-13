@@ -120,6 +120,9 @@ texto, **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado, y *
   formato de display DD/MM/YYYY que usa el form; `''` si la entrada es inválida o la fecha no existe.
 - `format.test.ts` — tests de `formatInstallment` (cuota válida, campos null, datos incoherentes — F2-0)
   y de `isoToDisplayDate`/`displayToIsoDate` (conversión, formato inválido, fecha inexistente, roundtrip).
+- `totals.ts` / `totals.test.ts` (MEJ-13) — `sumByType(transactions)`: suma el set ya filtrado **por
+  moneda** (sin FX), separando gastos de ingresos; conserva el signo (reintegros negativos) y ordena las
+  monedas. Pura. La usa `TransactionList` para el total arriba de la lista (se recalcula al cambiar filtros).
 - `export.ts` — lógica pura de exportación (C14, FR-23), sin Supabase: `toExportRows` (mapea
   `TransactionView[]` ya filtrados a filas planas: fecha, se-cobra, tipo, monto, moneda, persona,
   medio, banco, categoría, descripción), `toCsv` (arma el CSV con encabezados en español, escapando
