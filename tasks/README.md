@@ -94,7 +94,7 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 - `MEJ-2` Reordenar secciones de Reportes (drag & drop) — **dep `@dnd-kit` APROBADA (2026-07-07)**, versión DnD (`tasks/MEJORAS.md`).
 - ✅ `MEJ-13` Total de gastos/ingresos en /movimientos respetando los filtros — _hecho (PR #73, `sumByType`
   por moneda + total a la derecha de la lista, `tasks/done/`)_.
-- `MEJ-14` Botón ver/ocultar contraseña en el import de resumen — `tasks/MEJ-14-ver-contrasena-import-resumen.md`.
+- ✅ `MEJ-14` Botón ver/ocultar contraseña en el import de resumen — _hecho (PR #74, `tasks/done/`)_.
 - `MEJ-15` Eliminar un grupo (workspace) — destructivo, requiere cerrar diseño RLS/cascada/confirmación — `tasks/MEJ-15-eliminar-grupo.md`.
 - `MEJ-16` Separar categoría "Transporte" (viajes) de "Auto" (nafta/mantenimiento) — `tasks/MEJ-16-categoria-auto-vs-transporte.md`.
 - `MEJ-17` Aprender/recordar la categoría por persona o comercio recurrente (ej. el alquiler siempre a
