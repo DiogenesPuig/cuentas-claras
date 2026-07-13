@@ -146,16 +146,18 @@ export async function listMembers(workspaceId: string): Promise<Member[]> {
       .eq('workspace_id', workspaceId),
     supabase
       .from('member_directory')
-      .select('user_id, name, avatar_url')
+      .select('member_id, name, avatar_url')
       .eq('workspace_id', workspaceId),
   ]);
   if (membersRes.error) throw membersRes.error;
   if (directoryRes.error) throw directoryRes.error;
 
-  const directoryByUser = new Map((directoryRes.data ?? []).map((row) => [row.user_id, row]));
+  // Se indexa por `member_id` (PK de workspace_members), NO por `user_id`: los placeholders tienen
+  // `user_id = NULL` y colisionarían todos en la misma clave (IDENT-1) → mismo nombre para todos.
+  const directoryByMember = new Map((directoryRes.data ?? []).map((row) => [row.member_id, row]));
 
   return (membersRes.data ?? []).map((member) => {
-    const directory = directoryByUser.get(member.user_id);
+    const directory = directoryByMember.get(member.id);
     return {
       id: member.id,
       userId: member.user_id,
