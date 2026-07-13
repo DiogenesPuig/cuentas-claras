@@ -5,6 +5,7 @@ import { useMembers, useMyRole, useRemoveMember, useUpdateMemberRole } from '../
 import type { MemberRole } from '../api';
 import type { AssignableRole } from '../schema';
 import { MemberAliasesEditor } from './MemberAliasesEditor';
+import { PromotePlaceholder } from './PromotePlaceholder';
 import { RoleSelect } from './RoleSelect';
 
 const CAN_MANAGE_ROLES: readonly MemberRole[] = ['owner', 'admin'];
@@ -154,13 +155,20 @@ export function MemberList({ workspaceId }: MemberListProps) {
             )}
             </div>
             {canManage && (
-              <div className="mt-2 border-t border-dashed border-border pt-2">
+              <div className="mt-2 space-y-2 border-t border-dashed border-border pt-2">
                 <MemberAliasesEditor
                   memberId={member.id}
                   memberName={member.name}
                   aliases={member.aliases}
                   workspaceId={workspaceId}
                 />
+                {member.userId === null && (
+                  <PromotePlaceholder
+                    workspaceId={workspaceId}
+                    memberId={member.id}
+                    memberName={member.name}
+                  />
+                )}
               </div>
             )}
           </li>

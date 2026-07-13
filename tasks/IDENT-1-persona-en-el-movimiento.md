@@ -108,7 +108,15 @@
     solo "PUIG") NO se fusionan. Re-run dry-run = no-op (idempotente).
   - ⏳ **Falta:** aplicar en **remoto** (con backup previo). Paso 5 es data-only → sin cambio de esquema
     ni de tipos; `schema_fase1.sql` no cambia.
-- ⏳ **Paso 6:** promoción placeholder→cuenta.
+- ✅ **Paso 6 — promoción placeholder→cuenta (migración 0020, aplicada en LOCAL):** invitación
+  **dirigida** a un placeholder (`invitations.member_id`); `accept_invitation` (SECURITY DEFINER) la
+  promueve seteando `user_id` en la fila existente (conserva `member:<id>` y toda la historia) en vez
+  de crear un miembro nuevo; guarda contra "el que acepta ya es miembro"; las dirigidas son de un solo
+  uso; `invitation_preview` expone `memberName`. Front: `createPlaceholderInvite` + hook +
+  `PromotePlaceholder` en `/grupo` (owner/admin genera el link) + aviso en la pantalla de aceptación.
+  Probado end-to-end en local (transacción con rollback): el placeholder queda con `user_id`, sus 15
+  movimientos siguen atribuidos, se crea el perfil, la invitación se consume. **Migración NO aplicada
+  a remoto todavía** (con el resto de IDENT-1).
 
 ## Decisión de RLS (creación de placeholders) — CERRADA (2026-07-09)
 **Solo owner/admin** pueden crear placeholders (se deja `wm_write` como está). Consistente con

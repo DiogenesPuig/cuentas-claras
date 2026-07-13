@@ -4,6 +4,7 @@ import {
   acceptInvitation,
   createInvitation,
   createInviteLink,
+  createPlaceholderInvite,
   createPlaceholderMember,
   createWorkspace,
   getMyRole,
@@ -192,6 +193,18 @@ export function useCreateInviteLink(workspaceId: string | undefined) {
 
   return useMutation<Invitation, Error, MemberRole>({
     mutationFn: (role) => createInviteLink(workspaceId as string, role),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: workspacesKeys.invitations(workspaceId) });
+    },
+  });
+}
+
+/** Genera un link de promoción (IDENT-1 paso 6) para que un placeholder pase a cuenta real. */
+export function useCreatePlaceholderInvite(workspaceId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation<Invitation, Error, { memberId: string; role: MemberRole }>({
+    mutationFn: ({ memberId, role }) => createPlaceholderInvite(workspaceId as string, memberId, role),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: workspacesKeys.invitations(workspaceId) });
     },

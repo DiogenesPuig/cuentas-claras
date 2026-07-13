@@ -143,6 +143,7 @@ create table invitations (
   token         text not null unique default encode(gen_random_bytes(24), 'hex'),
   status        invitation_status not null default 'pending',
   invited_by    uuid not null references profiles (id),
+  member_id     uuid references workspace_members (id) on delete set null, -- IDENT-1 paso 6: invitación dirigida a un placeholder (lo promueve al aceptar)
   expires_at    timestamptz not null default (now() + interval '7 days'),
   created_at    timestamptz not null default now()
 );
@@ -157,6 +158,7 @@ create index idx_invitations_email      on invitations (lower(email));
 --   invitación por select normal, así que estas funciones SECURITY DEFINER
 --   validan el token y hacen el alta de forma controlada.
 -- ============================================================================
+-- invitation_preview: incluye member_name (nombre del placeholder destino, IDENT-1 paso 6).
 create or replace function invitation_preview(p_token text)
 returns table (
   workspace_id   uuid,
@@ -164,7 +166,8 @@ returns table (
   role           member_role,
   email          text,
   is_expired     boolean,
-  is_usable      boolean
+  is_usable      boolean,
+  member_name    text
 )
 language sql
 security definer
@@ -176,16 +179,20 @@ as $$
     w.name,
     i.role,
     i.email,
-    i.expires_at < now()              as is_expired,
-    i.status = 'pending' and i.expires_at >= now() as is_usable
+    i.expires_at < now()                              as is_expired,
+    i.status = 'pending' and i.expires_at >= now()    as is_usable,
+    wm.name                                           as member_name
   from invitations i
   join workspaces w on w.id = i.workspace_id
+  left join workspace_members wm on wm.id = i.member_id
   where i.token = p_token;
 $$;
 
 revoke all on function invitation_preview(text) from public;
 grant execute on function invitation_preview(text) to authenticated;
 
+-- accept_invitation: asegura el perfil (BUG-2), promueve un placeholder si la invitación lo apunta
+-- (IDENT-1 paso 6), y no consume los links genéricos (solo email/dirigidas son de un solo uso).
 create or replace function accept_invitation(p_token text)
 returns uuid
 language plpgsql
@@ -193,14 +200,14 @@ security definer
 set search_path = public
 as $$
 declare
-  inv invitations;
+  inv    invitations;
+  target workspace_members;
 begin
   if auth.uid() is null then
     raise exception 'No hay sesión activa.';
   end if;
 
   select * into inv from invitations where token = p_token;
-
   if inv is null then
     raise exception 'Invitación inválida.';
   end if;
@@ -208,11 +215,44 @@ begin
     raise exception 'Invitación vencida o no disponible.';
   end if;
 
+  insert into profiles (id, name)
+  select u.id,
+         coalesce(
+           nullif(u.raw_user_meta_data->>'full_name', ''),
+           nullif(u.raw_user_meta_data->>'name', ''),
+           nullif(split_part(u.email, '@', 1), ''),
+           'Sin nombre'
+         )
+  from auth.users u
+  where u.id = auth.uid()
+  on conflict (id) do nothing;
+
+  -- Promoción de un placeholder (IDENT-1 paso 6): setea user_id en la fila existente.
+  if inv.member_id is not null then
+    select * into target from workspace_members
+      where id = inv.member_id and workspace_id = inv.workspace_id;
+    if target.id is not null and target.user_id is null then
+      if exists (
+        select 1 from workspace_members
+        where workspace_id = inv.workspace_id and user_id = auth.uid()
+      ) then
+        raise exception 'Ya sos miembro de este grupo; no se puede vincular a otra persona.';
+      end if;
+      update workspace_members
+        set user_id = auth.uid(), role = inv.role
+        where id = target.id;
+      update invitations set status = 'accepted' where id = inv.id;
+      return inv.workspace_id;
+    end if;
+  end if;
+
   insert into workspace_members (workspace_id, user_id, role)
   values (inv.workspace_id, auth.uid(), inv.role)
   on conflict (workspace_id, user_id) do nothing;
 
-  update invitations set status = 'accepted' where id = inv.id;
+  if inv.email is not null then
+    update invitations set status = 'accepted' where id = inv.id;
+  end if;
 
   return inv.workspace_id;
 end;

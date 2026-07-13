@@ -262,6 +262,7 @@ export type Database = {
           expires_at: string
           id: string
           invited_by: string
+          member_id: string | null
           role: Database["public"]["Enums"]["member_role"]
           status: Database["public"]["Enums"]["invitation_status"]
           token: string
@@ -273,6 +274,7 @@ export type Database = {
           expires_at?: string
           id?: string
           invited_by: string
+          member_id?: string | null
           role?: Database["public"]["Enums"]["member_role"]
           status?: Database["public"]["Enums"]["invitation_status"]
           token?: string
@@ -284,6 +286,7 @@ export type Database = {
           expires_at?: string
           id?: string
           invited_by?: string
+          member_id?: string | null
           role?: Database["public"]["Enums"]["member_role"]
           status?: Database["public"]["Enums"]["invitation_status"]
           token?: string
@@ -295,6 +298,20 @@ export type Database = {
             columns: ["invited_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitations_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "member_directory"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "invitations_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_members"
             referencedColumns: ["id"]
           },
           {
@@ -636,6 +653,7 @@ export type Database = {
           email: string
           is_expired: boolean
           is_usable: boolean
+          member_name: string
           role: Database["public"]["Enums"]["member_role"]
           workspace_id: string
           workspace_name: string

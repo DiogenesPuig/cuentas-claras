@@ -35,6 +35,8 @@ export interface InvitationPreview {
   email: string;
   isExpired: boolean;
   isUsable: boolean;
+  /** Nombre del placeholder si la invitación es de promoción (IDENT-1 paso 6); `null` si no. */
+  memberName: string | null;
 }
 
 export interface CreateWorkspaceInput {
@@ -281,6 +283,36 @@ export async function createInviteLink(workspaceId: string, role: MemberRole): P
   return data;
 }
 
+/**
+ * Crea una invitación de **promoción** (IDENT-1 paso 6): un link de un solo uso dirigido a un
+ * placeholder (`member_id`). Al aceptarlo, esa persona pasa a ser el usuario real de ese placeholder,
+ * conservando toda su historia (ver `accept_invitation`). RLS exige owner/admin. El admin copia el
+ * link y se lo pasa a la persona.
+ */
+export async function createPlaceholderInvite(
+  workspaceId: string,
+  memberId: string,
+  role: MemberRole,
+): Promise<Invitation> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('No hay sesión activa.');
+
+  const expiresAt = new Date(Date.now() + INVITE_LINK_TTL_HOURS * 60 * 60 * 1000).toISOString();
+  const payload: TablesInsert<'invitations'> = {
+    workspace_id: workspaceId,
+    email: null,
+    role,
+    invited_by: user.id,
+    member_id: memberId,
+    expires_at: expiresAt,
+  };
+  const { data, error } = await supabase.from('invitations').insert(payload).select().single();
+  if (error) throw error;
+  return data;
+}
+
 /** Revoca una invitación (link o email): deja de ser aceptable. RLS exige owner/admin. */
 export async function revokeInvitation(invitationId: string): Promise<void> {
   const { error } = await supabase
@@ -307,6 +339,7 @@ export async function previewInvitation(token: string): Promise<InvitationPrevie
     email: row.email,
     isExpired: row.is_expired,
     isUsable: row.is_usable,
+    memberName: row.member_name,
   };
 }
 
