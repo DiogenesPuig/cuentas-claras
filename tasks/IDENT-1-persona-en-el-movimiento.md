@@ -6,6 +6,12 @@
 > MEJ-12 (efectivo), la "Transferencia única" (charla 2026-07-09) y arregla BUG-17 (cambiar el
 > nombre no se refleja en Medios). Diseño cerrado con el usuario el 2026-07-09.
 
+## Estado: ✅ COMPLETO — aplicado en PROD (2026-07-13)
+Migraciones 0018/0019/0020 (`supabase db push`) + backfill/colapso (runner) corridos en remoto tras
+backup y dry-run revisado. Resultado en prod: personas unificadas por identidad (Miguel/Hermes/Agata/
+Alicia), Diogenes/Lucas Puig → miembros, medio genérico "Efectivo" → compartido sin persona, "Diogenes
+Test" queda como placeholder de prueba (descartable). Falta solo **mergear el PR** (deploy del front).
+
 ## Progreso (rama `task/ident-1-persona-en-movimiento`)
 - ✅ **Paso 1 — fundación del modelo** (migración 0018, aplicada en LOCAL, sin backfill):
   `transactions.owner_member_id`; `workspace_members.user_id` nullable + `name`; `member_directory`
