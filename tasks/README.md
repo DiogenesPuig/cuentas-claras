@@ -96,6 +96,8 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 - `MEJ-18` Memoria de categoría por comercio: aprende de las correcciones (comercio→categoría, por
   workspace, gana sobre las keywords de F2-6) — diseño de datos/RLS cerrado con el usuario 2026-07-10;
   falta cerrar la "clave de comercio" — `tasks/MEJ-18-memoria-categoria-por-comercio.md`.
+- `MEJ-19` Fusionar/vincular personas duplicadas (resuelve el borde de IDENT-1: placeholder con historia
+  + cuenta que entró por link genérico) — `tasks/MEJ-19-fusionar-personas.md`.
 - ✅ `F2-14` Parser del resumen de Banco Nación (BNA MasterCard Black) + banco no reconocido — _hecho
   (PR #66: el header venía en plural "DETALLES DEL MES"; `tasks/done/`). **Micro redeployado al Space
   de Hugging Face y verificado en prod (2026-07-07): reconoce el banco.**_
