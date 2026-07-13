@@ -92,7 +92,8 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
   `tasks/done/`.
 - `MEJ-1` Date-picker con calendario — **dep `react-day-picker` APROBADA (2026-07-07)**, lista para implementar (`tasks/MEJORAS.md`).
 - `MEJ-2` Reordenar secciones de Reportes (drag & drop) — **dep `@dnd-kit` APROBADA (2026-07-07)**, versión DnD (`tasks/MEJORAS.md`).
-- `MEJ-13` Total de gastos en /movimientos respetando los filtros (hoy solo muestra el conteo) — `tasks/MEJ-13-total-gastos-en-movimientos.md`.
+- ✅ `MEJ-13` Total de gastos/ingresos en /movimientos respetando los filtros — _hecho (PR #73, `sumByType`
+  por moneda + total a la derecha de la lista, `tasks/done/`)_.
 - `MEJ-14` Botón ver/ocultar contraseña en el import de resumen — `tasks/MEJ-14-ver-contrasena-import-resumen.md`.
 - `MEJ-15` Eliminar un grupo (workspace) — destructivo, requiere cerrar diseño RLS/cascada/confirmación — `tasks/MEJ-15-eliminar-grupo.md`.
 - `MEJ-16` Separar categoría "Transporte" (viajes) de "Auto" (nafta/mantenimiento) — `tasks/MEJ-16-categoria-auto-vs-transporte.md`.
