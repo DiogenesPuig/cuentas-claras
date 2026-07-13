@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import {
   accountLabel,
   CARD_NETWORKS,
@@ -77,6 +78,7 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
 
   const [file, setFile] = useState<File | null>(null);
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [model, setModel] = useState<StagingModel | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<number | null>(null);
@@ -223,13 +225,28 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
             <label htmlFor="stmt-pass" className="text-sm font-medium">
               Contraseña (si el PDF está protegido)
             </label>
-            <input
-              id="stmt-pass"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            />
+            <div className="relative">
+              <input
+                id="stmt-pass"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 pr-10 text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" aria-hidden />
+                ) : (
+                  <Eye className="h-4 w-4" aria-hidden />
+                )}
+              </button>
+            </div>
           </div>
           <button
             type="button"
