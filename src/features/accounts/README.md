@@ -7,18 +7,27 @@ tipo, moneda, últimos 4 dígitos, holder (miembro o nombre) y, si es extensión
 ## Archivos
 
 - `api.ts` — Supabase: `listAccounts` (no archivados del workspace), `listMembersForHolder`
-  (miembros del workspace para el selector de holder, vía `workspace_members` + la vista
-  `member_directory` — `profiles` solo es legible por su propio dueño), `createAccount` y
-  `updateAccount` (RLS exige rol owner/admin), `updateHolderAliases(id, aliases)` (MEJ-4: setea
-  los nombres alternativos del titular de un medio `'transfer'`; recorta/deduplica), y
+  (miembros del workspace para el selector de holder y para resolver la persona; sale de la vista
+  `member_directory` con `member_id` + nombre **vivo** e **incluye placeholders** —IDENT-1—;
+  `profiles` solo es legible por su propio dueño; `MemberOption` incluye los `aliases` de la persona,
+  IDENT-1 paso 4), `createAccount` y `updateAccount` (RLS exige rol owner/admin), y
   `getOrCreateTransferAccount(workspaceId, holder)` (F2-11: busca el medio `type='transfer'` de una
   persona y, si no existe, lo crea lazy; un único medio "Transferencia" por persona, sin banco).
   MEJ-4: el buscar/crear ahora delega en el matcher puro `findTransferAccount` (`lib/transfer-account`)
   —mismo criterio que el pre-match del front, incluyendo `holder_aliases`— en vez del match exacto
-  por `holder_name` que duplicaba ante variantes de orden/tildes/apodos. Sin React.
+  por `holder_name` que duplicaba ante variantes de orden/tildes/apodos. _(IDENT-1 paso 4: los alias
+  de titular se movieron a la persona —`workspace_members.aliases`, editados en `/grupo`—; el matching
+  nuevo de transferencias va por `matchMember` con esos alias. `holder_aliases` queda como dato legacy
+  del medio hasta el colapso del paso 5.)_
+  IDENT-1: `getOrCreateSharedTransferAccount(workspaceId)` y `getOrCreateSharedCashAccount(workspaceId)`
+  buscan/crean (lazy) el **único** medio "Transferencia"/"Efectivo" **compartido** del workspace
+  (`owner_member_id NULL` + `holder_name = ''`); la persona de cada movimiento va en
+  `transactions.owner_member_id`, no en el medio (así se reemplaza el "uno por persona"). Sin React.
 - `hooks.ts` — react-query: `useAccounts(workspaceId)` (se reutilizará en el alta de movimientos,
-  B8), `useMembersForHolder`, `useCreateAccount`, `useUpdateAccount`, `useUpdateHolderAliases`
-  (MEJ-4) y `useGetOrCreateTransferAccount` (F2-11, invalida `accounts` al crear).
+  B8), `useMembersForHolder`, `useCreateAccount`, `useUpdateAccount`,
+  `useGetOrCreateTransferAccount` (F2-11) y los compartidos de IDENT-1
+  `useGetOrCreateSharedTransferAccount` / `useGetOrCreateSharedCashAccount` (todos invalidan
+  `accounts` al crear).
 - `schema.ts` — zod del form: `name`, `bank`, `network`, `type` (incluye `'transfer'`, F2-11),
   `currency`, `last4`, `holderKind` (`member` | `name`) + `ownerMemberId`/`holderName` según
   corresponda, `isExtension` + `parentAccountId` si aplica, `billingCloseDay`.
@@ -44,10 +53,9 @@ tipo, moneda, últimos 4 dígitos, holder (miembro o nombre) y, si es extensión
 
 - Total gastado por medio en el período (FR-6): depende de `transactions` (C11); se deja para
   cuando exista esa lógica.
-- **Mostrar el holder por `owner_member_id` (pendiente):** hoy la lista muestra `holder_name`, que
-  queda denormalizado si el miembro cambia su nombre. A futuro, cuando exista `owner_member_id`,
-  mostrar el nombre vivo del miembro (vía `member_directory`) y caer a `holder_name` solo si no hay
-  miembro asociado. Ver `TODO(B8/reportes)` en `components/AccountList.tsx`.
+- **Holder por `owner_member_id` (hecho, IDENT-1/BUG-17):** `AccountList` muestra el nombre **vivo**
+  del miembro (vía `member_directory`) cuando el medio tiene `owner_member_id`, y cae a `holder_name`
+  solo si no hay miembro asociado. Así cambiar el nombre del perfil se refleja sin duplicar persona.
 
 ## Relacionados
 

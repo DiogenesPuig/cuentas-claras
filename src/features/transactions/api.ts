@@ -22,6 +22,8 @@ export interface TransactionInput {
   description: string | null;
   categoryId: string | null;
   accountId: string | null;
+  /** Persona del movimiento (IDENT-1): `workspace_members.id` (miembro o placeholder), o null. */
+  ownerMemberId: string | null;
   /** Banco del movimiento (F2-11): hoy solo lo llena el flujo de transferencias. */
   bank: string | null;
   occurredOn: string;
@@ -32,19 +34,22 @@ export interface TransactionInput {
 }
 
 export interface TransactionView extends Transaction {
-  account: { name: string; holder_name: string; bank: string | null } | null;
+  account: {
+    name: string;
+    holder_name: string;
+    bank: string | null;
+    owner_member_id: string | null;
+  } | null;
   category: { name: string; icon: string | null } | null;
 }
 
 const TRANSACTION_SELECT =
-  '*, account:accounts(name,holder_name,bank), category:categories(name,icon)';
-/** Igual que `TRANSACTION_SELECT`, pero con `!inner` para poder filtrar por `account.holder_name`. */
-const TRANSACTION_SELECT_INNER_ACCOUNT =
-  '*, account:accounts!inner(name,holder_name,bank), category:categories(name,icon)';
+  '*, account:accounts(name,holder_name,bank,owner_member_id), category:categories(name,icon)';
 
 /**
- * Movimientos del workspace, más recientes primero, con los filtros de FR-11
- * aplicados en la query (mes, medio, categoría, moneda, persona/holder y texto).
+ * Movimientos del workspace, más recientes primero, con los filtros de FR-11 aplicados en la query
+ * (mes, medio, categoría, moneda y texto). El filtro por **persona** (IDENT-1) se resuelve en el
+ * cliente porque la persona sale de varias capas (movimiento → medio → holder), así que no va acá.
  */
 export async function listTransactions(
   workspaceId: string,
@@ -52,10 +57,7 @@ export async function listTransactions(
 ): Promise<TransactionView[]> {
   const args = buildTransactionFilterArgs(filters);
 
-  let query = supabase
-    .from('transactions')
-    .select(args.holderName ? TRANSACTION_SELECT_INNER_ACCOUNT : TRANSACTION_SELECT)
-    .eq('workspace_id', workspaceId);
+  let query = supabase.from('transactions').select(TRANSACTION_SELECT).eq('workspace_id', workspaceId);
 
   if (args.occurredFrom) query = query.gte('occurred_on', args.occurredFrom);
   if (args.occurredTo) query = query.lt('occurred_on', args.occurredTo);
@@ -63,7 +65,6 @@ export async function listTransactions(
   if (args.accountIsNull) query = query.is('account_id', null);
   if (args.categoryId) query = query.eq('category_id', args.categoryId);
   if (args.currency) query = query.eq('currency', args.currency);
-  if (args.holderName) query = query.eq('account.holder_name', args.holderName);
   if (args.search) query = query.ilike('description', `%${args.search}%`);
 
   const { data, error } = await query
@@ -81,6 +82,7 @@ function toRow(input: TransactionInput) {
     description: input.description,
     category_id: input.categoryId,
     account_id: input.accountId,
+    owner_member_id: input.ownerMemberId,
     bank: input.bank,
     occurred_on: input.occurredOn,
     charged_on: input.chargedOn,

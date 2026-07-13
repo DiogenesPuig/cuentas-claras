@@ -1,0 +1,40 @@
+# IDENT-1 collapse — modo DRY-RUN (solo lee)
+[d26e95a5-4290-4542-bdbd-7238b6fd0b9c] alias → miembro Diogenes: +"Diogenes Alejandro Xavier Puig"
+
+===== workspace d26e95a5-4290-4542-bdbd-7238b6fd0b9c =====
+  "Diogenes Test" (transfer, 2 mov) → PLACEHOLDER Diogenes Test
+  "Maria Sanchez Gomez" (transfer, 1 mov) → PLACEHOLDER Maria Sanchez Gomez
+  "PUIG LUCAS, MIGUEL DOMINGO" (transfer, 0 mov) → PLACEHOLDER PUIG LUCAS, MIGUEL DOMINGO
+  "PUIG LUCAS MIGUEL D" (credit, 3 mov) → PLACEHOLDER PUIG LUCAS, MIGUEL DOMINGO
+  "PUIG HERMES DEMIAN" (credit, 4 mov) → PLACEHOLDER PUIG HERMES DEMIAN
+  "DIOGENES A PUIG" (credit, 4 mov) → MEMBER Diogenes
+  "HERMES DEMIAN PUIG" (credit, 2 mov) → PLACEHOLDER PUIG HERMES DEMIAN
+  "HERMES DEMIAN PUIG" (credit, 33 mov) → PLACEHOLDER PUIG HERMES DEMIAN
+  "AGATA HELENA PUIG" (credit, 6 mov) → PLACEHOLDER AGATA HELENA PUIG
+  "ALICIA RAQUE GARZON" (credit, 27 mov) → PLACEHOLDER ALICIA RAQUE GARZON
+  "LUCAS MIGUEL PUIG" (credit, 5 mov) → PLACEHOLDER PUIG LUCAS, MIGUEL DOMINGO
+  "Joaquin Santiago Moreno" (transfer, 1 mov) → PLACEHOLDER Joaquin Santiago Moreno
+  "NX Leandro Nehuen Tallarico Esteve" (transfer, 0 mov) → ARCHIVE-ONLY NX Leandro Nehuen Tallarico Esteve
+AVISOS: No existe el medio "transfer" compartido: el runner debe crearlo antes de repuntar.
+RESUMEN: placeholders=7 · reatribuir=4 · archivar=5 · tarjetas-enganchadas=8 · apodos=0
+
+===== workspace b9184ce0-15e7-4711-877d-e84aedebf3b5 =====
+RESUMEN: placeholders=0 · reatribuir=0 · archivar=0 · tarjetas-enganchadas=0 · apodos=0
+
+===== workspace bd81715a-d194-4ee4-97a7-a6c1ec2ca3a5 =====
+RESUMEN: placeholders=0 · reatribuir=0 · archivar=0 · tarjetas-enganchadas=0 · apodos=0
+[ccda33c3-edb9-4b60-952a-f9cce53ed293] alias → miembro Diogenes: +"Diogenes Alejandro Xavier Puig"
+
+===== workspace ccda33c3-edb9-4b60-952a-f9cce53ed293 =====
+  "AGATA HELENA PUIG" (credit, 33 mov) → PLACEHOLDER AGATA HELENA PUIG
+  "AGATA HELENA PUIG" (credit, 7 mov) → PLACEHOLDER AGATA HELENA PUIG
+  "ALICIA RAQUE GARZON" (credit, 29 mov) → PLACEHOLDER ALICIA RAQUE GARZON
+  "Efectivo" (cash, 1 mov) → NO-PERSON (sin persona)
+  "RAQUE ALICIA GARZON" (credit, 0 mov) → PLACEHOLDER ALICIA RAQUE GARZON
+  "HELENA AGATA PUIG" (credit, 0 mov) → PLACEHOLDER AGATA HELENA PUIG
+  "Lucas Puig" (transfer, 3 mov) → MEMBER Lucas Puig
+AVISOS: No existe el medio "cash" compartido: el runner debe crearlo antes de repuntar. | No existe el medio "transfer" compartido: el runner debe crearlo antes de repuntar.
+RESUMEN: placeholders=2 · reatribuir=4 · archivar=2 · tarjetas-enganchadas=5 · apodos=0
+
+===== workspace 1e7c3e10-bd86-4136-8792-25a77ab6396e =====
+RESUMEN: placeholders=0 · reatribuir=0 · archivar=0 · tarjetas-enganchadas=0 · apodos=0

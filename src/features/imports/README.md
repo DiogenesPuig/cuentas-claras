@@ -30,10 +30,13 @@ revisan/editan en memoria y se confirman **todas de una**, creando los `transact
   de filas inválidas).
 - `components/StatementImport.tsx` — flujo completo: subir PDF + password → revisar por tarjeta
   (elegir/crear medio, editar/destildar filas) → confirmar. Al cargar, asocia cada tarjeta al medio
-  que matchea (`lib/account-match`); si no hay, ofrece crearlo. La sección de impuestos/cargos al pie
-  (`isResidualHint`, BUG-5) se muestra como grupo sin medio: no ofrece ni autoabre el alta de medio.
-  Mapea errores del micro (401/422/sin URL). Guards anti doble-submit en `handleParse`/`handleConfirm`
-  (BUG-9).
+  que matchea (`lib/account-match`); si no hay, ofrece crearlo. IDENT-1: al precargar el alta de esa
+  tarjeta, si el titular del resumen matchea a un miembro por nombre o **alias** (`matchMember` +
+  `member_directory.aliases`), la tarjeta queda como **suya** (`owner_member_id`) en vez de un nombre
+  suelto → los gastos se atribuyen a esa persona (y reconoce variantes del nombre entre resúmenes). La
+  sección de impuestos/cargos al pie (`isResidualHint`, BUG-5) se muestra como grupo sin medio: no
+  ofrece ni autoabre el alta de medio. Mapea errores del micro (401/422/sin URL). Guards anti
+  doble-submit en `handleParse`/`handleConfirm` (BUG-9).
 - `components/StatementImport.test.tsx` — verifica el guard anti doble-submit del parseo (BUG-9).
 - `components/StagingRow.tsx` — fila editable (incluir, fecha, descripción, monto, categoría;
   muestra cuota y marca pago/devolución).

@@ -6,6 +6,7 @@ Runner para ejecutar los tickets de la Fase 1 con Claude Code en **modo headless
 
 - `run-ticket.sh` — corre un ticket (o todo el backlog) con `claude -p`, valida `typecheck`/`lint`/`test` si existen y commitea por ticket. Para si algo falla.
 - `backlog.tsv` — orden del backlog: `id`, `model`, `depends`, `file`, `subject`. Es la fuente del modelo por ticket.
+- `ident1-collapse.harness.test.ts` — **migración de datos de un solo uso** (IDENT-1 paso 5): colapsa los medios transfer/cash por-persona a los compartidos y pone la persona en el movimiento. No es un test (se ejecuta vía vitest solo para resolver los imports de `@/lib`; en CI, sin la env `IDENT1`, queda **skipped**). Reusa el planificador puro `lib/ident1-collapse`. **Por defecto NO escribe** (dry-run); escribe solo con `IDENT1_APPLY=1`. Uso: `IDENT1=1 SB_URL=<url> SB_KEY=<service_role> IDENT1_OUT=/ruta/plan.txt npx vitest run scripts/ident1-collapse.harness.test.ts` (agregar `IDENT1_APPLY=1` para aplicar). Idempotente. **Hacer backup antes de aplicar en remoto.**
 - `logs/` — salida de cada corrida (`<fecha>-<id>.log`). Ignorado por git.
 
 ## Requisitos

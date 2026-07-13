@@ -2,10 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createAccount,
   getOrCreateTransferAccount,
+  getOrCreateSharedCashAccount,
+  getOrCreateSharedTransferAccount,
   listAccounts,
   listMembersForHolder,
   updateAccount,
-  updateHolderAliases,
   type Account,
   type AccountInput,
   type MemberOption,
@@ -57,24 +58,36 @@ export function useUpdateAccount(workspaceId: string | undefined) {
   });
 }
 
-/** Actualiza los alias de titular de un medio `'transfer'` (MEJ-4). */
-export function useUpdateHolderAliases(workspaceId: string | undefined) {
-  const queryClient = useQueryClient();
-
-  return useMutation<Account, Error, { id: string; aliases: string[] }>({
-    mutationFn: ({ id, aliases }) => updateHolderAliases(id, aliases),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: accountsKeys.list(workspaceId) });
-    },
-  });
-}
-
 /** Busca/crea (lazy) el medio `'transfer'` de una persona, para el alta de transferencias (F2-11). */
 export function useGetOrCreateTransferAccount(workspaceId: string | undefined) {
   const queryClient = useQueryClient();
 
   return useMutation<Account, Error, TransferAccountHolder>({
     mutationFn: (holder) => getOrCreateTransferAccount(workspaceId as string, holder),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: accountsKeys.list(workspaceId) });
+    },
+  });
+}
+
+/** Busca/crea (lazy) el medio "Transferencia" **compartido** del workspace (IDENT-1). */
+export function useGetOrCreateSharedTransferAccount(workspaceId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation<Account, Error, void>({
+    mutationFn: () => getOrCreateSharedTransferAccount(workspaceId as string),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: accountsKeys.list(workspaceId) });
+    },
+  });
+}
+
+/** Busca/crea (lazy) el medio "Efectivo" **compartido** del workspace (IDENT-1). */
+export function useGetOrCreateSharedCashAccount(workspaceId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation<Account, Error, void>({
+    mutationFn: () => getOrCreateSharedCashAccount(workspaceId as string),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: accountsKeys.list(workspaceId) });
     },

@@ -60,6 +60,12 @@ export function InviteAcceptPage() {
       <p className="text-sm text-muted-foreground">
         Vas a unirte como <strong>{ROLE_LABELS[preview.role] ?? preview.role}</strong>.
       </p>
+      {preview.memberName && (
+        <p className="text-sm text-muted-foreground">
+          Vas a tomar la identidad de <strong>{preview.memberName}</strong> en el grupo, conservando
+          todo su historial de gastos.
+        </p>
+      )}
       {error && <p className="text-sm text-destructive">{error}</p>}
       <button
         type="button"

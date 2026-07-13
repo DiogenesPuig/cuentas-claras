@@ -18,4 +18,9 @@ describe('normalizeNameKey', () => {
     expect(normalizeNameKey(null)).toBe('');
     expect(normalizeNameKey('')).toBe('');
   });
+
+  it('ignora la puntuación (comas, puntos) al armar la clave', () => {
+    expect(normalizeNameKey('PUIG LUCAS, MIGUEL')).toBe(normalizeNameKey('PUIG LUCAS MIGUEL'));
+    expect(normalizeNameKey('J. Pérez')).toBe(normalizeNameKey('J Perez'));
+  });
 });

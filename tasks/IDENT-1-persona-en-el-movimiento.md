@@ -6,6 +6,130 @@
 > MEJ-12 (efectivo), la "Transferencia única" (charla 2026-07-09) y arregla BUG-17 (cambiar el
 > nombre no se refleja en Medios). Diseño cerrado con el usuario el 2026-07-09.
 
+## Estado: ✅ COMPLETO — aplicado en PROD (2026-07-13)
+Migraciones 0018/0019/0020 (`supabase db push`) + backfill/colapso (runner) corridos en remoto tras
+backup y dry-run revisado. Resultado en prod: personas unificadas por identidad (Miguel/Hermes/Agata/
+Alicia), Diogenes/Lucas Puig → miembros, medio genérico "Efectivo" → compartido sin persona, "Diogenes
+Test" queda como placeholder de prueba (descartable). Falta solo **mergear el PR** (deploy del front).
+
+## Progreso (rama `task/ident-1-persona-en-movimiento`)
+- ✅ **Paso 1 — fundación del modelo** (migración 0018, aplicada en LOCAL, sin backfill):
+  `transactions.owner_member_id`; `workspace_members.user_id` nullable + `name`; `member_directory`
+  con placeholders (LEFT join, `member_id`); trigger de mismo-workspace. Aditivo → sin cambio de
+  comportamiento. Tipos/schema al día; typecheck/lint/test/build verdes. **Migración NO aplicada a
+  remoto todavía** (recién al final, con todo probado).
+- ✅ **Paso 2 — resolución de persona (nombre vivo):** `personaIdentity` (reports) ahora lee
+  `tx.owner_member_id` primero (persona del movimiento manda), luego el medio; `listMembersForHolder`
+  sale de `member_directory` (`member_id` + nombre vivo, incluye placeholders); `AccountList` muestra
+  el nombre vivo del miembro → **arregla el síntoma principal de BUG-17** (la lista de Medios). Sin
+  cambio de comportamiento aún para transferencias (no hay `owner_member_id` en datos hasta el backfill).
+- ✅ **Paso 3a — plomería + selector de persona en el alta:** `transactions.owner_member_id` viaja por
+  `TransactionInput`/`toRow`/schema/form; campo "Persona (opcional)" ("Según el medio" = null, o un
+  miembro/placeholder de `members`) que escribe `owner_member_id`. Aditivo/seguro (no reemplaza aún el
+  flujo de transferencia por-persona).
+- ✅ **Paso 3b — "Transferencia" compartida:** `getOrCreateSharedTransferAccount` (UN medio 'transfer'
+  por workspace) + hook; el flujo del alta asigna ese medio y **prefilla la persona** (matchMember →
+  miembro/placeholder), sin match queda vacía para elegir. Se eliminó el flujo per-persona
+  (`getOrCreateTransferAccount`/`matchTransferAccount`) y el prompt de alias de MEJ-4A del alta.
+  **Reemplaza "muchas Transferencia" por una sola.** _Nota: los movimientos VIEJOS siguen en sus
+  medios transfer por-persona hasta el backfill (paso 5); ahí conviven, pero reportes resuelven bien
+  (por `account.owner_member_id`)._
+- ✅ **Paso 3c — crear placeholder desde el alta:** `createPlaceholderMember` (workspaces, RLS
+  owner/admin: fila `workspace_members` con `user_id NULL` + nombre) + `useCreatePlaceholderMember`
+  (invalida las 2 listas de miembros). El selector de persona muestra **"+ Persona"** (solo owner/admin
+  vía prop `onCreatePerson`): crea el placeholder y lo selecciona. Aviso bajo el selector cuando una
+  transferencia no reconoce a la persona. Tests: alta con persona; crear persona.
+- ✅ **Paso 3d — filtro "Persona" de `/movimientos` por miembro:** se extrajo `lib/persona`
+  (`personaKeyOf`/`personaLabelOf`, puro, testeado) que resuelve la persona por movimiento→medio→holder
+  con el nombre **vivo** del miembro; `reports/aggregate.personaIdentity` ahora delega ahí (cero cambio
+  de comportamiento). El movimiento trae `account.owner_member_id` en el select. El filtro dejó de ser
+  server-side por `holder_name` (`!inner`): ahora `FilterBar` recibe `personaOptions` basadas en miembro
+  y `TransactionsPage` filtra en el cliente con `personaKeyOf` → **arregla el síntoma del filtro de
+  BUG-17** (nombres vivos, sin duplicar). Tests: `lib/persona.test.ts`.
+- ✅ **Paso 3e — Efectivo compartido:** `getOrCreateSharedCashAccount` (UN medio `'cash'` por
+  workspace, `owner_member_id NULL` + `holder_name ''`) + `useGetOrCreateSharedCashAccount`. En el
+  alta, el selector de medio ofrece la opción **"Efectivo"** (centinela) que crea/reusa el medio lazy
+  al elegirla y lo asigna; quién pagó va en el selector de persona. El submit espera mientras se crea
+  (no guarda el centinela). Una vez creado, es un medio normal y el centinela desaparece. Test del
+  flujo (centinela → crea → asigna). Mismo patrón que la transferencia compartida (3b).
+- ✅ **Paso 4 — alias en la persona:** `workspace_members.aliases` (migración 0019, aplicada en LOCAL)
+  + backfill desde `accounts.holder_aliases` de los medios con `owner_member_id`; `member_directory`
+  expone `aliases`. `matchMember` ahora considera los alias del miembro (match exacto de clave contra
+  un alias es autoritativo aunque sea de 1 palabra, ej. "Pepito") → los alias dejan de perderse en el
+  flujo de transferencia compartida. Edición movida del medio a la **persona**: `updateMemberAliases`
+  (workspaces, RLS owner/admin) + `MemberAliasesEditor` en `/grupo`; se quitó el `HolderAliasesEditor`
+  del medio. `accounts.holder_aliases` queda como dato legacy hasta el colapso del paso 5 (los alias
+  de titulares **no-miembros** se moverán ahí, al crear su placeholder). Tests de `matchMember` (+5).
+  **Migración NO aplicada a remoto todavía** (junto con el resto, al final).
+- ✅ **Paso 4b — resúmenes atribuyen a la persona (opción A, charla 2026-07-10):** al importar un
+  resumen, si el titular de una tarjeta matchea a un miembro por nombre o **alias** (`matchMember` con
+  los alias del paso 4), el alta inline de esa tarjeta se precarga como **suya** (`owner_member_id`) en
+  vez de un nombre suelto → los gastos quedan atribuidos a esa persona y se reconocen variantes del
+  nombre entre resúmenes (ej. "DIEGO TORRES" / "TORRES MARCO DIEGO"). Enganche en
+  `StatementImport.defaultsFromHint`; los resúmenes recurrentes de la misma tarjeta ya matcheaban por
+  `last4`. Sin match → nombre del resumen (comportamiento previo). _Pendiente futuro (fuera de este
+  slice): que `matchAccount` sin `last4` también consulte los alias del miembro para desambiguar una
+  tarjeta existente._
+- 🚧 **Paso 5 — backfill + colapso (EN CURSO, la parte de riesgo):**
+  - ✅ **Planificador puro + tests:** `lib/ident1-collapse.planWorkspaceCollapse(input)` calcula el plan
+    sin tocar la DB (reusa `matchMember`/`normalizeNameKey`): placeholders a crear (deduplicados por
+    nombre), alias a sumar a miembros, movimientos a reatribuir+repuntar al medio compartido, medios a
+    **archivar** (no borrar), remapeo de apodos MEJ-8 `name:`→`member:` (con detección de colisión) y
+    avisos. 7 tests.
+  - ✅ **Dry-run read-only contra la DB local** (harness temporal, no commiteado). **Hallazgo clave:**
+    con los datos reales, holders que son un miembro existente pero cuyo **nombre de perfil es corto**
+    (ej. medio "Diogenes Alejandro Xavier Puig" vs miembro "Diogenes") **NO** matchean por token (1 solo
+    token en común) → caerían como **placeholder duplicado del propio miembro**, y el merge de personas
+    está **fuera de alcance**. ⇒ el colapso necesita un **loop de revisión**: antes de aplicar, el
+    usuario suma en `/grupo` los alias necesarios a los miembros (ej. alias "Diogenes Alejandro Xavier
+    Puig" al miembro Diogenes) para que esos medios resuelvan al miembro y no a un placeholder. La
+    dedup por nombre ya colapsa bien los duplicados exactos ("... ×2" → 1).
+  - ✅ **Regla "no ensuciar" (decisión 2026-07-11):** un medio legacy **sin movimientos** que caería en
+    un placeholder NO crea la persona (no hay historia que preservar); solo se archiva. Los placeholders
+    se crean solo con ≥1 movimiento. Los apodos que apuntarían a un placeholder no creado se dejan como
+    están. (+1 test.)
+  - ✅ **Runner de aplicación:** `scripts/ident1-collapse.harness.test.ts` (cascarón: cura los alias de
+    miembros confirmados, crea placeholders, get-or-create de los medios compartidos, reatribuye+repuntea
+    los movimientos, archiva los medios legacy, remapea apodos). Dry-run por defecto; escribe solo con
+    `IDENT1_APPLY=1`. **Idempotente** (re-correr = no-op). Guardado tras `IDENT1` → en CI queda skipped.
+  - ✅ **Unificación de identidad por medio (bug encontrado probando /reportes, 2026-07-12):** un
+    no-miembro que aparecía en una **transferencia Y en tarjetas** salía **partido en dos personas**
+    (la transferencia pasó a `member:<placeholder>`; las tarjetas seguían agrupando por nombre). Fix:
+    (a) `normalizeName` ahora ignora **puntuación** (la coma de "LUCAS, MIGUEL" ya no parte el token);
+    (b) el planner **engancha las tarjetas de no-miembro a la persona** (`accountOwnerUpdates`: setea
+    `owner_member_id` al miembro/placeholder que matchea, sin archivar ni repuntear) → todos los medios
+    de la misma persona se agrupan por identidad, no por texto. Match conservador (≥2 tokens; "PUIG"
+    solo no alcanza) → no toca a homónimos parciales. +3 tests.
+  - ✅ **Rediseño a "agrupar por persona" (feedback probando, 2026-07-13):** faltaban personas —los
+    no-miembros que solo tenían **tarjetas** (Agata/Hermes/Alicia) no se creaban, y Miguel quedaba
+    partido en el workspace donde su transferencia estaba vacía—. El planner ahora **clusteriza todos
+    los medios de no-miembro** (transfer/cash + tarjetas) en personas con `matchMember`, y crea un
+    placeholder por persona con ≥1 movimiento **en cualquier medio** (no solo transferencia). Maneja
+    también medios transfer/cash **de un miembro** (se archivan y repuntan a él). Tests reescritos (8).
+  - ✅ **Aplicado en LOCAL + verificado (2026-07-13):** con backup previo (revertido y reaplicado).
+    Resultado por workspace: 4 personas-placeholder limpias (Miguel, Hermes, Agata, Alicia), cada una
+    con **todos** sus medios unidos (ej. Miguel: transfer + 3 tarjetas con grafías distintas → 15 movs
+    en `personal`, 8 en `viaje`; Hermes une "HERMES DEMIAN"/"DEMIAN HERMES"). Diogenes → miembro (sin
+    duplicado). **0 movimientos** quedan resueltos por nombre suelto. Homónimos parciales (comparten
+    solo "PUIG") NO se fusionan. Re-run dry-run = no-op (idempotente).
+  - ⏳ **Falta:** aplicar en **remoto** (con backup previo). Paso 5 es data-only → sin cambio de esquema
+    ni de tipos; `schema_fase1.sql` no cambia.
+- ✅ **Paso 6 — promoción placeholder→cuenta (migración 0020, aplicada en LOCAL):** invitación
+  **dirigida** a un placeholder (`invitations.member_id`); `accept_invitation` (SECURITY DEFINER) la
+  promueve seteando `user_id` en la fila existente (conserva `member:<id>` y toda la historia) en vez
+  de crear un miembro nuevo; guarda contra "el que acepta ya es miembro"; las dirigidas son de un solo
+  uso; `invitation_preview` expone `memberName`. Front: `createPlaceholderInvite` + hook +
+  `PromotePlaceholder` en `/grupo` (owner/admin genera el link) + aviso en la pantalla de aceptación.
+  Probado end-to-end en local (transacción con rollback): el placeholder queda con `user_id`, sus 15
+  movimientos siguen atribuidos, se crea el perfil, la invitación se consume. **Migración NO aplicada
+  a remoto todavía** (con el resto de IDENT-1).
+
+## Decisión de RLS (creación de placeholders) — CERRADA (2026-07-09)
+**Solo owner/admin** pueden crear placeholders (se deja `wm_write` como está). Consistente con
+"invitar/agregar miembros" (ya es owner/admin) y más simple. Costo aceptado: un rol "member" que
+carga un movimiento de un no-miembro no puede crear la persona en el momento (lo deja en "Otros" o le
+pide a un admin) — poco común, porque los que cargan plata suelen ser owner/admin.
+
 ## Problema de raíz
 Hoy **la persona de un movimiento se deduce del medio** (`account.owner_member_id`/`holder_name`;
 `transactions` NO tiene campo de persona). Consecuencias:

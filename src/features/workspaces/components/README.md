@@ -4,7 +4,14 @@
 - `MemberList.tsx` — lista de miembros (nombre/avatar/rol, nunca el teléfono); owner/admin pueden
   cambiar el rol de los demás (`RoleSelect`) y quitarlos. El `owner` no se edita ni se quita desde
   acá (transferir ownership queda fuera de alcance). Cada miembro tiene un ✏️ para ponerle un
-  **apodo privado** (MEJ-8, `features/aliases`; misma `personaKey` `member:<id>` que los reportes).
+  **apodo privado** (MEJ-8, `features/aliases`; misma `personaKey` `member:<id>` que los reportes) y,
+  para owner/admin, un `MemberAliasesEditor` con sus "otros nombres".
+- `MemberAliasesEditor.tsx` — chips (agregar/quitar) con los **alias** de la persona (IDENT-1 paso 4,
+  `updateMemberAliases`): nombres alternativos reales para reconocerla al importar transferencias
+  (dato del grupo, distinto del apodo privado). Solo matching futuro; no fusiona movimientos.
+- `PromotePlaceholder.tsx` — para una persona del grupo **sin cuenta** (placeholder), owner/admin
+  genera un link de **promoción** (IDENT-1 paso 6, `createPlaceholderInvite`): al aceptarlo esa
+  persona pasa a ser un usuario real conservando toda su historia. Muestra el link para copiar.
 - `RoleSelect.tsx` — select de rol asignable (`admin`/`member`/`viewer`).
 - `InviteForm.tsx` — form de invitación por email + rol (un solo uso).
 - `InviteLink.tsx` — fila de una invitación con su link copiable (`/invite/:token`) y botón

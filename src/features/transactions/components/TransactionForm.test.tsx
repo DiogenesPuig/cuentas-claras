@@ -9,16 +9,16 @@ import { TransactionForm } from './TransactionForm';
 const toastMock = vi.hoisted(() => ({ error: vi.fn(), warning: vi.fn(), success: vi.fn() }));
 vi.mock('sonner', () => ({ toast: toastMock }));
 
-const getOrCreateTransferAccountMock = vi.fn();
-const updateHolderAliasesMock = vi.fn();
+const getOrCreateSharedTransferAccountMock = vi.fn();
+const getOrCreateSharedCashAccountMock = vi.fn();
 
 // Mockeamos el barrel completo (no `vi.importActual`: el barrel re-exporta `api.ts`, que
-// importa `lib/supabase` y rompe en CI sin las env vars — ver memoria del barrel). El único
-// valor que `TransactionForm.tsx` importa de acá es el hook de F2-11; el resto son tipos
-// (se borran en compilación, no hace falta mockearlos).
+// importa `lib/supabase` y rompe en CI sin las env vars — ver memoria del barrel). Los únicos
+// valores que `TransactionForm.tsx` importa de acá son los hooks de los medios compartidos
+// (IDENT-1); el resto son tipos (se borran en compilación, no hace falta mockearlos).
 vi.mock('@/features/accounts', () => ({
-  useGetOrCreateTransferAccount: () => ({ mutateAsync: getOrCreateTransferAccountMock }),
-  useUpdateHolderAliases: () => ({ mutate: updateHolderAliasesMock }),
+  useGetOrCreateSharedTransferAccount: () => ({ mutateAsync: getOrCreateSharedTransferAccountMock }),
+  useGetOrCreateSharedCashAccount: () => ({ mutateAsync: getOrCreateSharedCashAccountMock }),
 }));
 
 function makeAccount(overrides: Partial<Account>): Account {
@@ -105,6 +105,49 @@ describe('TransactionForm', () => {
         null,
       );
     });
+  });
+
+  it('permite atribuir el movimiento a una persona (owner_member_id) (IDENT-1)', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(
+      <TransactionForm
+        categories={[]}
+        accounts={[]}
+        members={[{ id: 'member-juan', name: 'Juan Pérez' }]}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    await userEvent.type(screen.getByLabelText('Monto'), '500');
+    await userEvent.selectOptions(screen.getByLabelText('Persona (opcional)'), 'member-juan');
+    await userEvent.click(screen.getByRole('button', { name: 'Crear movimiento' }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 500, ownerMemberId: 'member-juan' }),
+        null,
+      );
+    });
+  });
+
+  it('permite crear una persona del grupo (placeholder) desde el alta y la selecciona (IDENT-1)', async () => {
+    const onCreatePerson = vi.fn().mockResolvedValue({ id: 'member-new', name: 'Tía Ana' });
+    render(
+      <TransactionForm
+        categories={[]}
+        accounts={[]}
+        members={[]}
+        onCreatePerson={onCreatePerson}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: '+ Persona' }));
+    await userEvent.type(screen.getByLabelText('Nombre de la persona del grupo'), 'Tía Ana');
+    await userEvent.click(screen.getByRole('button', { name: 'Crear' }));
+
+    await waitFor(() => expect(onCreatePerson).toHaveBeenCalledWith('Tía Ana'));
+    expect(screen.getByLabelText('Persona (opcional)')).toHaveValue('member-new');
   });
 
   it('exige una moneda de 3 letras', async () => {
@@ -231,30 +274,24 @@ describe('TransactionForm', () => {
     expect(screen.getByLabelText('Monto')).toHaveValue(null);
   });
 
-  it('en una transferencia, autoasocia el medio `transfer` del origen si ya existe (gasto), y precarga el banco', async () => {
-    const account = makeAccount({
-      id: 'acc-juan',
-      type: 'transfer',
-      bank: null,
-      holder_name: 'Juan Pérez',
-    });
+  it('en una transferencia asigna el medio "Transferencia" compartido, prefilla la persona y el banco (IDENT-1)', async () => {
+    const shared = makeAccount({ id: 'acc-shared', type: 'transfer', holder_name: '', bank: null });
+    getOrCreateSharedTransferAccountMock.mockResolvedValue(shared);
     const onExtractReceipt = vi.fn().mockResolvedValue({
-      amount: 1000,
-      currency: 'ARS',
-      date: '2026-05-21',
-      merchant: null,
-      confidence: 0.9,
+      ...TRANSFER_RECEIPT,
       origin_holder: 'Juan Pérez',
       origin_bank: 'Banco Patagonia',
-      dest_holder: 'María Gómez',
-      dest_bank: 'Banco Galicia',
+      dest_holder: 'Otro',
+      dest_bank: null,
     });
     renderWithQueryClient(
       <TransactionForm
         categories={[]}
-        accounts={[account]}
+        accounts={[shared]}
         onSubmit={vi.fn()}
         onExtractReceipt={onExtractReceipt}
+        workspaceId="ws-1"
+        members={[{ id: 'member-juan', name: 'Juan Pérez' }]}
       />,
     );
 
@@ -262,37 +299,29 @@ describe('TransactionForm', () => {
     await userEvent.upload(screen.getByLabelText('Comprobante (opcional)'), file);
     await userEvent.click(screen.getByRole('button', { name: 'Extraer datos del comprobante' }));
 
+    // Gasto → origen = Juan (matchea al miembro): medio = el compartido, persona prefilled, banco.
     await waitFor(() => {
-      expect(screen.getByLabelText('Medio (opcional)')).toHaveValue('acc-juan');
+      expect(screen.getByLabelText('Medio (opcional)')).toHaveValue('acc-shared');
     });
-    expect(screen.getByText(/Transferencia con Juan Pérez/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Persona (opcional)')).toHaveValue('member-juan');
     expect(screen.getByLabelText('Banco (opcional)')).toHaveValue('Banco Patagonia');
-    expect(getOrCreateTransferAccountMock).not.toHaveBeenCalled();
+    expect(getOrCreateSharedTransferAccountMock).toHaveBeenCalled();
   });
 
-  it('en una transferencia, crea (lazy) el medio `transfer` del destino si no existe (ingreso), matcheando al miembro', async () => {
-    const createdAccount = makeAccount({
-      id: 'acc-maria',
-      type: 'transfer',
-      holder_name: 'María Gómez',
-      owner_member_id: 'member-maria',
-    });
-    getOrCreateTransferAccountMock.mockResolvedValueOnce(createdAccount);
+  it('en una transferencia sin match de miembro, asigna el medio compartido y deja la persona vacía (IDENT-1)', async () => {
+    const shared = makeAccount({ id: 'acc-shared', type: 'transfer', holder_name: '' });
+    getOrCreateSharedTransferAccountMock.mockResolvedValue(shared);
     const onExtractReceipt = vi.fn().mockResolvedValue({
-      amount: 1000,
-      currency: 'ARS',
-      date: '2026-05-21',
-      merchant: null,
-      confidence: 0.9,
-      origin_holder: 'Juan Pérez',
-      origin_bank: 'Banco Patagonia',
-      dest_holder: 'María Gómez',
-      dest_bank: 'Banco Galicia',
+      ...TRANSFER_RECEIPT,
+      origin_holder: 'Desconocido Ramírez',
+      origin_bank: 'Banco X',
+      dest_holder: 'Otro',
+      dest_bank: null,
     });
     renderWithQueryClient(
       <TransactionForm
         categories={[]}
-        accounts={[]}
+        accounts={[shared]}
         onSubmit={vi.fn()}
         onExtractReceipt={onExtractReceipt}
         workspaceId="ws-1"
@@ -300,175 +329,43 @@ describe('TransactionForm', () => {
       />,
     );
 
-    await userEvent.click(screen.getByLabelText('Ingreso'));
-    const file = new File(['x'], 'transferencia.jpg', { type: 'image/jpeg' });
-    await userEvent.upload(screen.getByLabelText('Comprobante (opcional)'), file);
-    await userEvent.click(screen.getByRole('button', { name: 'Extraer datos del comprobante' }));
-
-    // El medio recién creado no está en `accounts` (props estáticas del test); en la
-    // app real, la invalidación de la query lo trae y se selecciona solo. Acá lo que
-    // importa es que se dispare la creación lazy con los datos correctos del miembro.
-    await waitFor(() => {
-      expect(getOrCreateTransferAccountMock).toHaveBeenCalledWith({
-        ownerMemberId: 'member-maria',
-        holderName: 'María Gómez',
-      });
-    });
-  });
-
-  it('si el titular cambia durante la creación del medio, la creación vieja no pisa el medio actual (BUG-7)', async () => {
-    // Titular A (Juan): no hay medio → dispara una creación que queda PENDIENTE.
-    const pendingJuan = deferred<Account>();
-    getOrCreateTransferAccountMock.mockReturnValueOnce(pendingJuan.promise);
-    // Titular B (María): ya tiene un medio existente → se asocia solo, sin crear.
-    const mariaAccount = makeAccount({
-      id: 'acc-maria',
-      type: 'transfer',
-      holder_name: 'María Gómez',
-    });
-
-    const onExtractReceipt = vi
-      .fn()
-      .mockResolvedValueOnce({
-        ...TRANSFER_RECEIPT,
-        origin_holder: 'Juan Pérez',
-        origin_bank: 'Banco Patagonia',
-        dest_holder: 'Otro',
-        dest_bank: null,
-      })
-      .mockResolvedValueOnce({
-        ...TRANSFER_RECEIPT,
-        origin_holder: 'María Gómez',
-        origin_bank: 'Banco Galicia',
-        dest_holder: 'Otro',
-        dest_bank: null,
-      });
-
-    renderWithQueryClient(
-      <TransactionForm
-        categories={[]}
-        accounts={[mariaAccount]}
-        onSubmit={vi.fn()}
-        onExtractReceipt={onExtractReceipt}
-        workspaceId="ws-1"
-      />,
-    );
-
-    const fileInput = screen.getByLabelText('Comprobante (opcional)');
-    const extractButton = screen.getByRole('button', { name: 'Extraer datos del comprobante' });
-
-    // 1er comprobante (Juan): dispara la creación pendiente.
-    await userEvent.upload(fileInput, new File(['a'], 'juan.jpg', { type: 'image/jpeg' }));
-    await userEvent.click(extractButton);
-    await waitFor(() => {
-      expect(getOrCreateTransferAccountMock).toHaveBeenCalledWith({
-        ownerMemberId: null,
-        holderName: 'Juan Pérez',
-      });
-    });
-
-    // 2do comprobante (María): cambia el titular mientras la creación de Juan sigue en curso.
-    // María ya tiene medio → se asocia acc-maria de inmediato.
-    await userEvent.upload(fileInput, new File(['b'], 'maria.jpg', { type: 'image/jpeg' }));
-    await userEvent.click(extractButton);
-    await waitFor(() => {
-      expect(screen.getByLabelText('Medio (opcional)')).toHaveValue('acc-maria');
-    });
-
-    // Ahora resuelve (tarde) la creación de Juan: NO debe pisar el medio de María.
-    pendingJuan.resolve(makeAccount({ id: 'acc-juan', type: 'transfer', holder_name: 'Juan Pérez' }));
-    await Promise.resolve();
-    await Promise.resolve();
-    expect(screen.getByLabelText('Medio (opcional)')).toHaveValue('acc-maria');
-  });
-
-  it('ofrece unir a un titular parecido y, al confirmar, asocia su medio + guarda el alias (MEJ-4A)', async () => {
-    const juanAccount = makeAccount({
-      id: 'acc-juan',
-      type: 'transfer',
-      holder_name: 'Juan Pérez',
-      holder_aliases: [],
-    });
-    updateHolderAliasesMock.mockClear();
-    const onExtractReceipt = vi.fn().mockResolvedValue({
-      ...TRANSFER_RECEIPT,
-      origin_holder: 'Juan Gómez',
-      origin_bank: 'Banco X',
-      dest_holder: 'Otro',
-      dest_bank: null,
-    });
-    renderWithQueryClient(
-      <TransactionForm
-        categories={[]}
-        accounts={[juanAccount]}
-        onSubmit={vi.fn()}
-        onExtractReceipt={onExtractReceipt}
-        workspaceId="ws-1"
-      />,
-    );
-
     await userEvent.upload(
       screen.getByLabelText('Comprobante (opcional)'),
       new File(['x'], 'transf.jpg', { type: 'image/jpeg' }),
     );
     await userEvent.click(screen.getByRole('button', { name: 'Extraer datos del comprobante' }));
 
-    // Aparece el prompt "¿es la misma persona?" (Juan Gómez ~ Juan Pérez).
-    await screen.findByText(/¿Es la misma persona\?/i);
-    await userEvent.click(screen.getByRole('button', { name: 'Sí, es la misma' }));
-
-    // Asocia el medio existente y persiste "Juan Gómez" como alias (matching futuro).
     await waitFor(() => {
-      expect(screen.getByLabelText('Medio (opcional)')).toHaveValue('acc-juan');
+      expect(screen.getByLabelText('Medio (opcional)')).toHaveValue('acc-shared');
     });
-    expect(updateHolderAliasesMock).toHaveBeenCalledWith(
-      { id: 'acc-juan', aliases: ['Juan Gómez'] },
-      expect.anything(),
-    );
+    // Nadie matchea "Desconocido Ramírez" → la persona queda en "Según el medio" (vacío).
+    expect(screen.getByLabelText('Persona (opcional)')).toHaveValue('');
   });
 
-  it('si el usuario dice "no es la misma persona", crea el medio nuevo (MEJ-4A)', async () => {
-    const juanAccount = makeAccount({
-      id: 'acc-juan',
-      type: 'transfer',
-      holder_name: 'Juan Pérez',
-      holder_aliases: [],
-    });
-    getOrCreateTransferAccountMock.mockClear();
-    getOrCreateTransferAccountMock.mockResolvedValueOnce(
-      makeAccount({ id: 'acc-nuevo', type: 'transfer', holder_name: 'Juan Gómez' }),
-    );
-    const onExtractReceipt = vi.fn().mockResolvedValue({
-      ...TRANSFER_RECEIPT,
-      origin_holder: 'Juan Gómez',
-      origin_bank: 'Banco X',
-      dest_holder: 'Otro',
-      dest_bank: null,
-    });
-    renderWithQueryClient(
-      <TransactionForm
-        categories={[]}
-        accounts={[juanAccount]}
-        onSubmit={vi.fn()}
-        onExtractReceipt={onExtractReceipt}
-        workspaceId="ws-1"
-      />,
-    );
+  it('crea el medio "Efectivo" compartido al elegirlo y lo asigna al movimiento (IDENT-1)', async () => {
+    const cash = makeAccount({ id: 'acc-cash', name: 'Efectivo', type: 'cash', holder_name: '' });
+    getOrCreateSharedCashAccountMock.mockResolvedValue(cash);
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    const props = {
+      categories: [],
+      onSubmit,
+      workspaceId: 'ws-1',
+      members: [{ id: 'm-juan', name: 'Juan' }],
+    };
 
-    await userEvent.upload(
-      screen.getByLabelText('Comprobante (opcional)'),
-      new File(['x'], 'transf.jpg', { type: 'image/jpeg' }),
+    // Sin efectivo compartido todavía: el selector ofrece la opción centinela "Efectivo".
+    const { rerender } = render(<TransactionForm {...props} accounts={[]} />);
+    await userEvent.selectOptions(
+      screen.getByLabelText('Medio (opcional)'),
+      screen.getByRole('option', { name: 'Efectivo' }),
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Extraer datos del comprobante' }));
-    await screen.findByText(/¿Es la misma persona\?/i);
-    await userEvent.click(screen.getByRole('button', { name: 'No, es otra persona' }));
+    await waitFor(() => expect(getOrCreateSharedCashAccountMock).toHaveBeenCalled());
 
-    await waitFor(() => {
-      expect(getOrCreateTransferAccountMock).toHaveBeenCalledWith({
-        ownerMemberId: null,
-        holderName: 'Juan Gómez',
-      });
-    });
+    // Una vez creado (aparece en la lista de medios), el movimiento queda asignado al compartido.
+    rerender(<TransactionForm {...props} accounts={[cash]} />);
+    await waitFor(() =>
+      expect(screen.getByLabelText('Medio (opcional)')).toHaveValue('acc-cash'),
+    );
   });
 
   it('un doble click rápido en guardar no dispara dos altas (BUG-9)', async () => {

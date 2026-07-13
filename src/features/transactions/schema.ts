@@ -20,6 +20,7 @@ export const transactionSchema = z.object({
   description: z.string().trim().max(140, 'Máximo 140 caracteres').optional().or(z.literal('')),
   categoryId: z.string().optional().or(z.literal('')),
   accountId: z.string().optional().or(z.literal('')),
+  ownerMemberId: z.string().optional().or(z.literal('')),
   bank: z.string().trim().max(80, 'Máximo 80 caracteres').optional().or(z.literal('')),
   // Las fechas viven en el form como DD/MM/YYYY; se convierten a ISO al guardar.
   occurredOn: z.string().trim().refine((v) => displayToIsoDate(v) !== '', DATE_MSG),
@@ -44,6 +45,7 @@ export function defaultTransactionValues(): TransactionFormInput {
     description: '',
     categoryId: '',
     accountId: '',
+    ownerMemberId: '',
     bank: '',
     occurredOn: todayDisplayDate(),
     chargedOn: '',

@@ -4,6 +4,8 @@ import {
   acceptInvitation,
   createInvitation,
   createInviteLink,
+  createPlaceholderInvite,
+  createPlaceholderMember,
   createWorkspace,
   getMyRole,
   getWorkspace,
@@ -13,6 +15,7 @@ import {
   previewInvitation,
   removeMember,
   revokeInvitation,
+  updateMemberAliases,
   updateMemberRole,
   updateWorkspaceSettings,
   type CreateWorkspaceInput,
@@ -136,6 +139,34 @@ export function useRemoveMember(workspaceId: string | undefined) {
   });
 }
 
+/** Setea los alias de una persona (IDENT-1 paso 4). Invalida la lista de miembros (`/grupo`) y la
+ * del selector de persona (`features/accounts`), porque los alias cambian el matching de transferencias. */
+export function useUpdateMemberAliases(workspaceId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, { memberId: string; aliases: string[] }>({
+    mutationFn: ({ memberId, aliases }) => updateMemberAliases(memberId, aliases),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: workspacesKeys.members(workspaceId) });
+      void queryClient.invalidateQueries({ queryKey: ['accounts', 'members', workspaceId] });
+    },
+  });
+}
+
+/** Crea una "persona del grupo" sin cuenta (placeholder, IDENT-1). Invalida las dos listas de
+ * miembros (la de `/grupo` y la del selector de persona/reportes en `features/accounts`). */
+export function useCreatePlaceholderMember(workspaceId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation<{ id: string; name: string }, Error, string>({
+    mutationFn: (name) => createPlaceholderMember(workspaceId as string, name),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: workspacesKeys.members(workspaceId) });
+      void queryClient.invalidateQueries({ queryKey: ['accounts', 'members', workspaceId] });
+    },
+  });
+}
+
 /** Invitaciones del workspace activo (para mostrar las pendientes con su link). */
 export function useInvitations(workspaceId: string | undefined) {
   return useQuery<Invitation[]>({
@@ -162,6 +193,18 @@ export function useCreateInviteLink(workspaceId: string | undefined) {
 
   return useMutation<Invitation, Error, MemberRole>({
     mutationFn: (role) => createInviteLink(workspaceId as string, role),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: workspacesKeys.invitations(workspaceId) });
+    },
+  });
+}
+
+/** Genera un link de promoción (IDENT-1 paso 6) para que un placeholder pase a cuenta real. */
+export function useCreatePlaceholderInvite(workspaceId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation<Invitation, Error, { memberId: string; role: MemberRole }>({
+    mutationFn: ({ memberId, role }) => createPlaceholderInvite(workspaceId as string, memberId, role),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: workspacesKeys.invitations(workspaceId) });
     },

@@ -4,6 +4,8 @@ import { displayPersonaLabel, useAliases, useDeleteAlias, useUpsertAlias } from 
 import { useMembers, useMyRole, useRemoveMember, useUpdateMemberRole } from '../hooks';
 import type { MemberRole } from '../api';
 import type { AssignableRole } from '../schema';
+import { MemberAliasesEditor } from './MemberAliasesEditor';
+import { PromotePlaceholder } from './PromotePlaceholder';
 import { RoleSelect } from './RoleSelect';
 
 const CAN_MANAGE_ROLES: readonly MemberRole[] = ['owner', 'admin'];
@@ -70,7 +72,8 @@ export function MemberList({ workspaceId }: MemberListProps) {
           const display = displayPersonaLabel(key, member.name, aliases);
           const isEditing = editingKey === key;
           return (
-          <li key={member.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+          <li key={member.id} className="px-3 py-2 text-sm">
+            <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               {member.avatarUrl ? (
                 <img
@@ -150,6 +153,24 @@ export function MemberList({ workspaceId }: MemberListProps) {
                 </button>
               </div>
             )}
+            </div>
+            {canManage && (
+              <div className="mt-2 space-y-2 border-t border-dashed border-border pt-2">
+                <MemberAliasesEditor
+                  memberId={member.id}
+                  memberName={member.name}
+                  aliases={member.aliases}
+                  workspaceId={workspaceId}
+                />
+                {member.userId === null && (
+                  <PromotePlaceholder
+                    workspaceId={workspaceId}
+                    memberId={member.id}
+                    memberName={member.name}
+                  />
+                )}
+              </div>
+            )}
           </li>
           );
         })}
@@ -159,7 +180,8 @@ export function MemberList({ workspaceId }: MemberListProps) {
       </ul>
       <p className="text-xs text-muted-foreground">
         Solo se ve el nombre, nunca el teléfono · roles: owner/admin/member/viewer · el ✏️ pone un
-        apodo privado (solo lo ves vos).
+        apodo privado (solo lo ves vos) · "otros nombres" ayuda a reconocer a la persona al importar
+        transferencias (lo ve todo el grupo).
       </p>
     </div>
   );

@@ -4,8 +4,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { Category } from '@/features/categories';
 import {
-  useGetOrCreateTransferAccount,
-  useUpdateHolderAliases,
+  useGetOrCreateSharedCashAccount,
+  useGetOrCreateSharedTransferAccount,
   type Account,
   type MemberOption,
 } from '@/features/accounts';
@@ -16,7 +16,6 @@ import {
   bankFor,
   counterpartyFor,
   holderFor,
-  matchTransferAccount,
   ownerSideFor,
   type TransferPartyInfo,
 } from '@/lib/transfer-account';
@@ -41,6 +40,15 @@ import { sha256Hex } from '@/lib/file-hash';
 /** Debajo de este valor avisamos que la extracción puede ser imprecisa. */
 const LOW_CONFIDENCE = 0.5;
 
+/** Valor centinela del selector de medio para "Efectivo compartido" (IDENT-1): al elegirlo se
+ * crea/reusa el medio `'cash'` compartido de forma lazy y se reemplaza por su id real. */
+const SHARED_CASH_SENTINEL = '__shared_cash__';
+
+/** El medio "Efectivo" compartido del workspace (IDENT-1): `cash`, sin dueño ni titular. */
+function isSharedCashAccount(account: Account): boolean {
+  return account.type === 'cash' && !account.owner_member_id && account.holder_name === '';
+}
+
 const TYPE_LABELS: Record<TransactionFormInput['type'], string> = {
   expense: 'Gasto',
   income: 'Ingreso',
@@ -55,6 +63,7 @@ function defaultValuesFor(transaction?: Transaction): TransactionFormInput {
     description: transaction.description ?? '',
     categoryId: transaction.category_id ?? '',
     accountId: transaction.account_id ?? '',
+    ownerMemberId: transaction.owner_member_id ?? '',
     bank: transaction.bank ?? '',
     occurredOn: isoToDisplayDate(transaction.occurred_on),
     chargedOn: isoToDisplayDate(transaction.charged_on),
@@ -77,8 +86,14 @@ interface TransactionFormProps {
   onExtractReceipt?: (file: File) => Promise<ReceiptExtraction>;
   /** Workspace activo: requerido para buscar/crear (lazy) el medio `'transfer'` de la persona (F2-11). */
   workspaceId?: string;
-  /** Miembros del workspace, para matchear al titular de una transferencia con su medio. */
+  /** Miembros del workspace (incluye placeholders), para el selector de persona y el match de transferencias. */
   members?: MemberOption[];
+  /**
+   * Crea una "persona del grupo" sin cuenta (placeholder, IDENT-1) y la devuelve. Si se pasa, el
+   * selector de persona muestra "+ Persona" (solo lo pasa el contenedor a owner/admin). El contenedor
+   * es responsable de invalidar la lista de miembros.
+   */
+  onCreatePerson?: (name: string) => Promise<MemberOption>;
   /**
    * Busca posibles duplicados antes de crear (F2-13). Si se pasa y devuelve candidatos en un alta
    * nueva, se muestra un aviso suave y se espera confirmación ("Guardar igual"). En edición no se llama.
@@ -97,6 +112,7 @@ export function TransactionForm({
   onExtractReceipt,
   workspaceId,
   members,
+  onCreatePerson,
   onCheckDuplicates,
 }: TransactionFormProps) {
   const amountRef = useRef<HTMLInputElement | null>(null);
@@ -111,17 +127,28 @@ export function TransactionForm({
   // null = usar heurística; true/false = override manual del usuario (BUG-5).
   const [treatAsInstitutional, setTreatAsInstitutional] = useState<boolean | null>(null);
   const [creatingTransferAccount, setCreatingTransferAccount] = useState(false);
-  // MEJ-4A: titular para el que el usuario descartó el prompt "¿es la misma persona?" (dijo "no
-  // es la misma") → deja de sugerir y se crea el medio nuevo como siempre.
-  const [aliasDismissedFor, setAliasDismissedFor] = useState<string | null>(null);
-  // Token de la creación de medio 'transfer' vigente (BUG-7): identifica cada corrida
-  // para descartar respuestas de un titular que ya cambió.
+  // Crear "persona del grupo" (placeholder, IDENT-1) desde el selector de persona.
+  const [creatingPerson, setCreatingPerson] = useState(false);
+  const [newPersonName, setNewPersonName] = useState('');
+  // Personas recién creadas en esta sesión del form (para que aparezcan ya en el select).
+  const [createdPeople, setCreatedPeople] = useState<MemberOption[]>([]);
+  // Persona a seleccionar recién creada: se aplica en un efecto (una vez que su <option> existe),
+  // porque `setValue` sobre un select uncontrolled no engancha si la opción todavía no está.
+  const [pendingPersonId, setPendingPersonId] = useState<string | null>(null);
+  // Token de la asignación del medio "Transferencia" vigente (BUG-7): identifica cada corrida
+  // para descartar respuestas viejas si el estado cambió antes de resolver.
   const transferRunRef = useRef(0);
+  // Efectivo compartido (IDENT-1): al elegir la opción "Efectivo" del selector se crea/reusa el
+  // medio compartido de forma lazy. `pendingCashId` se aplica en un efecto una vez que su <option>
+  // existe (mismo motivo que `pendingPersonId`).
+  const [creatingCashAccount, setCreatingCashAccount] = useState(false);
+  const [pendingCashId, setPendingCashId] = useState<string | null>(null);
+  const cashRunRef = useRef(0);
   // Guard de re-entrancia del submit (BUG-9): evita disparar dos altas con doble click
   // rápido antes de que React refleje `disabled`.
   const submittingRef = useRef(false);
-  const getOrCreateTransferAccount = useGetOrCreateTransferAccount(workspaceId);
-  const updateHolderAliases = useUpdateHolderAliases(workspaceId);
+  const getOrCreateSharedTransferAccount = useGetOrCreateSharedTransferAccount(workspaceId);
+  const getOrCreateSharedCashAccount = useGetOrCreateSharedCashAccount(workspaceId);
   const {
     register,
     handleSubmit,
@@ -139,9 +166,9 @@ export function TransactionForm({
     setOcrApplied(false);
     setTransferInfo(null);
     setTreatAsInstitutional(null);
-    setAliasDismissedFor(null);
     setDuplicateCandidates([]);
     setPendingSave(null);
+    setPendingCashId(null);
   }, [transaction, reset]);
 
   useEffect(() => {
@@ -152,10 +179,16 @@ export function TransactionForm({
   const description = watch('description');
   const categoryId = watch('categoryId');
   const accountId = watch('accountId');
+  const ownerMemberId = watch('ownerMemberId');
   const bank = watch('bank');
   const selectedFile = watch('attachment')?.[0] ?? null;
   const categoryOptions = categories.filter((c) => c.kind === type);
   const amountField = register('amount');
+
+  // Efectivo compartido (IDENT-1): si ya existe, se elige como cualquier medio; si no, se ofrece la
+  // opción centinela que lo crea al vuelo. La persona (quién pagó) va en el selector de persona.
+  const sharedCashAccount = accounts.find(isSharedCashAccount) ?? null;
+  const showCashSentinel = !sharedCashAccount || pendingCashId !== null;
 
   // Atribución del medio/persona en una transferencia (F2-9, decisión 2026-06-23):
   // gasto → origen (quien envía), ingreso → destino (quien recibe).
@@ -171,50 +204,31 @@ export function TransactionForm({
     (isInstitutionalPayee(transferInfo.originHolder) || isInstitutionalPayee(transferInfo.destHolder));
   const effectiveIsInstitutional = treatAsInstitutional ?? heuristicIsInstitutional;
 
-  // Persona dueña de la transferencia (F2-11): si el titular matchea a un miembro, se
-  // busca/crea SU medio `'transfer'` (uno por persona, no por persona+banco).
+  // Persona dueña de la transferencia (F2-9): si el titular matchea a un miembro/placeholder, se
+  // prefilla en el campo "Persona" (editable). IDENT-1: el medio es el "Transferencia" COMPARTIDO
+  // (uno por workspace); la persona va en el movimiento (`owner_member_id`), no en el medio.
   const matchedMember = ownerHolder ? matchMember(ownerHolder, members ?? []) : null;
-  const transferAccounts = accounts.filter((a) => a.type === 'transfer');
-  const transferResult = matchTransferAccount(ownerHolder, matchedMember?.id ?? null, transferAccounts);
-  const transferMatch = transferResult.matched;
-  // MEJ-4A: candidato parecido (overlap parcial) cuando no hubo match fuerte → se ofrece unir.
-  const transferCandidate = transferMatch ? null : (transferResult.candidates[0] ?? null);
-  // ¿Mostrar el prompt "¿es la misma persona que <X>?" en vez de crear un medio nuevo?
-  const showAliasPrompt =
-    !effectiveIsInstitutional &&
-    !!ownerHolder &&
-    !accountId &&
-    !!transferCandidate &&
-    aliasDismissedFor !== ownerHolder;
 
-  // Si el medio `'transfer'` de la persona ya existe, se asocia solo. Si no, se crea
-  // lazy (sin pedirle al usuario que lo cree a mano) y se asocia el recién creado.
-  // Para pagos institucionales (BUG-5) se omite: no hay persona ni medio 'transfer'.
+  // Al detectar una transferencia por comprobante: asignar el medio "Transferencia" compartido y
+  // prefill de la persona. Pago institucional (BUG-5): sin medio ni persona.
   useEffect(() => {
+    if (!transferInfo) return;
     if (effectiveIsInstitutional) {
       if (accountId) setValue('accountId', '');
+      if (ownerMemberId) setValue('ownerMemberId', '');
       return;
     }
-    if (accountId || !ownerHolder) return;
-    if (transferMatch) {
-      setValue('accountId', transferMatch.id);
-      setCreatingTransferAccount(false);
-      return;
-    }
-    // MEJ-4A: hay un titular parecido y el usuario todavía no decidió → esperar su respuesta al
-    // prompt "¿es la misma persona?" antes de crear un medio nuevo (evita el duplicado).
-    if (transferCandidate && aliasDismissedFor !== ownerHolder) return;
-    if (!workspaceId) return;
+    if (!ownerHolder) return;
+    if (matchedMember && !ownerMemberId) setValue('ownerMemberId', matchedMember.id);
+    if (accountId || !workspaceId) return;
 
-    // Guard de carrera (BUG-7): cada creación toma un token y un flag `cancelled` propio.
-    // Si el titular cambia (el efecto se re-ejecuta) o el componente se desmonta antes de
-    // que resuelva, `cancelled` bloquea el `setValue` para no pisar el medio del titular
-    // actual con el de una creación vieja. El spinner solo lo apaga la corrida vigente.
+    // Guard de carrera (BUG-7): descarta la respuesta si el estado cambió o el componente se
+    // desmontó antes de resolver; solo la corrida vigente apaga el spinner.
     const runId = (transferRunRef.current += 1);
     let cancelled = false;
     setCreatingTransferAccount(true);
-    getOrCreateTransferAccount
-      .mutateAsync({ ownerMemberId: matchedMember?.id ?? null, holderName: ownerHolder })
+    getOrCreateSharedTransferAccount
+      .mutateAsync()
       .then((account) => {
         if (!cancelled) setValue('accountId', account.id);
       })
@@ -226,7 +240,7 @@ export function TransactionForm({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transferMatch?.id, transferCandidate?.id, aliasDismissedFor, ownerHolder, matchedMember?.id, effectiveIsInstitutional]);
+  }, [transferInfo, effectiveIsInstitutional, ownerHolder, matchedMember?.id, workspaceId, accountId, ownerMemberId]);
 
   // Banco del comprobante (F2-11): vive en el movimiento, no en el medio (el
   // usuario sigue pudiendo cambiarlo o borrarlo).
@@ -234,6 +248,42 @@ export function TransactionForm({
     if (ownerBank && !bank) setValue('bank', ownerBank);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ownerBank]);
+
+  // Al elegir "Efectivo" (centinela): crea/reusa el medio compartido. No se setea el id acá porque
+  // su <option> puede no existir aún; se aplica en el efecto de abajo (ver `pendingPersonId`).
+  useEffect(() => {
+    if (accountId !== SHARED_CASH_SENTINEL || !workspaceId) return;
+    const runId = (cashRunRef.current += 1);
+    let cancelled = false;
+    setCreatingCashAccount(true);
+    getOrCreateSharedCashAccount
+      .mutateAsync()
+      .then((account) => {
+        if (!cancelled) setPendingCashId(account.id);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setValue('accountId', '');
+        toast.error(err instanceof Error ? err.message : 'No se pudo crear el medio "Efectivo".');
+      })
+      .finally(() => {
+        if (cashRunRef.current === runId) setCreatingCashAccount(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accountId, workspaceId]);
+
+  // Selecciona el medio "Efectivo" compartido recién creado una vez que su <option> ya está en la
+  // lista (tras invalidar `useAccounts`), para que el select uncontrolled enganche el valor.
+  useEffect(() => {
+    if (pendingCashId === null) return;
+    if (!accounts.some((a) => a.id === pendingCashId)) return;
+    setValue('accountId', pendingCashId);
+    setPendingCashId(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingCashId, accounts]);
 
   // Sugerencia de categoría por descripción (F2-6, FR-19): solo si no hay una elegida.
   // Nunca se aplica sola; el usuario decide con el botón "Usar".
@@ -251,26 +301,40 @@ export function TransactionForm({
     setValue('description', d.description);
     setValue('bank', d.bank);
     setValue('accountId', d.accountId);
+    setValue('ownerMemberId', d.ownerMemberId);
     setTransferInfo(null);
     setTreatAsInstitutional(null);
-    setAliasDismissedFor(null);
     setOcrApplied(false);
   }
 
-  // MEJ-4A prompt "¿es la misma persona que <X>?": si confirma, asocia el medio existente y
-  // guarda el nombre detectado como alias (matching futuro; no mueve movimientos viejos).
-  function confirmAliasSuggestion() {
-    if (!transferCandidate || !ownerHolder) return;
-    setValue('accountId', transferCandidate.id);
-    updateHolderAliases.mutate(
-      { id: transferCandidate.id, aliases: [...transferCandidate.holder_aliases, ownerHolder] },
-      { onError: () => toast.error('No se pudo guardar el alias, pero el medio quedó asociado.') },
-    );
+  // Crea una "persona del grupo" (placeholder) y la selecciona (IDENT-1).
+  async function handleCreatePerson() {
+    const name = newPersonName.trim();
+    if (!name || !onCreatePerson) return;
+    try {
+      const created = await onCreatePerson(name);
+      setCreatedPeople((prev) => [...prev, created]);
+      setPendingPersonId(created.id); // se selecciona en el efecto, cuando su <option> ya existe
+      setNewPersonName('');
+      setCreatingPerson(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo crear la persona.');
+    }
   }
 
-  function dismissAliasSuggestion() {
-    if (ownerHolder) setAliasDismissedFor(ownerHolder);
-  }
+  // Opciones del selector de persona: miembros + las recién creadas (que aún no están en `members`).
+  const personOptions = [
+    ...(members ?? []),
+    ...createdPeople.filter((p) => !(members ?? []).some((m) => m.id === p.id)),
+  ];
+
+  // Selecciona la persona recién creada una vez que su <option> ya está renderizada.
+  useEffect(() => {
+    if (pendingPersonId && createdPeople.some((p) => p.id === pendingPersonId)) {
+      setValue('ownerMemberId', pendingPersonId);
+      setPendingPersonId(null);
+    }
+  }, [pendingPersonId, createdPeople, setValue]);
 
   async function handleExtract() {
     if (!onExtractReceipt || !selectedFile) return;
@@ -327,6 +391,7 @@ export function TransactionForm({
       description: values.description || null,
       categoryId: values.categoryId || null,
       accountId: values.accountId || null,
+      ownerMemberId: values.ownerMemberId || null,
       bank: values.bank || null,
       occurredOn: displayToIsoDate(values.occurredOn),
       chargedOn: values.chargedOn ? displayToIsoDate(values.chargedOn) : null,
@@ -337,6 +402,11 @@ export function TransactionForm({
   }
 
   async function handleFormSubmit(values: TransactionFormInput) {
+    // Efectivo compartido (IDENT-1): no guardar el centinela; esperar a que el medio se cree.
+    if (values.accountId === SHARED_CASH_SENTINEL || creatingCashAccount || pendingCashId !== null) {
+      toast.error('Esperá a que termine de crearse el medio “Efectivo”.');
+      return;
+    }
     // Guard anti doble-submit (BUG-9): ignora reentradas mientras la anterior no terminó,
     // por si un doble click rápido dispara el handler antes de que se refleje `disabled`.
     if (submittingRef.current) return;
@@ -508,7 +578,14 @@ export function TransactionForm({
                 {accountLabel({ ...account, holderName: account.holder_name })}
               </option>
             ))}
+            {showCashSentinel && <option value={SHARED_CASH_SENTINEL}>Efectivo</option>}
           </select>
+          {creatingCashAccount && (
+            <p className="text-xs text-muted-foreground">Creando el medio “Efectivo”…</p>
+          )}
+          {sharedCashAccount && accountId === sharedCashAccount.id && !ownerMemberId && (
+            <p className="text-xs text-muted-foreground">Elegí abajo quién lo pagó (opcional).</p>
+          )}
           {ownerHolder && !effectiveIsInstitutional && (
             <p className="text-xs text-muted-foreground">
               Transferencia con {ownerHolder}
@@ -516,32 +593,6 @@ export function TransactionForm({
               {creatingTransferAccount && ' Creando su medio "Transferencia"…'}
               {!workspaceId && !accountId && ' Falta el workspace activo para asignar el medio.'}
             </p>
-          )}
-          {/* MEJ-4A: titular parecido a uno existente → ofrecer unir antes de crear un medio nuevo. */}
-          {showAliasPrompt && transferCandidate && (
-            <div className="space-y-2 rounded-md border border-primary/40 bg-primary/5 p-2 text-xs">
-              <p>
-                <span className="font-medium">{ownerHolder}</span> se parece a{' '}
-                <span className="font-medium">{transferCandidate.holder_name}</span>, que ya tiene
-                medio. ¿Es la misma persona?
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={confirmAliasSuggestion}
-                  className="rounded-md bg-primary px-2.5 py-1 font-medium text-primary-foreground hover:opacity-90"
-                >
-                  Sí, es la misma
-                </button>
-                <button
-                  type="button"
-                  onClick={dismissAliasSuggestion}
-                  className="rounded-md border border-input px-2.5 py-1 font-medium hover:bg-accent"
-                >
-                  No, es otra persona
-                </button>
-              </div>
-            </div>
           )}
           {transferInfo && (
             <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
@@ -554,6 +605,80 @@ export function TransactionForm({
             </label>
           )}
         </div>
+      </div>
+
+      {/* Persona del movimiento (IDENT-1): quién lo hizo, para cuando el medio no la determina
+          (efectivo, transferencia compartida, sin medio). "Según el medio" = se deduce del medio. */}
+      <div className="space-y-1">
+        <label htmlFor="tx-owner" className="text-sm font-medium">
+          Persona (opcional)
+        </label>
+        <div className="flex items-center gap-2">
+          <select
+            id="tx-owner"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            {...register('ownerMemberId')}
+          >
+            <option value="">Según el medio</option>
+            {personOptions.map((member) => (
+              <option key={member.id} value={member.id}>
+                {member.name}
+              </option>
+            ))}
+          </select>
+          {onCreatePerson && !creatingPerson && (
+            <button
+              type="button"
+              onClick={() => setCreatingPerson(true)}
+              className="shrink-0 rounded-md border border-input px-2 py-2 text-sm font-medium hover:bg-accent"
+            >
+              + Persona
+            </button>
+          )}
+        </div>
+        {onCreatePerson && creatingPerson && (
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={newPersonName}
+              onChange={(event) => setNewPersonName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  void handleCreatePerson();
+                }
+              }}
+              placeholder="Nombre de la persona del grupo"
+              aria-label="Nombre de la persona del grupo"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            />
+            <button
+              type="button"
+              onClick={() => void handleCreatePerson()}
+              disabled={!newPersonName.trim()}
+              className="shrink-0 rounded-md bg-primary px-2.5 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+            >
+              Crear
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCreatingPerson(false);
+                setNewPersonName('');
+              }}
+              className="shrink-0 rounded-md border border-input px-2.5 py-2 text-sm font-medium hover:bg-accent"
+            >
+              Cancelar
+            </button>
+          </div>
+        )}
+        {/* Aviso: si es una transferencia y no reconocimos a la persona, se toma según el medio. */}
+        {transferInfo && !effectiveIsInstitutional && !ownerMemberId && (
+          <p className="text-xs text-muted-foreground">
+            No reconocimos al usuario/miembro del comprobante; elegilo (o creá la persona), o el
+            movimiento se toma según el medio.
+          </p>
+        )}
       </div>
 
       <div className="space-y-1">

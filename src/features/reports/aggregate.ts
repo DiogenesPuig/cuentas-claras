@@ -1,6 +1,6 @@
 import { consolidateHistorical, type ConsolidationResult, type RateLookup } from '@/lib/money';
 import { resolveFxDate } from '@/lib/fx';
-import { normalizeNameKey } from '@/lib/name-match';
+import { personaKeyOf, personaLabelOf } from '@/lib/persona';
 import type { ReportTransactionView } from './api';
 
 /** Mapa `workspace_members.id` → nombre vivo del miembro (de `member_directory`). */
@@ -29,22 +29,17 @@ interface PersonaIdentity {
 }
 
 /**
- * Identidad de "persona" de un movimiento (F2-10): agrupa por `owner_member_id` (id estable
- * del miembro) cuando el medio está ligado a uno, así dos `holder_name` distintos del mismo
- * dueño (apellido+nombre vs nombre+apellido, con/sin tildes en cada banco) caen en un solo
- * grupo. Si el medio no tiene miembro, cae a `holder_name` normalizado (tildes/orden) para no
- * duplicar a la misma persona sin fusionar personas realmente distintas.
+ * Identidad de "persona" de un movimiento. Orden de resolución (IDENT-1):
+ * 1. `tx.owner_member_id` — la persona del MOVIMIENTO (fuente de verdad; transferencia/efectivo
+ *    compartido, o cualquier alta con selector de persona). Nombre vivo del miembro/placeholder.
+ * 2. `account.owner_member_id` — la persona del MEDIO (tarjeta de una persona). Nombre vivo (F2-10:
+ *    agrupa por id estable, así dos `holder_name` distintos del mismo dueño caen en un grupo).
+ * 3. `account.holder_name` normalizado — titular sin miembro (legacy).
+ * 4. sin medio ni persona → "Sin medio".
+ * Usar siempre el nombre VIVO del miembro (no el `holder_name` congelado) arregla BUG-17.
  */
 function personaIdentity(tx: ReportTransactionView, memberNameById: MemberNameById): PersonaIdentity {
-  const account = tx.account;
-  if (!account) return { key: NO_ACCOUNT, label: NO_ACCOUNT };
-  if (account.owner_member_id) {
-    return {
-      key: `member:${account.owner_member_id}`,
-      label: memberNameById.get(account.owner_member_id) ?? account.holder_name,
-    };
-  }
-  return { key: `name:${normalizeNameKey(account.holder_name)}`, label: account.holder_name };
+  return { key: personaKeyOf(tx), label: personaLabelOf(tx, memberNameById) };
 }
 
 /** Clave de agrupación (FR-22) según la dimensión elegida. */

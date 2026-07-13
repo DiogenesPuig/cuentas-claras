@@ -5,25 +5,26 @@ import { EMPTY_FIELD_FILTERS, NO_ACCOUNT_FILTER, type FieldFilters } from '../fi
 
 export type FilterBarValue = FieldFilters;
 
+/** Opción del filtro de persona (IDENT-1): la `key` es una `personaKeyOf(...)`. */
+export interface PersonaOption {
+  key: string;
+  label: string;
+}
+
 interface FilterBarProps {
   value: FilterBarValue;
   categories: Category[];
   accounts: Account[];
+  personaOptions: PersonaOption[];
   onChange: (value: FilterBarValue) => void;
 }
 
-function holderOptions(accounts: Account[]): string[] {
-  return Array.from(new Set(accounts.map((a) => a.holder_name))).sort((a, b) =>
-    a.localeCompare(b),
-  );
-}
-
 function hasActiveFilters(value: FilterBarValue): boolean {
-  return Boolean(value.accountId || value.categoryId || value.currency || value.holderName);
+  return Boolean(value.accountId || value.categoryId || value.currency || value.personaKey);
 }
 
 /** Filtros combinables de la lista de movimientos: persona, medio, categoría y moneda (FR-11). */
-export function FilterBar({ value, categories, accounts, onChange }: FilterBarProps) {
+export function FilterBar({ value, categories, accounts, personaOptions, onChange }: FilterBarProps) {
   function set<K extends keyof FilterBarValue>(key: K, fieldValue: FilterBarValue[K]) {
     onChange({ ...value, [key]: fieldValue });
   }
@@ -31,19 +32,19 @@ export function FilterBar({ value, categories, accounts, onChange }: FilterBarPr
   return (
     <div className="flex flex-wrap items-end gap-2">
       <div className="space-y-1">
-        <label htmlFor="filter-holder" className="text-xs font-medium text-muted-foreground">
+        <label htmlFor="filter-persona" className="text-xs font-medium text-muted-foreground">
           Persona
         </label>
         <select
-          id="filter-holder"
-          value={value.holderName ?? ''}
-          onChange={(event) => set('holderName', event.target.value)}
+          id="filter-persona"
+          value={value.personaKey ?? ''}
+          onChange={(event) => set('personaKey', event.target.value)}
           className="rounded-md border border-input bg-background px-2 py-1.5 text-sm"
         >
           <option value="">Todas</option>
-          {holderOptions(accounts).map((holder) => (
-            <option key={holder} value={holder}>
-              {holder}
+          {personaOptions.map((persona) => (
+            <option key={persona.key} value={persona.key}>
+              {persona.label}
             </option>
           ))}
         </select>
