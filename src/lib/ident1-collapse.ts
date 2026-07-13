@@ -24,7 +24,10 @@
  */
 
 import { matchMember, type MatchableMember } from './member-match';
-import { nameTokens, normalizeNameKey } from './name-match';
+import { nameTokens, normalizeName, normalizeNameKey } from './name-match';
+
+/** Titulares "genéricos" (el medio se llama como el tipo, ej. "Efectivo"): NO son una persona. */
+const GENERIC_HOLDER_KEYS = new Set([normalizeName('Efectivo'), normalizeName('Transferencia')]);
 
 export type SharedType = 'transfer' | 'cash';
 
@@ -78,10 +81,11 @@ export interface MemberAliasAddition {
   aliases: string[];
 }
 
-/** Atribución + repunteo de un movimiento de transfer/cash. `ownerRef` = `memberId` o `tempId`. */
+/** Atribución + repunteo de un movimiento de transfer/cash. `ownerRef` = `memberId` | `tempId` |
+ *  `null` (medio genérico "Efectivo"/"Transferencia" sin persona: se repuntea al compartido sin dueño). */
 export interface TxAttribution {
   txId: string;
-  ownerRef: string;
+  ownerRef: string | null;
   sharedType: SharedType;
   /** true si el movimiento ya tenía `owner_member_id`: no se pisa, solo se repuntea el medio. */
   keepExistingOwner: boolean;
@@ -115,8 +119,9 @@ export interface AccountResolution {
   targetName: string;
   movements: number;
   /** `member`/`placeholder`: se engancha a esa persona · `archive-only`: transfer/cash sin persona
-   *  (0 movimientos) que solo se archiva · `skip`: tarjeta sin persona (0 movimientos). */
-  action: 'member' | 'placeholder' | 'archive-only' | 'skip';
+   *  (0 movimientos) que solo se archiva · `skip`: tarjeta sin persona (0 movimientos) ·
+   *  `no-person`: medio genérico ("Efectivo"/"Transferencia") → compartido sin dueño. */
+  action: 'member' | 'placeholder' | 'archive-only' | 'skip' | 'no-person';
 }
 
 export interface CollapsePlan {
@@ -134,9 +139,12 @@ export interface CollapsePlan {
 const isSharedType = (type: string): boolean => type === 'transfer' || type === 'cash';
 const isShared = (a: CollapseAccount): boolean =>
   isSharedType(a.type) && a.ownerMemberId === null && a.holderName === '';
-/** Medio de no-miembro (por-persona): tiene titular por nombre y no está vinculado a un miembro. */
+/** Medio transfer/cash cuyo titular es el nombre genérico del tipo → no es una persona. */
+const isGenericHolder = (a: CollapseAccount): boolean =>
+  isSharedType(a.type) && a.ownerMemberId === null && GENERIC_HOLDER_KEYS.has(normalizeName(a.holderName));
+/** Medio de no-miembro (por-persona): titular por nombre, sin miembro, y no genérico. */
 const isNonMember = (a: CollapseAccount): boolean =>
-  a.ownerMemberId === null && a.holderName.trim() !== '' && !isShared(a);
+  a.ownerMemberId === null && a.holderName.trim() !== '' && !isShared(a) && !isGenericHolder(a);
 
 /** Dedup case-insensitive conservando el primer casing; descarta vacíos. */
 function mergeAliases(...lists: string[][]): string[] {
@@ -252,6 +260,32 @@ export function planWorkspaceCollapse(input: CollapseInput): CollapsePlan {
   for (const acc of accounts) {
     if (isShared(acc)) continue;
     const isTC = isSharedType(acc.type);
+
+    // Medio genérico ("Efectivo"/"Transferencia" sin persona): archivar + repuntar al compartido SIN dueño.
+    if (isTC && isGenericHolder(acc)) {
+      archiveAccountIds.push(acc.id);
+      for (const tx of txByAccount.get(acc.id) ?? []) {
+        neededShared.add(acc.type as SharedType);
+        attributions.push({
+          txId: tx.id,
+          ownerRef: tx.ownerMemberId, // conserva un dueño ya seteado; si no, queda sin persona (null)
+          sharedType: acc.type as SharedType,
+          keepExistingOwner: tx.ownerMemberId !== null,
+        });
+      }
+      resolutions.push({
+        accountId: acc.id,
+        holderName: acc.holderName,
+        type: acc.type,
+        targetRef: '',
+        targetKind: 'placeholder',
+        targetName: '(sin persona)',
+        movements: movCount(acc.id),
+        action: 'no-person',
+      });
+      continue;
+    }
+
     // Tarjeta ya vinculada a un miembro: no se toca (la persona ya se resuelve por su dueño).
     if (!isTC && acc.ownerMemberId !== null) continue;
     // Persona del medio: su dueño si lo tiene, o la resuelta por clustering (no-miembro).

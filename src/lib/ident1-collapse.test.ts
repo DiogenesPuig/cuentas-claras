@@ -27,6 +27,8 @@ const accounts: CollapseAccount[] = [
   // No-miembro SIN movimientos: transferencia se archiva sin crear persona; tarjeta se saltea.
   { id: 'nadie_t', type: 'transfer', ownerMemberId: null, holderName: 'Solo Archivar Nadie', holderAliases: ['Zutano'] },
   { id: 'nadie_c', type: 'credit', ownerMemberId: null, holderName: 'Otro Fantasma', holderAliases: [] },
+  // Medio genérico: titular "Efectivo" NO es una persona → al compartido, sin dueño.
+  { id: 'efectivo', type: 'cash', ownerMemberId: null, holderName: 'Efectivo', holderAliases: [] },
 ];
 
 const transactions: CollapseTx[] = [
@@ -37,6 +39,7 @@ const transactions: CollapseTx[] = [
   { id: 't5', accountId: 'juan_c', ownerMemberId: null }, // tarjeta que es del miembro m1
   { id: 't6', accountId: 'leo_t', ownerMemberId: null }, // cash que matchea a m2 por alias
   { id: 't7', accountId: 'sT', ownerMemberId: 'm1' }, // ya en el compartido → se ignora
+  { id: 't8', accountId: 'efectivo', ownerMemberId: null }, // medio genérico "Efectivo"
 ];
 
 const apodos: CollapseApodo[] = [
@@ -89,7 +92,15 @@ describe('planWorkspaceCollapse', () => {
 
   it('reatribuye los movimientos de transfer/cash al medio compartido (no los de tarjeta)', () => {
     const txIds = new Set(plan.attributions.map((a) => a.txId));
-    expect(txIds).toEqual(new Set(['t1', 't6'])); // transfer Miguel + cash Leandro; las tarjetas no
+    expect(txIds).toEqual(new Set(['t1', 't6', 't8'])); // transfer Miguel + cash Leandro + genérico Efectivo
+  });
+
+  it('un medio genérico ("Efectivo") NO crea persona: va al compartido sin dueño', () => {
+    expect(plan.placeholders.some((p) => p.name === 'Efectivo')).toBe(false);
+    expect(plan.resolutions.find((r) => r.accountId === 'efectivo')?.action).toBe('no-person');
+    expect(plan.archiveAccountIds).toContain('efectivo');
+    const at = plan.attributions.find((a) => a.txId === 't8');
+    expect(at).toMatchObject({ ownerRef: null, sharedType: 'cash' });
   });
 
   it('remapea apodos name:→persona y marca colisión con uno existente', () => {

@@ -205,11 +205,14 @@ async function applyPlan(
     }
   }
 
-  // 4. Reatribuir + repuntar movimientos.
+  // 4. Reatribuir + repuntar movimientos (ownerRef null = medio genérico sin persona).
   for (const at of plan.attributions) {
     const { error } = await sb
       .from('transactions')
-      .update({ owner_member_id: resolveRef(at.ownerRef), account_id: sharedId.get(at.sharedType)! })
+      .update({
+        owner_member_id: at.ownerRef === null ? null : resolveRef(at.ownerRef),
+        account_id: sharedId.get(at.sharedType)!,
+      })
       .eq('id', at.txId);
     if (error) throw error;
   }
