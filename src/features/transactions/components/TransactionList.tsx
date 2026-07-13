@@ -30,20 +30,24 @@ export function TransactionList({
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm text-muted-foreground">
-        <span>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <span className="text-sm text-muted-foreground">
           {transactions.length} movimiento{transactions.length === 1 ? '' : 's'}
         </span>
-        {totals.expense.length > 0 && (
-          <span>
-            Gastos: <span className="font-medium text-foreground">{formatTotals(totals.expense)}</span>
-          </span>
-        )}
-        {totals.income.length > 0 && (
-          <span>
-            Ingresos: <span className="font-medium text-foreground">{formatTotals(totals.income)}</span>
-          </span>
-        )}
+        <div className="flex flex-wrap items-baseline justify-end gap-x-4 gap-y-1">
+          {totals.expense.length > 0 && (
+            <span className="text-sm text-muted-foreground">
+              Gastos:{' '}
+              <span className="text-base font-bold text-foreground">{formatTotals(totals.expense)}</span>
+            </span>
+          )}
+          {totals.income.length > 0 && (
+            <span className="text-sm text-muted-foreground">
+              Ingresos:{' '}
+              <span className="text-base font-bold text-foreground">{formatTotals(totals.income)}</span>
+            </span>
+          )}
+        </div>
       </div>
       <ul className="divide-y divide-border rounded-md border border-border">
         {transactions.map((transaction) => (
