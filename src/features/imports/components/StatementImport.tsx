@@ -225,7 +225,7 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
             <label htmlFor="stmt-pass" className="text-sm font-medium">
               Contraseña (si el PDF está protegido)
             </label>
-            <div className="relative">
+            <div className="relative w-1/2">
               <input
                 id="stmt-pass"
                 type={showPassword ? 'text' : 'password'}
