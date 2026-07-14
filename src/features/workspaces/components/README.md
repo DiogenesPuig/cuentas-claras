@@ -21,5 +21,8 @@
   (`RoleSelect` + "Generar link") y la lista de invitaciones pendientes; solo visible para
   owner/admin.
 - `WorkspaceSettings.tsx` — form para editar name/base_currency/fx_quote del workspace activo.
+- `DeleteWorkspace.tsx` — "Zona de peligro" (MEJ-15): elimina el grupo y todo lo colgado. Solo owner;
+  confirmación fuerte (escribir el nombre exacto habilita el botón). Tras borrar reasigna el workspace
+  activo a otro grupo (o lo limpia → onboarding).
 - `CreateWorkspaceDialog.tsx` — modal para crear un grupo adicional (nombre + moneda); reusable en el
   `WorkspaceSwitcher` y en `/grupo`. Al crear, llama `onCreated(id)` (el caller lo activa).

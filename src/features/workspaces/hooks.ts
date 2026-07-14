@@ -7,6 +7,7 @@ import {
   createPlaceholderInvite,
   createPlaceholderMember,
   createWorkspace,
+  deleteWorkspace,
   getMyRole,
   getWorkspace,
   listInvitations,
@@ -103,6 +104,18 @@ export function useUpdateWorkspaceSettings(workspaceId: string | undefined) {
     mutationFn: (input) => updateWorkspaceSettings(workspaceId as string, input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: workspacesKeys.one(workspaceId) });
+      void queryClient.invalidateQueries({ queryKey: workspacesKeys.mine });
+    },
+  });
+}
+
+/** Elimina un grupo (MEJ-15, solo owner por RLS). Invalida la lista de grupos del usuario. */
+export function useDeleteWorkspace() {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: (workspaceId) => deleteWorkspace(workspaceId),
+    onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: workspacesKeys.mine });
     },
   });

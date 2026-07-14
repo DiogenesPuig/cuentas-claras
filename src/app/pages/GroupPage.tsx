@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import {
   CreateWorkspaceDialog,
+  DeleteWorkspace,
   InviteSection,
   MemberList,
   WorkspaceSettings,
@@ -36,6 +37,8 @@ export function GroupPage() {
         <h3 className="text-sm font-semibold text-muted-foreground">Configuración</h3>
         <WorkspaceSettings workspaceId={workspaceId} />
       </div>
+
+      <DeleteWorkspace workspaceId={workspaceId} />
 
       <CreateWorkspaceDialog
         open={creating}

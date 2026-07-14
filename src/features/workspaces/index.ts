@@ -4,6 +4,7 @@ export {
   getMyRole,
   getWorkspace,
   updateWorkspaceSettings,
+  deleteWorkspace,
   listMembers,
   updateMemberRole,
   updateMemberAliases,
@@ -28,6 +29,7 @@ export {
   useMyRole,
   useWorkspace,
   useUpdateWorkspaceSettings,
+  useDeleteWorkspace,
   useMembers,
   useUpdateMemberRole,
   useUpdateMemberAliases,
@@ -63,4 +65,5 @@ export { InviteForm } from './components/InviteForm';
 export { InviteLink } from './components/InviteLink';
 export { InviteSection } from './components/InviteSection';
 export { WorkspaceSettings } from './components/WorkspaceSettings';
+export { DeleteWorkspace } from './components/DeleteWorkspace';
 export { CreateWorkspaceDialog } from './components/CreateWorkspaceDialog';

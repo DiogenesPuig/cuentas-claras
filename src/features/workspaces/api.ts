@@ -136,6 +136,16 @@ export async function updateWorkspaceSettings(
 }
 
 /**
+ * Elimina un grupo (workspace) y todo lo colgado. La cascada de la DB borra miembros, medios,
+ * movimientos, categorías, invitaciones, apodos y comprobantes (filas); los archivos del bucket de
+ * Storage quedan huérfanos (fuera de alcance v1, MEJ-15). RLS `ws_delete` exige rol **owner**.
+ */
+export async function deleteWorkspace(workspaceId: string): Promise<void> {
+  const { error } = await supabase.from('workspaces').delete().eq('id', workspaceId);
+  if (error) throw error;
+}
+
+/**
  * Miembros del workspace con nombre/avatar/rol. El nombre/avatar vienen de
  * `member_directory` (no de `profiles`, que solo es legible por su dueño) —
  * esa vista nunca expone el teléfono.
