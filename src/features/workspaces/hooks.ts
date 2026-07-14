@@ -7,6 +7,7 @@ import {
   createPlaceholderInvite,
   createPlaceholderMember,
   createWorkspace,
+  deleteWorkspace,
   getMyRole,
   getWorkspace,
   listInvitations,
@@ -71,7 +72,12 @@ export function useCreateWorkspace() {
 
   return useMutation<Workspace, Error, CreateWorkspaceInput>({
     mutationFn: (input) => createWorkspace(input),
-    onSuccess: () => {
+    onSuccess: (created) => {
+      // Sumar el grupo nuevo a la cache YA (antes del refetch): si no, al entrar al grupo recién creado
+      // `useEnsureActiveWorkspace` lo ve "inválido" (todavía no está en la lista) y revierte al anterior.
+      queryClient.setQueryData<Workspace[]>(workspacesKeys.mine, (old) =>
+        old ? [...old, created] : [created],
+      );
       void queryClient.invalidateQueries({ queryKey: workspacesKeys.mine });
     },
   });
@@ -103,6 +109,22 @@ export function useUpdateWorkspaceSettings(workspaceId: string | undefined) {
     mutationFn: (input) => updateWorkspaceSettings(workspaceId as string, input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: workspacesKeys.one(workspaceId) });
+      void queryClient.invalidateQueries({ queryKey: workspacesKeys.mine });
+    },
+  });
+}
+
+/** Elimina un grupo (MEJ-15, solo owner por RLS). Invalida la lista de grupos del usuario. */
+export function useDeleteWorkspace() {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: (workspaceId) => deleteWorkspace(workspaceId),
+    onSuccess: (_data, workspaceId) => {
+      // Sacar el grupo borrado de la cache YA, para que el redirect a "Tus grupos" muestre el conteo real.
+      queryClient.setQueryData<Workspace[]>(workspacesKeys.mine, (old) =>
+        old ? old.filter((w) => w.id !== workspaceId) : old,
+      );
       void queryClient.invalidateQueries({ queryKey: workspacesKeys.mine });
     },
   });
