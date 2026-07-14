@@ -97,7 +97,8 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 - ✅ `MEJ-14` Botón ver/ocultar contraseña en el import de resumen — _hecho (PR #74, `tasks/done/`)_.
 - ✅ `MEJ-15` Eliminar un grupo (workspace) — _hecho (PR #75, zona de peligro con confirmación por nombre,
   cascada + limpieza de Storage, redirect a "Tus grupos"; `tasks/done/`)_.
-- `MEJ-16` Separar categoría "Transporte" (viajes) de "Auto" (nafta/mantenimiento) — `tasks/MEJ-16-categoria-auto-vs-transporte.md`.
+- ✅ `MEJ-16` Separar categoría "Transporte" (viajes) de "Auto" (nafta/mantenimiento) — _hecho (PR #76,
+  categoría global Auto 🚙 + reglas de sugerencia separadas; migración 0021 en remoto; `tasks/done/`)_.
 - `MEJ-17` Aprender/recordar la categoría por persona o comercio recurrente (ej. el alquiler siempre a
   la misma categoría) — `tasks/MEJ-17-aprender-categoria-por-comercio.md`.
 - `MEJ-18` Memoria de categoría por comercio: aprende de las correcciones (comercio→categoría, por
