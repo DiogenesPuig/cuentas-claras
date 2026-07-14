@@ -5,6 +5,7 @@ import { suggestCategory, type SuggestableCategory } from './category-suggest';
 const CATS: SuggestableCategory[] = [
   { id: 'super', name: 'Supermercado' },
   { id: 'transp', name: 'Transporte' },
+  { id: 'auto', name: 'Auto' },
   { id: 'salud', name: 'Salud' },
   { id: 'resto', name: 'Restaurantes' },
   { id: 'compras', name: 'Compras' },
@@ -18,6 +19,18 @@ describe('suggestCategory', () => {
     expect(suggestCategory('Carrefour Express', CATS)?.id).toBe('super');
     expect(suggestCategory('FARMACITY S.A.', CATS)?.id).toBe('salud');
     expect(suggestCategory('MOD*CARREFOUR CBA', CATS)?.id).toBe('super');
+  });
+
+  it('separa Auto (vehículo) de Transporte (viajes) — MEJ-16', () => {
+    expect(suggestCategory('YPF FULL SERVICE', CATS)?.id).toBe('auto');
+    expect(suggestCategory('SHELL C/SERVICIO', CATS)?.id).toBe('auto');
+    expect(suggestCategory('PEAJE AUSA', CATS)?.id).toBe('auto');
+    expect(suggestCategory('PATENTE AUTOMOTOR', CATS)?.id).toBe('auto');
+    expect(suggestCategory('UBER *TRIP', CATS)?.id).toBe('transp');
+    expect(suggestCategory('SUBE CARGA', CATS)?.id).toBe('transp');
+    // Si el workspace no tiene "Auto", el gasto de nafta no se fuerza a Transporte (devuelve null).
+    const sinAuto = CATS.filter((c) => c.id !== 'auto');
+    expect(suggestCategory('YPF FULL', sinAuto)).toBeNull();
   });
 
   it('mapea gastronomía a la categoría que exista (Restaurantes o Comida)', () => {

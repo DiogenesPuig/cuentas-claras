@@ -36,10 +36,20 @@ export const SERVICIOS_KEYWORDS: string[] = [
 
 const RULES: Rule[] = [
   {
+    // Transporte = viajes / público / apps (MEJ-16). El auto/vehículo va en su propia categoría.
     category: ['Transporte'],
     keywords: [
-      'uber', 'cabify', 'didi', 'beat', 'ypf', 'shell', 'axion', 'puma energy', 'estacion de servicio',
-      'peaje', 'sube', 'subte', 'aerolineas', 'latam', 'flybondi', 'jetsmart', 'despegar', 'remis', 'taxi',
+      'uber', 'cabify', 'didi', 'beat', 'remis', 'taxi', 'sube', 'subte', 'colectivo', 'tren',
+      'aerolineas', 'latam', 'flybondi', 'jetsmart', 'despegar',
+    ],
+  },
+  {
+    // Auto/vehículo (MEJ-16): combustible, mantenimiento, patente, peajes.
+    category: ['Auto', 'Vehiculo'],
+    keywords: [
+      'ypf', 'shell', 'axion', 'puma energy', 'estacion de servicio', 'nafta', 'combustible', 'gnc',
+      'lubricentro', 'gomeria', 'cubiertas', 'neumaticos', 'mecanico', 'patente', 'peaje', 'telepase',
+      'autopista',
     ],
   },
   {
