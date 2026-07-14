@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { useActiveWorkspace } from '@/hooks/useActiveWorkspace';
-import { useDeleteWorkspace, useMyRole, useMyWorkspaces, useWorkspace } from '../hooks';
+import { useDeleteWorkspace, useMyRole, useWorkspace } from '../hooks';
 
 /**
  * Zona de peligro (MEJ-15): elimina el grupo y TODO lo colgado (miembros, medios, movimientos,
@@ -12,10 +13,9 @@ import { useDeleteWorkspace, useMyRole, useMyWorkspaces, useWorkspace } from '..
 export function DeleteWorkspace({ workspaceId }: { workspaceId: string }) {
   const { data: role } = useMyRole(workspaceId);
   const { data: workspace } = useWorkspace(workspaceId);
-  const { data: workspaces } = useMyWorkspaces();
   const deleteWorkspace = useDeleteWorkspace();
-  const setWorkspace = useActiveWorkspace((s) => s.setWorkspace);
   const clearWorkspace = useActiveWorkspace((s) => s.clearWorkspace);
+  const navigate = useNavigate();
 
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState('');
@@ -32,10 +32,10 @@ export function DeleteWorkspace({ workspaceId }: { workspaceId: string }) {
     setError(null);
     try {
       await deleteWorkspace.mutateAsync(workspaceId);
-      // Reasignar el activo: otro grupo del usuario, o limpiar (→ onboarding vía RequireWorkspace).
-      const others = (workspaces ?? []).filter((w) => w.id !== workspaceId);
-      if (others.length > 0) setWorkspace(others[0].id);
-      else clearWorkspace();
+      // Ir a la vista de "Tus grupos" (`/` → HomeGate): con >1 grupo elige; con 1 entra directo; con
+      // 0 va a onboarding (RequireWorkspace). Se limpia el activo para no quedar con el grupo borrado.
+      clearWorkspace();
+      navigate('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo eliminar el grupo.');
     }

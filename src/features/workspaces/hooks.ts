@@ -72,7 +72,12 @@ export function useCreateWorkspace() {
 
   return useMutation<Workspace, Error, CreateWorkspaceInput>({
     mutationFn: (input) => createWorkspace(input),
-    onSuccess: () => {
+    onSuccess: (created) => {
+      // Sumar el grupo nuevo a la cache YA (antes del refetch): si no, al entrar al grupo recién creado
+      // `useEnsureActiveWorkspace` lo ve "inválido" (todavía no está en la lista) y revierte al anterior.
+      queryClient.setQueryData<Workspace[]>(workspacesKeys.mine, (old) =>
+        old ? [...old, created] : [created],
+      );
       void queryClient.invalidateQueries({ queryKey: workspacesKeys.mine });
     },
   });
@@ -115,7 +120,11 @@ export function useDeleteWorkspace() {
 
   return useMutation<void, Error, string>({
     mutationFn: (workspaceId) => deleteWorkspace(workspaceId),
-    onSuccess: () => {
+    onSuccess: (_data, workspaceId) => {
+      // Sacar el grupo borrado de la cache YA, para que el redirect a "Tus grupos" muestre el conteo real.
+      queryClient.setQueryData<Workspace[]>(workspacesKeys.mine, (old) =>
+        old ? old.filter((w) => w.id !== workspaceId) : old,
+      );
       void queryClient.invalidateQueries({ queryKey: workspacesKeys.mine });
     },
   });

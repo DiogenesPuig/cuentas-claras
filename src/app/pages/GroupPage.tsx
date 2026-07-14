@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import {
   CreateWorkspaceDialog,
@@ -13,6 +14,7 @@ import { useActiveWorkspace } from '@/hooks/useActiveWorkspace';
 export function GroupPage() {
   const workspaceId = useActiveWorkspace((state) => state.workspaceId);
   const setWorkspace = useActiveWorkspace((state) => state.setWorkspace);
+  const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
 
   if (!workspaceId) return null;
@@ -43,7 +45,11 @@ export function GroupPage() {
       <CreateWorkspaceDialog
         open={creating}
         onClose={() => setCreating(false)}
-        onCreated={(id) => setWorkspace(id)}
+        onCreated={(id) => {
+          // Entrar automáticamente al grupo recién creado.
+          setWorkspace(id);
+          navigate('/reportes');
+        }}
       />
     </div>
   );
