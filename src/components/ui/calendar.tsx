@@ -29,12 +29,12 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         day: cn(
           'h-9 w-9 rounded-md p-0 text-center text-sm',
           '[&[data-selected]]:bg-primary [&[data-selected]]:text-primary-foreground',
-          '[&[data-today]:not([data-selected])]:bg-accent [&[data-today]:not([data-selected])]:text-accent-foreground',
+          '[&[data-today]:not([data-selected])]:ring-1 [&[data-today]:not([data-selected])]:ring-inset [&[data-today]:not([data-selected])]:ring-foreground/30',
           '[&[data-outside]]:text-muted-foreground [&[data-outside]]:opacity-50',
           '[&[data-disabled]]:text-muted-foreground [&[data-disabled]]:opacity-50',
         ),
         day_button:
-          'inline-flex h-9 w-9 items-center justify-center rounded-md p-0 font-normal hover:bg-accent hover:text-accent-foreground',
+          'inline-flex h-9 w-9 items-center justify-center rounded-md p-0 font-normal hover:bg-background',
         ...classNames,
       }}
       components={{

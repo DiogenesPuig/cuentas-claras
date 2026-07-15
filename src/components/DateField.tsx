@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { displayToIsoDate, isoToDisplayDate } from '@/features/transactions/format';
@@ -31,9 +32,21 @@ function localDateToIso(date: Date): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+/** Alto de arranque (antes de poder medir el panel real) para la primera pasada. */
+const FALLBACK_PANEL_HEIGHT = 360;
+
+interface Position {
+  top: number;
+  right: number;
+}
+
 /**
  * Input de fecha `DD/MM/AAAA` (se puede seguir tipeando a mano) con un calendario
  * (shadcn/ui sobre `react-day-picker`) para elegirla visualmente (MEJ-1).
+ *
+ * El calendario se porta a `document.body` con `position: fixed` (en vez de vivir dentro del
+ * formulario): así, al abrirse dentro de un modal con scroll propio, no le agrega scroll ni
+ * cambia su tamaño (queda completamente fuera de ese flujo).
  */
 export function DateField({
   id,
@@ -47,13 +60,46 @@ export function DateField({
   optionalHint,
 }: DateFieldProps) {
   const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState<Position | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (!open) {
+      setPosition(null);
+      return;
+    }
+    function computePosition() {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      // La 1ª pasada (el panel todavía no montó) usa un alto de arranque; el `requestAnimationFrame`
+      // de abajo la corrige ya con el alto real medido, antes de que el navegador pinte.
+      const panelHeight = panelRef.current?.getBoundingClientRect().height ?? FALLBACK_PANEL_HEIGHT;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const openUpward = spaceBelow < panelHeight && rect.top > spaceBelow;
+      setPosition({
+        top: openUpward ? rect.top - panelHeight - 4 : rect.bottom + 4,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    computePosition();
+    const raf = requestAnimationFrame(computePosition);
+    window.addEventListener('resize', computePosition);
+    window.addEventListener('scroll', computePosition, true);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', computePosition);
+      window.removeEventListener('scroll', computePosition, true);
+    };
+  }, [open]);
+
+  useLayoutEffect(() => {
     if (!open) return;
     function onPointerDown(event: MouseEvent) {
-      if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (containerRef.current?.contains(target)) return;
+      if (panelRef.current?.contains(target)) return;
+      setOpen(false);
     }
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') setOpen(false);
@@ -64,13 +110,6 @@ export function DateField({
       document.removeEventListener('mousedown', onPointerDown);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [open]);
-
-  // Al abrir, el calendario puede quedar tapado por el borde del modal/página (hay que scrollear
-  // para verlo entero); lo traemos a la vista solo lo necesario, sin saltar la página entera.
-  useEffect(() => {
-    if (!open) return;
-    panelRef.current?.scrollIntoView?.({ block: 'nearest' });
   }, [open]);
 
   const selectedIso = displayToIsoDate(value);
@@ -103,10 +142,15 @@ export function DateField({
         >
           <CalendarIcon className="h-4 w-4" />
         </button>
-        {open && (
+      </div>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      {open &&
+        position &&
+        createPortal(
           <div
             ref={panelRef}
-            className="absolute right-0 top-full z-20 mt-1 rounded-md border border-input bg-popover shadow-md"
+            style={{ top: position.top, right: position.right }}
+            className="fixed z-50 rounded-md border border-input bg-muted shadow-lg"
           >
             <Calendar
               mode="single"
@@ -118,10 +162,9 @@ export function DateField({
                 setOpen(false);
               }}
             />
-          </div>
+          </div>,
+          document.body,
         )}
-      </div>
-      {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );
 }
