@@ -99,11 +99,9 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
   cascada + limpieza de Storage, redirect a "Tus grupos"; `tasks/done/`)_.
 - ✅ `MEJ-16` Separar categoría "Transporte" (viajes) de "Auto" (nafta/mantenimiento) — _hecho (PR #76,
   categoría global Auto 🚙 + reglas de sugerencia separadas; migración 0021 en remoto; `tasks/done/`)_.
-- `MEJ-17` Aprender/recordar la categoría por persona o comercio recurrente (ej. el alquiler siempre a
-  la misma categoría) — `tasks/MEJ-17-aprender-categoria-por-comercio.md`.
-- `MEJ-18` Memoria de categoría por comercio: aprende de las correcciones (comercio→categoría, por
-  workspace, gana sobre las keywords de F2-6) — diseño de datos/RLS cerrado con el usuario 2026-07-10;
-  falta cerrar la "clave de comercio" — `tasks/MEJ-18-memoria-categoria-por-comercio.md`.
+- ✅ `MEJ-17` + `MEJ-18` Memoria de categoría (aprende del historial: comercio + persona) — _hechos
+  unificados (PR #77, `lib/category-learn`, sin tabla; la sugerencia aprendida gana sobre las keywords;
+  cableada en el alta y en el import de resumen; `tasks/done/`)_.
 - `MEJ-19` Fusionar/vincular personas duplicadas (resuelve el borde de IDENT-1: placeholder con historia
   + cuenta que entró por link genérico) — `tasks/MEJ-19-fusionar-personas.md`.
 - ✅ `F2-14` Parser del resumen de Banco Nación (BNA MasterCard Black) + banco no reconocido — _hecho
