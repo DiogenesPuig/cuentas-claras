@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { Category } from '@/features/categories';
+import { DateField } from '@/components/DateField';
 import {
   useGetOrCreateSharedCashAccount,
   useGetOrCreateSharedTransferAccount,
@@ -180,6 +181,8 @@ export function TransactionForm({
   }, []);
 
   const type = watch('type');
+  const occurredOn = watch('occurredOn');
+  const chargedOn = watch('chargedOn');
   const description = watch('description');
   const categoryId = watch('categoryId');
   const accountId = watch('accountId');
@@ -707,39 +710,22 @@ export function TransactionForm({
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <label htmlFor="tx-occurred-on" className="text-sm font-medium">
-            Fecha
-          </label>
-          <input
-            id="tx-occurred-on"
-            type="text"
-            inputMode="numeric"
-            placeholder="DD/MM/AAAA"
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            {...register('occurredOn')}
-          />
-          {errors.occurredOn && (
-            <p className="text-sm text-destructive">{errors.occurredOn.message}</p>
-          )}
-        </div>
+        <DateField
+          id="tx-occurred-on"
+          label="Fecha"
+          value={occurredOn}
+          onChange={(v) => setValue('occurredOn', v, { shouldValidate: true, shouldDirty: true })}
+          error={errors.occurredOn?.message}
+        />
 
-        <div className="space-y-1">
-          <label htmlFor="tx-charged-on" className="text-sm font-medium">
-            Se cobra (opcional)
-          </label>
-          <input
-            id="tx-charged-on"
-            type="text"
-            inputMode="numeric"
-            placeholder="DD/MM/AAAA"
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            {...register('chargedOn')}
-          />
-          {errors.chargedOn && (
-            <p className="text-sm text-destructive">{errors.chargedOn.message}</p>
-          )}
-        </div>
+        <DateField
+          id="tx-charged-on"
+          label="Se cobra"
+          optionalHint
+          value={chargedOn ?? ''}
+          onChange={(v) => setValue('chargedOn', v, { shouldValidate: true, shouldDirty: true })}
+          error={errors.chargedOn?.message}
+        />
       </div>
 
       <div className="space-y-1">
