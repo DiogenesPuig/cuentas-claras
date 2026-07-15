@@ -90,7 +90,9 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
   movimiento, Transferencia/Efectivo compartidos, placeholders + promoción, backfill/colapso. Absorbió
   MEJ-4B, MEJ-12 y BUG-17. **Aplicado en prod** (migraciones 0018/0019/0020 + backfill) — PR #72,
   `tasks/done/`.
-- `MEJ-1` Date-picker con calendario — **dep `react-day-picker` APROBADA (2026-07-07)**, lista para implementar (`tasks/MEJORAS.md`).
+- ✅ `MEJ-1` Date-picker con calendario — _hecho (PR #79, `DateField` + `ui/calendar.tsx` sobre
+  `react-day-picker`; el calendario se porta a `document.body` con posición calculada desde el
+  input para no agrandar/scrollear el modal, `tasks/MEJORAS.md`/`tasks/done/`)_.
 - `MEJ-2` Reordenar secciones de Reportes (drag & drop) — **dep `@dnd-kit` APROBADA (2026-07-07)**, versión DnD (`tasks/MEJORAS.md`).
 - ✅ `MEJ-13` Total de gastos/ingresos en /movimientos respetando los filtros — _hecho (PR #73, `sumByType`
   por moneda + total a la derecha de la lista, `tasks/done/`)_.

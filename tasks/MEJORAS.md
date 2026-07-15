@@ -24,25 +24,19 @@ desde `main`**, probado en local antes de mergear (regla 2026-06-27):
      placeholder→cuenta) y recién ahí implementar. Conviene al final por tamaño y por tocar el modelo
      de identidad.
 
-Notas: MEJ-8 y MEJ-4 son independientes (se pueden reordenar). MEJ-1/MEJ-2 (necesitan deps nuevas a
-aprobar) siguen pendientes y de baja prioridad.
+Notas: MEJ-8 y MEJ-4 son independientes (se pueden reordenar). MEJ-1 ya hecho (PR #79). MEJ-2 (necesita dep nueva a
+aprobar) sigue pendiente y de baja prioridad.
 
 ## Ideas
 
-### MEJ-1 — Date-picker con calendario en el form de movimientos
-- **Qué:** reemplazar los inputs de fecha de texto `DD/MM/AAAA` del `TransactionForm`
-  (`src/features/transactions/components/TransactionForm.tsx`) por un date-picker con
-  **calendario** que muestre `DD/MM/AAAA`, usando el componente `Calendar` de shadcn/ui.
-- **Contexto:** en el commit `7a32211` se pasó de `<input type="date">` (formato dependiente
-  del locale del navegador, no forzable) a input de texto con conversión a ISO vía
-  `isoToDisplayDate`/`displayToIsoDate` (`src/features/transactions/format.ts`). El trade-off
-  fue **perder el calendario nativo**.
-- **Dependencia APROBADA (2026-07-07):** `react-day-picker` habilitada (falta instalarla al trabajar el ticket). Ya se puede implementar.
-- **A tener en cuenta:** el `Calendar` de shadcn requiere la dependencia `react-day-picker`,
-  que **no está en el stack aprobado** de `CLAUDE.md` → hay que aprobar la dependencia antes
-  (regla "no agregar deps sin justificar"). La conversión ISO↔display ya existe y se reutiliza;
-  el cambio es solo de UI.
-- **Origen:** pedido del usuario (2026-06-22), no urgente.
+### ~~MEJ-1~~ — ✅ Date-picker con calendario en el form de movimientos — _hecho (PR #79, `tasks/done/`)_
+- `DateField` (`src/components/DateField.tsx`, reutilizable): mismo input `DD/MM/AAAA` tipeable a
+  mano + botón que abre `ui/calendar.tsx` (shadcn `Calendar` sobre `react-day-picker`, en español).
+  El calendario se porta a `document.body` con `position: fixed` (coordenadas medidas desde el
+  input, con flip hacia arriba si no entra abajo) para no vivir dentro del formulario: abrirlo no le
+  agrega scroll ni le cambia el tamaño al modal. Cableado en "Fecha" y "Se cobra" de
+  `TransactionForm`; sin cambios en validación/guardado (sigue usando `displayToIsoDate`/
+  `isoToDisplayDate`).
 
 ### MEJ-2 — Secciones de Reportes reordenables a gusto (drag & drop)
 - **Qué:** permitir que el usuario **mueva/ordene las secciones** de `/reportes`
