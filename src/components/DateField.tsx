@@ -48,6 +48,7 @@ export function DateField({
 }: DateFieldProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -63,6 +64,13 @@ export function DateField({
       document.removeEventListener('mousedown', onPointerDown);
       document.removeEventListener('keydown', onKeyDown);
     };
+  }, [open]);
+
+  // Al abrir, el calendario puede quedar tapado por el borde del modal/página (hay que scrollear
+  // para verlo entero); lo traemos a la vista solo lo necesario, sin saltar la página entera.
+  useEffect(() => {
+    if (!open) return;
+    panelRef.current?.scrollIntoView?.({ block: 'nearest' });
   }, [open]);
 
   const selectedIso = displayToIsoDate(value);
@@ -96,7 +104,10 @@ export function DateField({
           <CalendarIcon className="h-4 w-4" />
         </button>
         {open && (
-          <div className="absolute right-0 top-full z-20 mt-1 rounded-md border border-input bg-popover shadow-md">
+          <div
+            ref={panelRef}
+            className="absolute right-0 top-full z-20 mt-1 rounded-md border border-input bg-popover shadow-md"
+          >
             <Calendar
               mode="single"
               selected={selectedDate}
