@@ -3,6 +3,7 @@
 import { displayToIsoDate, isoToDisplayDate } from '@/features/transactions/format';
 import { statementExternalHash } from '@/lib/dedupe';
 import { suggestCategory, type SuggestableCategory } from '@/lib/category-suggest';
+import { learnedCategoryId, type CategoryMemory } from '@/lib/category-learn';
 import type { ImportRowInput } from './api';
 import type { StatementAccountHint, StatementParse } from '@/lib/ingesta';
 
@@ -52,12 +53,14 @@ function newId(): string {
  * Parseo del micro → modelo editable. Solo los pagos de tarjeta van destildados.
  * Marca como `duplicate` (y destilda) las filas cuyo `external_hash` ya existe en
  * la DB (`existingHashes`) o que se repiten dentro del mismo lote. Si se pasan
- * `categories`, precarga la categoría sugerida por descripción (F2-6, editable).
+ * `categories`, precarga la categoría sugerida por descripción: la **memoria aprendida** del historial
+ * (MEJ-17/18, por comercio) tiene prioridad sobre las keywords fijas (F2-6). Editable por el usuario.
  */
 export function buildStagingModel(
   parse: StatementParse,
   existingHashes: ReadonlySet<string> = new Set(),
   categories: readonly SuggestableCategory[] = [],
+  memory: CategoryMemory = new Map(),
 ): StagingModel {
   const seen = new Set<string>();
   return {
@@ -77,6 +80,12 @@ export function buildStagingModel(
         });
         const duplicate = existingHashes.has(externalHash) || seen.has(externalHash);
         seen.add(externalHash);
+        // Categoría: memoria aprendida por comercio (MEJ-17/18) → keywords fijas (F2-6). Editable.
+        const learnedId = learnedCategoryId({ description: row.description }, memory);
+        const categoryId =
+          (learnedId && categories.some((c) => c.id === learnedId) ? learnedId : null) ??
+          suggestCategory(row.description, categories)?.id ??
+          '';
         return {
           id: newId(),
           // Pagos de tarjeta y duplicados van destildados; el resto, tildado.
@@ -85,8 +94,7 @@ export function buildStagingModel(
           amount: row.amount != null ? String(row.amount) : '',
           currency: row.currency ?? 'ARS',
           occurredOn: isoToDisplayDate(row.occurred_on),
-          // Categoría sugerida por el comercio (F2-6, FR-19); editable por el usuario.
-          categoryId: suggestCategory(row.description, categories)?.id ?? '',
+          categoryId,
           installmentN: row.installment?.n ?? null,
           installmentTotal: row.installment?.total ?? null,
           kind: row.kind,

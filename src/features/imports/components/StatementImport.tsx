@@ -10,6 +10,8 @@ import {
   type MemberOption,
 } from '@/features/accounts';
 import { useCategories } from '@/features/categories';
+import { useCategoryHistory } from '@/features/transactions';
+import { buildCategoryMemory } from '@/lib/category-learn';
 import { accountDefaultsFromHint, accountsToMatchable, isResidualHint, matchAccount } from '@/lib/account-match';
 import { matchMember } from '@/lib/member-match';
 import { IngestaError, type StatementAccountHint } from '@/lib/ingesta';
@@ -72,6 +74,7 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
   const { data: accounts } = useAccounts(workspaceId);
   const { data: members } = useMembersForHolder(workspaceId);
   const { data: categories } = useCategories(workspaceId);
+  const { data: categoryHistory } = useCategoryHistory(workspaceId);
   const parseStatement = useParseStatement();
   const findExistingHashes = useFindExistingHashes(workspaceId);
   const confirmImport = useConfirmImport(workspaceId);
@@ -101,6 +104,7 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
   }
 
   const expenseCategories = (categories ?? []).filter((c) => c.kind === 'expense');
+  const categoryMemory = buildCategoryMemory(categoryHistory ?? []);
 
   async function handleParse() {
     if (parsingRef.current) return;
@@ -118,7 +122,7 @@ export function StatementImport({ workspaceId }: StatementImportProps) {
       const hashes = draft.cards.flatMap((c) => c.rows.map((r) => r.externalHash));
       const existing = await findExistingHashes.mutateAsync(hashes);
       // Precargar categoría sugerida por comercio (F2-6) — solo gastos.
-      const built = buildStagingModel(result, existing, expenseCategories);
+      const built = buildStagingModel(result, existing, expenseCategories, categoryMemory);
       // Asociar cada tarjeta al medio que matchea (F2-5, FR-16b); si no hay, queda en ''.
       const matchable = accountsToMatchable(accounts ?? []);
       const open = new Set<number>();

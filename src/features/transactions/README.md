@@ -25,7 +25,9 @@ texto, **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado, y *
   token de la sesión y llama al micro de ingesta vía `lib/ingesta` para precargar monto/fecha/comercio
   — es la capa que toca Supabase; el HTTP es puro) y `findDuplicateCandidates` (F2-13: busca
   movimientos del workspace con mismo monto+moneda en la ventana de fecha y/o mismo `content_hash` de
-  comprobante, y delega el motivo a `lib/duplicate-detect`). Sin React.
+  comprobante, y delega el motivo a `lib/duplicate-detect`), y `listCategoryHistory` (MEJ-17/18:
+  proyección compacta de los movimientos ya categorizados —descripción, persona, tipo del medio,
+  categoría— en orden cronológico, para armar la memoria de categorías con `lib/category-learn`). Sin React.
 - `filters.ts` — `TransactionFilters` (mes, medio, categoría, moneda, persona, texto) y
   `buildTransactionFilterArgs`: función pura que mapea esos filtros a los argumentos de la query
   (rango `[occurredFrom, occurredTo)`, recorte de texto, etc.), sin tocar Supabase. El centinela
@@ -34,7 +36,8 @@ texto, **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado, y *
 - `filters.test.ts` — tests de `buildTransactionFilterArgs`: mes→rango (incl. cruce de año),
   combinación con el resto de filtros, recorte/omisión de texto vacío.
 - `hooks.ts` — react-query: `useTransactions(workspaceId, filters?)` (la query key incluye
-  `filters`, así que cada combinación cachea por separado), `useCreateTransaction`,
+  `filters`, así que cada combinación cachea por separado), `useCategoryHistory` (MEJ-17/18: historial
+  para la memoria de categorías; las mutaciones de alta/edición/borrado lo invalidan), `useCreateTransaction`,
   `useUpdateTransaction`, `useDeleteTransaction`, `useUploadAttachment`, `useExtractReceipt`
   (OCR de un comprobante vía `extractReceiptData`/el micro de ingesta, no escribe en la DB — F2-2),
   `useFindDuplicateCandidates` (F2-13: busca duplicados on-demand al confirmar el alta),

@@ -19,6 +19,7 @@ export {
 } from './api';
 export {
   useTransactions,
+  useCategoryHistory,
   useCreateTransaction,
   useUpdateTransaction,
   useDeleteTransaction,

@@ -27,7 +27,9 @@ vi.mock('@/features/categories', () => ({
   useCategories: () => ({ data: [] }),
 }));
 
-vi.mock('@/features/transactions', () => ({}));
+vi.mock('@/features/transactions', () => ({
+  useCategoryHistory: () => ({ data: [] }),
+}));
 
 /** Promesa que se resuelve manualmente, para dejar un parseo "en curso". */
 function deferred<T>() {
