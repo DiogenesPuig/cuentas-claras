@@ -18,6 +18,7 @@ import {
   useExtractReceipt,
   useFindDuplicateCandidates,
   useTransactions,
+  useCategoryHistory,
   useUpdateTransaction,
   useUploadAttachment,
   type Transaction,
@@ -26,6 +27,7 @@ import {
 } from '@/features/transactions';
 import { useActiveWorkspace } from '@/hooks/useActiveWorkspace';
 import { useActiveMonth } from '@/hooks/useActiveMonth';
+import { buildCategoryMemory } from '@/lib/category-learn';
 
 const CAN_MANAGE_ANY_ROLES: readonly MemberRole[] = ['owner', 'admin'];
 
@@ -38,6 +40,8 @@ export function TransactionsPage() {
   const { data: categories } = useCategories(workspaceId);
   const { data: accounts } = useAccounts(workspaceId);
   const { data: members } = useMembersForHolder(workspaceId);
+  const { data: categoryHistory } = useCategoryHistory(workspaceId);
+  const categoryMemory = useMemo(() => buildCategoryMemory(categoryHistory ?? []), [categoryHistory]);
 
   const [fieldFilters, setFieldFilters] = useState(EMPTY_FIELD_FILTERS);
   const [searchInput, setSearchInput] = useState('');
@@ -202,6 +206,7 @@ export function TransactionsPage() {
           accounts={accounts ?? []}
           workspaceId={workspaceId}
           members={members ?? []}
+          categoryMemory={categoryMemory}
           onCreatePerson={canManageAny ? (name) => createPerson.mutateAsync(name) : undefined}
           onSubmit={handleSubmit}
           onCancel={closeForm}

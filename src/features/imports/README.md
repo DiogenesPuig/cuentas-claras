@@ -23,7 +23,8 @@ revisan/editan en memoria y se confirman **todas de una**, creando los `transact
   invalida la lista de movimientos).
 - `staging.ts` — lógica PURA del staging editable: `buildStagingModel` (parseo → modelo editable;
   solo los **pagos de tarjeta** van destildados, los consumos y **reintegros** quedan tildados; si se
-  pasan categorías, precarga la **categoría sugerida** por comercio con `lib/category-suggest`, F2-6),
+  pasan categorías, precarga la **categoría sugerida**: la **memoria aprendida** por comercio
+  (`lib/category-learn`, MEJ-17/18) tiene prioridad sobre las keywords fijas de `lib/category-suggest` (F2-6)),
   `isRowValid`, `countSelected`, `toImportRows` (modelo → inputs; convierte fecha DD/MM/AAAA→ISO y
   exporta los **reintegros como gasto negativo** para que neteen el total — requiere la migración 0008).
 - `staging.test.ts` — tests de la lógica pura (destildado de pagos, conteo, conversión, exclusión

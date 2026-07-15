@@ -34,6 +34,7 @@ import type {
 } from '../api';
 import { displayToIsoDate, isoToDisplayDate, formatAmount } from '../format';
 import { suggestCategory } from '@/lib/category-suggest';
+import { learnedCategoryId, type CategoryMemory } from '@/lib/category-learn';
 import { isInstitutionalPayee } from '@/lib/payee';
 import { sha256Hex } from '@/lib/file-hash';
 
@@ -88,6 +89,8 @@ interface TransactionFormProps {
   workspaceId?: string;
   /** Miembros del workspace (incluye placeholders), para el selector de persona y el match de transferencias. */
   members?: MemberOption[];
+  /** Memoria de categorías aprendida del historial (MEJ-17/18): sugiere la categoría de lo recurrente. */
+  categoryMemory?: CategoryMemory;
   /**
    * Crea una "persona del grupo" sin cuenta (placeholder, IDENT-1) y la devuelve. Si se pasa, el
    * selector de persona muestra "+ Persona" (solo lo pasa el contenedor a owner/admin). El contenedor
@@ -112,6 +115,7 @@ export function TransactionForm({
   onExtractReceipt,
   workspaceId,
   members,
+  categoryMemory,
   onCreatePerson,
   onCheckDuplicates,
 }: TransactionFormProps) {
@@ -285,10 +289,18 @@ export function TransactionForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingCashId, accounts]);
 
-  // Sugerencia de categoría por descripción (F2-6, FR-19): solo si no hay una elegida.
-  // Nunca se aplica sola; el usuario decide con el botón "Usar".
-  const suggestedCategory =
-    type === 'expense' && !categoryId ? suggestCategory(description, categoryOptions) : null;
+  // Sugerencia de categoría (solo si no hay una elegida; nunca se aplica sola, el usuario usa "Usar").
+  // Prioridad: memoria aprendida del historial (MEJ-17/18: comercio o persona recurrente) → keywords
+  // fijas (F2-6, FR-19). La memoria por persona solo aplica en transfer/cash (lo resuelve el lib).
+  const suggestedCategory = (() => {
+    if (type !== 'expense' || categoryId) return null;
+    const accountType = accounts.find((a) => a.id === accountId)?.type ?? null;
+    const learnedId = categoryMemory
+      ? learnedCategoryId({ description, ownerMemberId, accountType }, categoryMemory)
+      : null;
+    const learned = learnedId ? (categoryOptions.find((c) => c.id === learnedId) ?? null) : null;
+    return learned ?? suggestCategory(description, categoryOptions);
+  })();
 
   // Limpia lo que precargó una extracción anterior. Sirve para que al reintentar
   // con OTRO comprobante que falle o traiga menos datos, el form no quede con los

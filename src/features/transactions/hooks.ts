@@ -6,6 +6,7 @@ import {
   findDuplicateCandidates,
   getAttachment,
   getAttachmentUrl,
+  listCategoryHistory,
   listTransactions,
   updateTransaction,
   uploadAttachment,
@@ -18,10 +19,13 @@ import {
   type TransactionView,
 } from './api';
 import type { TransactionFilters } from './filters';
+import type { CategoryHistoryRow } from '@/lib/category-learn';
 
 export const transactionsKeys = {
   list: (workspaceId: string | undefined, filters: TransactionFilters = {}) =>
     ['transactions', workspaceId, filters] as const,
+  categoryHistory: (workspaceId: string | undefined) =>
+    ['transactions', 'category-history', workspaceId] as const,
 };
 
 /**
@@ -36,6 +40,18 @@ export function useTransactions(workspaceId: string | undefined, filters: Transa
   });
 }
 
+/**
+ * Historial para la memoria de categorías (MEJ-17/18). Cacheado aparte de la lista filtrada; se
+ * refresca al crear/editar/borrar movimientos (esas mutaciones invalidan todo el key `transactions`).
+ */
+export function useCategoryHistory(workspaceId: string | undefined) {
+  return useQuery<CategoryHistoryRow[]>({
+    queryKey: transactionsKeys.categoryHistory(workspaceId),
+    queryFn: () => listCategoryHistory(workspaceId as string),
+    enabled: workspaceId !== undefined,
+  });
+}
+
 export function useCreateTransaction(workspaceId: string | undefined) {
   const queryClient = useQueryClient();
 
@@ -43,6 +59,7 @@ export function useCreateTransaction(workspaceId: string | undefined) {
     mutationFn: (input) => createTransaction(workspaceId as string, input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: transactionsKeys.list(workspaceId) });
+      void queryClient.invalidateQueries({ queryKey: transactionsKeys.categoryHistory(workspaceId) });
     },
   });
 }
@@ -54,6 +71,7 @@ export function useUpdateTransaction(workspaceId: string | undefined) {
     mutationFn: ({ id, input }) => updateTransaction(id, input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: transactionsKeys.list(workspaceId) });
+      void queryClient.invalidateQueries({ queryKey: transactionsKeys.categoryHistory(workspaceId) });
     },
   });
 }
@@ -65,6 +83,7 @@ export function useDeleteTransaction(workspaceId: string | undefined) {
     mutationFn: (id) => deleteTransaction(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: transactionsKeys.list(workspaceId) });
+      void queryClient.invalidateQueries({ queryKey: transactionsKeys.categoryHistory(workspaceId) });
     },
   });
 }

@@ -87,7 +87,9 @@ const RULES: Rule[] = [
   },
 ];
 
-function norm(value: string | null | undefined): string {
+/** Normaliza texto de comercio/descripci\u00f3n (NFD sin diacr\u00edticos, min\u00fasculas, espacios colapsados).
+ *  Compartida como **clave de comercio** por la memoria de categor\u00edas (MEJ-17/18, `category-learn`). */
+export function normalizeMerchant(value: string | null | undefined): string {
   return (value ?? '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -95,6 +97,8 @@ function norm(value: string | null | undefined): string {
     .replace(/\s+/g, ' ')
     .trim();
 }
+
+const norm = normalizeMerchant;
 
 function categoryNameMatches(available: string, target: string): boolean {
   const a = norm(available);

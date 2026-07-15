@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import type { Database, Tables, TablesInsert, TablesUpdate } from '@/lib/database.types';
 import { extractReceipt, type ReceiptExtraction } from '@/lib/ingesta';
 import { sha256Hex } from '@/lib/file-hash';
+import type { CategoryHistoryRow } from '@/lib/category-learn';
 import {
   findDuplicates,
   SIMILAR_DATE_WINDOW_DAYS,
@@ -72,6 +73,28 @@ export async function listTransactions(
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data ?? []) as TransactionView[];
+}
+
+/**
+ * Historial compacto para la **memoria de categorías** (MEJ-17/18): movimientos ya categorizados del
+ * workspace, en orden cronológico ascendente (para que el desempate por recencia funcione). Solo las
+ * columnas que necesita `lib/category-learn` (descripción, persona, tipo del medio, categoría).
+ */
+export async function listCategoryHistory(workspaceId: string): Promise<CategoryHistoryRow[]> {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('description, owner_member_id, category_id, account:accounts(type)')
+    .eq('workspace_id', workspaceId)
+    .not('category_id', 'is', null)
+    .order('occurred_on', { ascending: true })
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map((row) => ({
+    description: row.description,
+    ownerMemberId: row.owner_member_id,
+    accountType: (row.account as { type: string } | null)?.type ?? null,
+    categoryId: row.category_id,
+  }));
 }
 
 function toRow(input: TransactionInput) {
