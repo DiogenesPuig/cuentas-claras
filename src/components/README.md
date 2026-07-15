@@ -17,3 +17,8 @@ UI reutilizable y transversal.
 - `WelcomeGreeting.tsx` / `WelcomeGreeting.test.tsx` — saludo "¡Hola, &lt;nombre&gt;!" (MEJ-3): usa el
   nombre del perfil (`useMyProfile`) y cae a la parte local del email; no renderiza si no hay ninguno.
   Se muestra en el `Header` y en `GroupsLanding`.
+- `DateField.tsx` / `DateField.test.tsx` (MEJ-1) — input de fecha `DD/MM/AAAA` (sigue siendo tipeable
+  a mano) + botón que abre un calendario (`ui/calendar.tsx`) para elegirla visualmente; cierra con
+  Escape o al clickear afuera. Reutiliza `isoToDisplayDate`/`displayToIsoDate` de
+  `features/transactions/format.ts`. Usado hoy por `TransactionForm` (`occurredOn`/`chargedOn`);
+  genérico, no depende de ninguna feature en su props.

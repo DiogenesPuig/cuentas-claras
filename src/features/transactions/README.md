@@ -52,7 +52,10 @@ texto, **FR-23** (PRD §5.6): exportar a CSV el set de movimientos filtrado, y *
   guardar (`displayToIsoDate`).
 - `index.ts` — barrel del feature.
 - `components/TransactionForm.tsx` — alta/edición rápida: foco automático en el monto, categorías
-  filtradas por tipo (gasto/ingreso) vía `useCategories`, medios vía `useAccounts`. **IDENT-1:** un
+  filtradas por tipo (gasto/ingreso) vía `useCategories`, medios vía `useAccounts`. Fecha/"Se cobra"
+  usan `DateField` (`src/components/DateField.tsx`, MEJ-1): input `DD/MM/AAAA` tipeable + calendario
+  (shadcn/ui sobre `react-day-picker`) para elegirla visualmente; sigue guardando/validando igual
+  (`displayToIsoDate`). **IDENT-1:** un
   selector **"Persona (opcional)"** atribuye el movimiento a un miembro/placeholder
   (`owner_member_id`); "Según el medio" (vacío) = se deduce del medio en reportes/listas. Con
   `onCreatePerson` (solo owner/admin) ofrece **"+ Persona"** para crear una persona del grupo
