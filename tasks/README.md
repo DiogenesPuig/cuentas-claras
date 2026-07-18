@@ -83,7 +83,9 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
   limpia; cubre el OAuth de Google, `tasks/done/`)_
 
 **Mejoras / ingesta (nuevas, 2026-07-06/07)**
-- `MEJ-11` Reportes: desglose de categorías al ver por persona — `tasks/MEJ-11-reportes-categorias-por-persona.md`.
+- ✅ `MEJ-11` Reportes: desglose de categorías al ver por persona — _hecho (PR #80, drill-down
+  expandible por persona con montos por categoría; agregación pura en `aggregate.ts` con tests,
+  `tasks/done/`)_.
 - ✅ `MEJ-12` Efectivo por defecto — _**reemplazado** por `IDENT-1` (Efectivo compartido + persona por
   movimiento), PR #72, `tasks/done/`_.
 - ✅ `IDENT-1` Persona en el movimiento (modelo unificado de identidad): persona como campo del
