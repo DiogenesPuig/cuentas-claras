@@ -96,7 +96,17 @@ describe('aggregateByDimension', () => {
     for (const dimension of ['banco', 'red', 'medio'] as const) {
       const groups = aggregateByDimension(transactions, dimension, 'ARS', noRate);
       expect(groups).toEqual([
-        { key: 'Sin medio', label: 'Sin medio', consolidated: { income: 0, expense: 40, balance: -40, byCurrency: { ARS: { income: 0, expense: 40, balance: -40 } }, missingRates: [] } },
+        {
+          key: 'Sin medio',
+          label: 'Sin medio',
+          consolidated: {
+            income: 0,
+            expense: 40,
+            balance: -40,
+            byCurrency: { ARS: { income: 0, expense: 40, balance: -40 } },
+            missingRates: [],
+          },
+        },
       ]);
     }
   });
@@ -141,8 +151,14 @@ describe('aggregateByDimension', () => {
 
   it('F2-10: sin owner_member_id, dos holder_name con orden/tildes distintos se fusionan por nombre normalizado', () => {
     const transactions = [
-      makeTx({ amount: 100, account: makeAccount({ holder_name: 'Pérez Juan', owner_member_id: null }) }),
-      makeTx({ amount: 30, account: makeAccount({ holder_name: 'Juan Perez', owner_member_id: null }) }),
+      makeTx({
+        amount: 100,
+        account: makeAccount({ holder_name: 'Pérez Juan', owner_member_id: null }),
+      }),
+      makeTx({
+        amount: 30,
+        account: makeAccount({ holder_name: 'Juan Perez', owner_member_id: null }),
+      }),
     ];
 
     const groups = aggregateByDimension(transactions, 'persona', 'ARS', noRate);
@@ -153,8 +169,14 @@ describe('aggregateByDimension', () => {
 
   it('F2-10: dos personas realmente distintas (sin miembro) no se fusionan', () => {
     const transactions = [
-      makeTx({ amount: 100, account: makeAccount({ holder_name: 'Ana Gómez', owner_member_id: null }) }),
-      makeTx({ amount: 30, account: makeAccount({ holder_name: 'Beto López', owner_member_id: null }) }),
+      makeTx({
+        amount: 100,
+        account: makeAccount({ holder_name: 'Ana Gómez', owner_member_id: null }),
+      }),
+      makeTx({
+        amount: 30,
+        account: makeAccount({ holder_name: 'Beto López', owner_member_id: null }),
+      }),
     ];
 
     const groups = aggregateByDimension(transactions, 'persona', 'ARS', noRate);
@@ -200,26 +222,43 @@ describe('aggregateByPersonaMembersOnly (MEJ-5: donut de resumen, solo miembros 
 
   it('deja a cada miembro como porción propia y colapsa a los no-miembros en "Otros"', () => {
     const transactions = [
-      makeTx({ amount: 100, account: makeAccount({ holder_name: 'Juan', owner_member_id: 'member-1' }) }),
-      makeTx({ amount: 40, account: makeAccount({ holder_name: 'Ana', owner_member_id: 'member-2' }) }),
+      makeTx({
+        amount: 100,
+        account: makeAccount({ holder_name: 'Juan', owner_member_id: 'member-1' }),
+      }),
+      makeTx({
+        amount: 40,
+        account: makeAccount({ holder_name: 'Ana', owner_member_id: 'member-2' }),
+      }),
       // No-miembros: dos titulares ajenos distintos → ambos a "Otros".
-      makeTx({ amount: 30, account: makeAccount({ holder_name: 'Carlos Ajeno', owner_member_id: null }) }),
-      makeTx({ amount: 20, account: makeAccount({ holder_name: 'Dora Externa', owner_member_id: null }) }),
+      makeTx({
+        amount: 30,
+        account: makeAccount({ holder_name: 'Carlos Ajeno', owner_member_id: null }),
+      }),
+      makeTx({
+        amount: 20,
+        account: makeAccount({ holder_name: 'Dora Externa', owner_member_id: null }),
+      }),
     ];
 
     const groups = aggregateByPersonaMembersOnly(transactions, 'ARS', noRate, memberNameById);
 
     const otros = groups.find((g) => g.label === OTHERS_LABEL);
     expect(otros?.consolidated.expense).toBe(50); // 30 + 20 colapsados
-    expect(groups.filter((g) => g.label !== OTHERS_LABEL).map((g) => g.label).sort()).toEqual([
-      'Ana Gómez',
-      'Juan Pérez',
-    ]);
+    expect(
+      groups
+        .filter((g) => g.label !== OTHERS_LABEL)
+        .map((g) => g.label)
+        .sort(),
+    ).toEqual(['Ana Gómez', 'Juan Pérez']);
   });
 
   it('los movimientos sin medio también caen en "Otros"', () => {
     const transactions = [
-      makeTx({ amount: 100, account: makeAccount({ holder_name: 'Juan', owner_member_id: 'member-1' }) }),
+      makeTx({
+        amount: 100,
+        account: makeAccount({ holder_name: 'Juan', owner_member_id: 'member-1' }),
+      }),
       makeTx({ amount: 25, account: null }),
     ];
 
@@ -230,8 +269,14 @@ describe('aggregateByPersonaMembersOnly (MEJ-5: donut de resumen, solo miembros 
 
   it('no hay porción "Otros" si todos son miembros', () => {
     const transactions = [
-      makeTx({ amount: 100, account: makeAccount({ holder_name: 'Juan', owner_member_id: 'member-1' }) }),
-      makeTx({ amount: 40, account: makeAccount({ holder_name: 'Ana', owner_member_id: 'member-2' }) }),
+      makeTx({
+        amount: 100,
+        account: makeAccount({ holder_name: 'Juan', owner_member_id: 'member-1' }),
+      }),
+      makeTx({
+        amount: 40,
+        account: makeAccount({ holder_name: 'Ana', owner_member_id: 'member-2' }),
+      }),
     ];
 
     const groups = aggregateByPersonaMembersOnly(transactions, 'ARS', noRate, memberNameById);
@@ -242,8 +287,16 @@ describe('aggregateByPersonaMembersOnly (MEJ-5: donut de resumen, solo miembros 
 
   it('separa ingresos y gastos en el consolidado de cada grupo (para los donut por métrica)', () => {
     const transactions = [
-      makeTx({ type: 'income', amount: 500, account: makeAccount({ holder_name: 'Juan', owner_member_id: 'member-1' }) }),
-      makeTx({ type: 'income', amount: 70, account: makeAccount({ holder_name: 'Ajeno', owner_member_id: null }) }),
+      makeTx({
+        type: 'income',
+        amount: 500,
+        account: makeAccount({ holder_name: 'Juan', owner_member_id: 'member-1' }),
+      }),
+      makeTx({
+        type: 'income',
+        amount: 70,
+        account: makeAccount({ holder_name: 'Ajeno', owner_member_id: null }),
+      }),
     ];
 
     const groups = aggregateByPersonaMembersOnly(transactions, 'ARS', noRate, memberNameById);
@@ -255,9 +308,21 @@ describe('aggregateByPersonaMembersOnly (MEJ-5: donut de resumen, solo miembros 
 
 describe('filterReportTransactions', () => {
   const txs = [
-    makeTx({ amount: 100, category: { name: 'Super' }, account: makeAccount({ holder_name: 'Ana' }) }),
-    makeTx({ amount: 50, category: { name: 'Transporte' }, account: makeAccount({ holder_name: 'Ana' }) }),
-    makeTx({ amount: 200, category: { name: 'Super' }, account: makeAccount({ holder_name: 'Beto' }) }),
+    makeTx({
+      amount: 100,
+      category: { name: 'Super' },
+      account: makeAccount({ holder_name: 'Ana' }),
+    }),
+    makeTx({
+      amount: 50,
+      category: { name: 'Transporte' },
+      account: makeAccount({ holder_name: 'Ana' }),
+    }),
+    makeTx({
+      amount: 200,
+      category: { name: 'Super' },
+      account: makeAccount({ holder_name: 'Beto' }),
+    }),
   ];
 
   it('sin filtros devuelve todo', () => {
@@ -285,11 +350,27 @@ describe('personaSpending', () => {
   it('da participación del total y la categoría dominante de cada persona', () => {
     const txs = [
       // Ana: 600 (450 Super = 75% → domina), 150 Transporte. Total general = 800 → Ana 75%.
-      makeTx({ amount: 450, category: { name: 'Super' }, account: makeAccount({ holder_name: 'Ana' }) }),
-      makeTx({ amount: 150, category: { name: 'Transporte' }, account: makeAccount({ holder_name: 'Ana' }) }),
+      makeTx({
+        amount: 450,
+        category: { name: 'Super' },
+        account: makeAccount({ holder_name: 'Ana' }),
+      }),
+      makeTx({
+        amount: 150,
+        category: { name: 'Transporte' },
+        account: makeAccount({ holder_name: 'Ana' }),
+      }),
       // Beto: 200 repartido 100/100 → ninguna supera el 40% del umbral relativo... 50% sí.
-      makeTx({ amount: 100, category: { name: 'Super' }, account: makeAccount({ holder_name: 'Beto' }) }),
-      makeTx({ amount: 100, category: { name: 'Ocio' }, account: makeAccount({ holder_name: 'Beto' }) }),
+      makeTx({
+        amount: 100,
+        category: { name: 'Super' },
+        account: makeAccount({ holder_name: 'Beto' }),
+      }),
+      makeTx({
+        amount: 100,
+        category: { name: 'Ocio' },
+        account: makeAccount({ holder_name: 'Beto' }),
+      }),
     ];
 
     const result = personaSpending(txs, 'ARS', noRate);
@@ -301,6 +382,56 @@ describe('personaSpending', () => {
     expect(ana.mainLabel).toBe('Super'); // 450/600 = 75% ≥ 40%
     expect(beto.share).toBeCloseTo(0.25, 5);
     expect(beto.mainLabel).toBe('Super'); // 100/200 = 50% ≥ 40% (primera por volumen)
+  });
+
+  it('MEJ-11: desglosa el gasto de cada persona por categoría, de mayor a menor', () => {
+    const txs = [
+      makeTx({
+        amount: 450,
+        category: { name: 'Super' },
+        account: makeAccount({ holder_name: 'Ana' }),
+      }),
+      makeTx({
+        amount: 150,
+        category: { name: 'Transporte' },
+        account: makeAccount({ holder_name: 'Ana' }),
+      }),
+      makeTx({
+        amount: 100,
+        category: { name: 'Super' },
+        account: makeAccount({ holder_name: 'Beto' }),
+      }),
+      makeTx({
+        amount: 100,
+        category: { name: 'Ocio' },
+        account: makeAccount({ holder_name: 'Beto' }),
+      }),
+    ];
+
+    const ana = personaSpending(txs, 'ARS', noRate).find((p) => p.holder === 'Ana')!;
+
+    expect(ana.categories).toEqual([
+      { label: 'Super', amount: 450, share: 0.75 },
+      { label: 'Transporte', amount: 150, share: 0.25 },
+    ]);
+  });
+
+  it('MEJ-11: agrupa lo sin categoría bajo "Sin categoría"', () => {
+    const txs = [
+      makeTx({
+        amount: 60,
+        category: { name: 'Super' },
+        account: makeAccount({ holder_name: 'Ana' }),
+      }),
+      makeTx({ amount: 40, category: null, account: makeAccount({ holder_name: 'Ana' }) }),
+    ];
+
+    const ana = personaSpending(txs, 'ARS', noRate)[0];
+
+    expect(ana.categories).toEqual([
+      { label: 'Super', amount: 60, share: 0.6 },
+      { label: 'Sin categoría', amount: 40, share: 0.4 },
+    ]);
   });
 
   it('marca "Varios" cuando ninguna categoría domina', () => {
@@ -315,7 +446,12 @@ describe('personaSpending', () => {
   it('ignora ingresos (solo gasto)', () => {
     const txs = [
       makeTx({ amount: 100, type: 'income', account: makeAccount({ holder_name: 'Ana' }) }),
-      makeTx({ amount: 40, type: 'expense', category: { name: 'Super' }, account: makeAccount({ holder_name: 'Ana' }) }),
+      makeTx({
+        amount: 40,
+        type: 'expense',
+        category: { name: 'Super' },
+        account: makeAccount({ holder_name: 'Ana' }),
+      }),
     ];
     const result = personaSpending(txs, 'ARS', noRate);
     expect(result).toHaveLength(1);

@@ -222,6 +222,16 @@ export function filterReportTransactions(
 const DOMINANT_THRESHOLD = 0.4;
 const MIXED_LABEL = 'Varios';
 
+/** Un renglón del desglose por categoría de una persona (MEJ-11). */
+export interface PersonaCategorySpending {
+  /** Nombre de la categoría ("Sin categoría" de fallback). */
+  label: string;
+  /** Gasto consolidado en esa categoría, en la moneda base. */
+  amount: number;
+  /** Fracción 0..1 del gasto de ESA persona (no del total general) que es esta categoría. */
+  share: number;
+}
+
 export interface PersonaSpending {
   /** Clave de identidad de la persona (`member:<id>` o `name:<norm>`); para apodos (MEJ-8). */
   key: string;
@@ -235,12 +245,15 @@ export interface PersonaSpending {
   mainCategory: string | null;
   /** Etiqueta legible: la categoría dominante o "Varios" si ninguna supera el umbral. */
   mainLabel: string;
+  /** Desglose completo del gasto de esta persona por categoría, de mayor a menor (MEJ-11). */
+  categories: PersonaCategorySpending[];
 }
 
 /**
  * Gasto por persona (FR-22): cuánto aporta cada holder al gasto total del período, su
- * participación (`share`) y en qué categoría gastó mayormente. Ordenado de mayor a menor
- * gasto. Solo considera gastos (no ingresos). Pensado para "p1 = 50% (mayormente en super)".
+ * participación (`share`), en qué categoría gastó mayormente, y el desglose completo por
+ * categoría (MEJ-11: "en qué categorías gastó cada persona", no solo la dominante). Ordenado
+ * de mayor a menor gasto. Solo considera gastos (no ingresos).
  */
 export function personaSpending(
   transactions: ReportTransactionView[],
@@ -258,8 +271,10 @@ export function personaSpending(
       const holderTxs = expenses.filter(
         (tx) => dimensionKeyFor('persona', tx, memberNameById) === group.key,
       );
-      const byCategory = aggregateByDimension(holderTxs, 'categoria', base, rateFor);
-      const top = byCategory.find((c) => c.consolidated.expense > 0) ?? null;
+      const byCategory = aggregateByDimension(holderTxs, 'categoria', base, rateFor).filter(
+        (c) => c.consolidated.expense > 0,
+      );
+      const top = byCategory[0] ?? null;
       const holderExpense = group.consolidated.expense;
       const topShare = top ? top.consolidated.expense / holderExpense : 0;
       return {
@@ -269,6 +284,11 @@ export function personaSpending(
         share: totalExpense > 0 ? holderExpense / totalExpense : 0,
         mainCategory: top?.key ?? null,
         mainLabel: top && topShare >= DOMINANT_THRESHOLD ? top.key : MIXED_LABEL,
+        categories: byCategory.map((c) => ({
+          label: c.label,
+          amount: c.consolidated.expense,
+          share: holderExpense > 0 ? c.consolidated.expense / holderExpense : 0,
+        })),
       };
     });
 }
