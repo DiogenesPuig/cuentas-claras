@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildTransactionFilterArgs, NO_ACCOUNT_FILTER } from './filters';
+import { buildTransactionFilterArgs, NO_ACCOUNT_FILTER, NO_CATEGORY_FILTER } from './filters';
 
 describe('buildTransactionFilterArgs', () => {
   it('sin filtros, no agrega ningún argumento', () => {
@@ -13,6 +13,16 @@ describe('buildTransactionFilterArgs', () => {
   it('el centinela NO_ACCOUNT_FILTER pide movimientos sin medio (account_id IS NULL) (BUG-13)', () => {
     expect(buildTransactionFilterArgs({ accountId: NO_ACCOUNT_FILTER })).toEqual({
       accountIsNull: true,
+    });
+  });
+
+  it('un categoryId real filtra por igualdad (no como "sin categoría")', () => {
+    expect(buildTransactionFilterArgs({ categoryId: 'cat-1' })).toEqual({ categoryId: 'cat-1' });
+  });
+
+  it('el centinela NO_CATEGORY_FILTER pide movimientos sin categoría (category_id IS NULL) (MEJ-20)', () => {
+    expect(buildTransactionFilterArgs({ categoryId: NO_CATEGORY_FILTER })).toEqual({
+      categoryIsNull: true,
     });
   });
 

@@ -65,6 +65,7 @@ export async function listTransactions(
   if (args.accountId) query = query.eq('account_id', args.accountId);
   if (args.accountIsNull) query = query.is('account_id', null);
   if (args.categoryId) query = query.eq('category_id', args.categoryId);
+  if (args.categoryIsNull) query = query.is('category_id', null);
   if (args.currency) query = query.eq('currency', args.currency);
   if (args.search) query = query.ilike('description', `%${args.search}%`);
 
