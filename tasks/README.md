@@ -64,6 +64,9 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
 - `BUG-10` OCR de comprobantes: origen/destino de transferencia invertidos o incompletos en
   Naranja X, BNA y Mercado Pago — reportado probando en local (2026-07-01),
   `tasks/BUG-10-ocr-origen-destino-transferencia.md`.
+- `BUG-18` Resúmenes multi-moneda: todos los consumos quedan en ARS aunque el resumen tenga
+  columna DOLARES/U$S — reportado por el usuario (2026-08-03), necesita texto real anonimizado
+  de una fila en dólares (como `BUG-10`), `tasks/BUG-18-moneda-resumenes-multimoneda.md`.
 - ✅ `BUG-11` El modal "Nuevo grupo" se posicionaba mal al abrirlo desde el "+" del Header
   (`backdrop-blur` = containing block para `fixed`) — _hecho (PR #63, portal a `document.body`,
   `tasks/done/`)_

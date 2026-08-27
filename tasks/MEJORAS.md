@@ -95,3 +95,18 @@ aprobar) sigue pendiente y de baja prioridad.
 - El secreto corto no era el fixture (`TEST_SECRET`, ya de 38 bytes), sino la clave inline
   `"wrong-secret"` (12 bytes) de `test_rejects_bad_signature` en `test_auth.py`; se alargó a
   32+ bytes. Solo tests, sin cambios de producción.
+
+### MEJ-21 — Selección múltiple + reasignación masiva de categoría
+- **Qué:** en Movimientos, poder seleccionar varios movimientos (checkboxes, sobre todo los
+  "sin categoría" que deja ver `MEJ-20`) y asignarles una categoría de una sola acción, en vez
+  de editarlos uno por uno. Reusar "Otros gastos"/"Otros ingresos" (categorías globales ya
+  existentes) como sugerencia rápida, pero permitir elegir cualquier categoría.
+- **Contexto:** pedido del usuario (2026-08-03) al reportar que faltaba poder encontrar/agrupar
+  movimientos sin categoría. Se separó del filtro simple (`MEJ-20`) porque implica construir
+  selección múltiple desde cero: hoy no existe en `TransactionList`/`TransactionRow` (verificado,
+  no hay checkboxes ni acciones bulk en ningún lado de Movimientos).
+- **A tener en cuenta:** diseño de UI/UX a afinar con el usuario antes de implementar (qué pasa
+  con selección + otros filtros activos, límite de items, feedback de la acción). No es un
+  ticket "replicar patrón existente" como `MEJ-20`; conviene pasar por Opus para cerrar el
+  diseño antes de implementar.
+- **Origen:** pedido del usuario, no urgente (post `MEJ-20`).
