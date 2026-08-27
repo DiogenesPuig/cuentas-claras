@@ -108,6 +108,9 @@ C11 y C12 pueden empezar en paralelo a Sprint B (solo dependen de cimientos).
   cableada en el alta y en el import de resumen; `tasks/done/`)_.
 - `MEJ-19` Fusionar/vincular personas duplicadas (resuelve el borde de IDENT-1: placeholder con historia
   + cuenta que entró por link genérico) — `tasks/MEJ-19-fusionar-personas.md`.
+- ✅ `MEJ-20` Filtro "Sin categoría" en Movimientos — _hecho (mismo patrón que `BUG-13` (medio) aplicado
+  a categoría: centinela `NO_CATEGORY_FILTER` en `filters.ts`, `categoryIsNull` en la query de
+  `api.ts`, opción en `FilterBar.tsx`; reportado por el usuario, `tasks/done/`)_.
 - ✅ `F2-14` Parser del resumen de Banco Nación (BNA MasterCard Black) + banco no reconocido — _hecho
   (PR #66: el header venía en plural "DETALLES DEL MES"; `tasks/done/`). **Micro redeployado al Space
   de Hugging Face y verificado en prod (2026-07-07): reconoce el banco.**_

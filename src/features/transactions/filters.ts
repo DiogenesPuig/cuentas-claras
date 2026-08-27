@@ -20,6 +20,12 @@ export interface TransactionFilters {
 export const NO_ACCOUNT_FILTER = '__no_account__';
 
 /**
+ * Valor centinela del filtro de categoría para "movimientos SIN categoría" (MEJ-20): mismo patrón
+ * que `NO_ACCOUNT_FILTER`. Mapea a `category_id IS NULL` en la query.
+ */
+export const NO_CATEGORY_FILTER = '__no_category__';
+
+/**
  * Filtros de campo de la lista (sin mes ni texto, que se manejan aparte en `TransactionsPage`).
  * `personaKey` es client-side (IDENT-1): una `personaKeyOf(...)` (`member:<id>` | `name:<n>` |
  * "Sin medio"), no viaja a la query.
@@ -46,6 +52,8 @@ export interface TransactionFilterArgs {
   /** Movimientos sin medio asociado (`account_id IS NULL`), BUG-13. */
   accountIsNull?: boolean;
   categoryId?: string;
+  /** Movimientos sin categoría asignada (`category_id IS NULL`), MEJ-20. */
+  categoryIsNull?: boolean;
   currency?: string;
   search?: string;
 }
@@ -76,7 +84,8 @@ export function buildTransactionFilterArgs(filters: TransactionFilters): Transac
   }
   if (filters.accountId === NO_ACCOUNT_FILTER) args.accountIsNull = true;
   else if (filters.accountId) args.accountId = filters.accountId;
-  if (filters.categoryId) args.categoryId = filters.categoryId;
+  if (filters.categoryId === NO_CATEGORY_FILTER) args.categoryIsNull = true;
+  else if (filters.categoryId) args.categoryId = filters.categoryId;
   if (filters.currency?.length === 3) args.currency = filters.currency;
 
   const search = filters.search?.trim();

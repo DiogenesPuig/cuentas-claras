@@ -91,11 +91,7 @@ aprobar) sigue pendiente y de baja prioridad.
   Sin cambios de comportamiento; cubierto por los tests de `TransactionForm`. No urgente.
 - **Origen:** revisión REF-1 (2026-07-05).
 
-### MEJ-9 — Ingesta: clave HMAC de test demasiado corta (warning de PyJWT)
-- **Qué:** los tests de `services/ingesta` emiten `InsecureKeyLengthWarning` porque la clave
-  HMAC del fixture (`tests/conftest.py`) tiene 12 bytes (recomendado ≥32 para HS256). Fix de una
-  línea: usar una clave de test de 32+ bytes.
-- **Contexto:** detectado en el chequeo general del proyecto (2026-07-02). Solo afecta el
-  fixture de test, no producción. Sin urgencia; saldar de paso en el próximo ticket que toque
-  la ingesta (ej. BUG-10).
-- **Origen:** chequeo de salud del proyecto (2026-07-02).
+### ~~MEJ-9~~ — ✅ Ingesta: clave HMAC de test demasiado corta (warning de PyJWT) — _hecho_
+- El secreto corto no era el fixture (`TEST_SECRET`, ya de 38 bytes), sino la clave inline
+  `"wrong-secret"` (12 bytes) de `test_rejects_bad_signature` en `test_auth.py`; se alargó a
+  32+ bytes. Solo tests, sin cambios de producción.

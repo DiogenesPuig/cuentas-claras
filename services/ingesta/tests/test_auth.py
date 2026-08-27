@@ -24,7 +24,8 @@ def test_rejects_malformed_header(client: TestClient) -> None:
 
 
 def test_rejects_bad_signature(client: TestClient) -> None:
-    bad = jwt.encode({"sub": "x", "aud": "authenticated"}, "wrong-secret", algorithm="HS256")
+    bad_secret = "wrong-secret-but-long-enough-for-hs256"
+    bad = jwt.encode({"sub": "x", "aud": "authenticated"}, bad_secret, algorithm="HS256")
     res = client.post(ENDPOINT, files=DUMMY_FILE, headers={"Authorization": f"Bearer {bad}"})
     assert res.status_code == 401
 

@@ -1,7 +1,7 @@
 import type { Category } from '@/features/categories';
 import type { Account } from '@/features/accounts';
 import { accountDisplayName } from '@/features/accounts/format';
-import { EMPTY_FIELD_FILTERS, NO_ACCOUNT_FILTER, type FieldFilters } from '../filters';
+import { EMPTY_FIELD_FILTERS, NO_ACCOUNT_FILTER, NO_CATEGORY_FILTER, type FieldFilters } from '../filters';
 
 export type FilterBarValue = FieldFilters;
 
@@ -81,6 +81,7 @@ export function FilterBar({ value, categories, accounts, personaOptions, onChang
           className="rounded-md border border-input bg-background px-2 py-1.5 text-sm"
         >
           <option value="">Todas</option>
+          <option value={NO_CATEGORY_FILTER}>Sin categoría</option>
           {categories.map((category) => (
             <option key={category.id} value={category.id}>
               {category.icon ? `${category.icon} ` : ''}
