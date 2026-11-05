@@ -2,7 +2,7 @@
 
 App web para registrar **ingresos y gastos mensuales**, individual o en grupo, multi-moneda. Registra **quién gastó, qué, con qué medio, cuándo y cuánto**, y lo muestra por mes, persona, tarjeta, banco, red y categoría.
 
-> Estado: **diseño completo, pre-desarrollo.** Toda la documentación está lista; falta empezar a programar la Fase 1.
+> Estado: **diseño completo,en desarrollo, demo1 live.** Toda la documentación está lista. 
 
 ## Documentación
 
